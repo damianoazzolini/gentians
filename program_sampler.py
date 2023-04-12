@@ -1,10 +1,13 @@
 import random
 import copy
 import re
+import sys
 
 from clingo_interface import ClingoInterface
 
-# numebr of underscore for placeholders in atoms
+import utils
+
+# number of underscore for placeholders in atoms
 UNDERSCORE_SIZE = 5
 
 class Literal:
@@ -15,7 +18,7 @@ class Literal:
         self.can_be_negated = can_be_negated
         
     def __str__(self) -> str:
-        return f"{self.name} - Arity {self.arity} - Recall {self.recall} - Negated {self.can_be_negated}\n"
+        return f"\n{self.name} - Arity {self.arity} - Recall {self.recall} - Negated {self.can_be_negated}"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -36,12 +39,12 @@ class Literal:
         
         atom = modeb[pos + 1 : ]
         negated = False
-        if atom.startswith('not '):
+        if atom.lstrip().startswith('not '):
             negated = True
         if negated:
-            name = atom[4:].split('(')[0]
+            name = atom.lstrip()[4:].split('(')[0]
         else:
-            name = atom.split('(')[0]
+            name = atom.lstrip().split('(')[0]
         if '(' in atom and not(',' in atom):
             arity = 1
         else:
@@ -68,7 +71,9 @@ class ProgramSampler:
         max_depth : int = 3,
         max_variables : int = 2,
         max_clauses : int = 3,
-        verbose : int = 0
+        verbose : int = 0,
+        enable_find_max_vars_stub : bool = False,
+        find_all_possible_pos_for_vars_one_shot : bool = True
         ) -> None:
         self.head_atoms : 'list[Literal]' = []
         self.body_literals : 'list[Literal]' = []
@@ -84,41 +89,47 @@ class ProgramSampler:
         self.max_variables : int = max_variables
         self.max_clauses : int = max_clauses
         self.verbose : int = verbose
+        self.enable_find_max_vars_stub : bool = enable_find_max_vars_stub
+        self.find_all_possible_pos_for_vars_one_shot : bool = find_all_possible_pos_for_vars_one_shot
         
-    @staticmethod
-    def define_distribution_for_body(
-        body_atoms : 'list[Literal]'
+        # True if we are sampling for a constraint, changed every iteration
+        self.body_constraint : bool = False
+
+
+    def define_distribution_atoms(
+        self,
+        available_atoms : 'list[Literal]'
         ) -> 'tuple[list[float],bool]':
         '''
         Returns a list of float representing the probability
-        of selecting an element for the body (uniform probaiblity).
+        of selecting an atom for the clause (uniform probability).
         The bool is True if the list if of all zeros.
         '''
         # print(body_atoms)
-        probs : 'list[float]' = [1/len(body_atoms)] * len(body_atoms)
+        probs : 'list[float]' = [1/len(available_atoms)] * len(available_atoms)
         zeros : int = 0
-        for i in range(len(body_atoms)):
-            if body_atoms[i].recall <= 0 and body_atoms[i].recall != -9999:
+        for i in range(len(available_atoms)):
+            if available_atoms[i].recall <= 0 and available_atoms[i].recall != -9999:
                 probs[i] = 0
                 zeros += 1
         # print(probs)
-        if len(body_atoms) == zeros:
-            return [0] * len(body_atoms), True
+        if len(available_atoms) == zeros:
+            return [0] * len(available_atoms), True
         
-        uniform_prob = 1 / (len(body_atoms) - zeros)
-        for i in range(len(body_atoms)):
+        uniform_prob = 1 / (len(available_atoms) - zeros)
+        for i in range(len(available_atoms)):
             if probs[i] != 0:
                 probs[i] = uniform_prob
             
         return probs, False
 
-    @staticmethod
-    def sample_level_distr_recall(body_atoms : 'list[Literal]') -> 'tuple[str,int]':
+
+    def sample_level_distr_recall(self, available_atoms : 'list[Literal]') -> 'tuple[str,int]':
         '''
         Randomly samples an element if the recall is not 0
         '''
         probs : 'list[float]'
-        probs, all_zeros = ProgramSampler.define_distribution_for_body(body_atoms)
+        probs, all_zeros = self.define_distribution_atoms(available_atoms)
         # print(probs)
         if not all_zeros:
             v : float = random.random()
@@ -130,34 +141,43 @@ class ProgramSampler:
                 v -= probs[pos]
                 pos += 1
             
-            return ("not " if (random.random() < 0.5 and body_atoms[pos].can_be_negated) else "") +  body_atoms[pos].get_str_representation(), pos
+            return (
+                "not " if (random.random() < 0.5 and available_atoms[pos].can_be_negated) 
+                else ""
+                ) + available_atoms[pos].get_str_representation(), pos
         else:
             return "", -1
 
-    # @staticmethod
-    # def sample_level(body_atoms : 'list[Literal]') -> str:
-    #     '''
-    #     Randomly samples an element and whether is true or false
-    #     '''
-    #     pos = random.randint(0, len(body_atoms) - 1)
-    #     return ("not " if (random.random() < 0.5 and body_atoms[pos].can_be_negated) else "") +  body_atoms[pos].get_str_representation()
 
     def generate_asp_program_for_combinations(
         self,
         n_positions : int, 
         n_variables : int, 
-        n_vars_in_head : int) -> str:
+        n_vars_in_head : int,
+        to_find_max_number : bool = False
+        ) -> str:
         '''
         Generate an ASP program to fill the holes in rules.
+        to_find_max_number adds some rules to maximize the number
+        of clauses. In this way we find the maximum number according
+        to the constraints and avoid the generation of unused rules 
+        to compute the possible choices.
         '''
+        
+        # # TEST
+        # print("VALORI FISSATI")
+        # n_positions = 4
+        # n_variables = 3
+        # n_vars_in_head = 1
+        
+        # print(f"n_positions: {n_positions}")
+        # print(f"n_variables: {n_variables}")
+        # print(f"n_vars_in_head: {n_vars_in_head}")
+
         s = f"#const n_positions = {n_positions}.\n"
-        
-        print(n_vars_in_head)
-        print(n_positions)
-        print(n_variables)
-        
         # generators
-        # s += "% generators for the possible positions\nvk(p) states that the k-th variable is at position p\n"
+        # s += "% generators for the possible positions\n
+        # vk(p) states that the k-th variable is at position p\n"
         for i in range(n_variables):
             s += "{v" + str(i) + f"(0..{n_positions - 1})" + '}.\n'
         s += '\n'
@@ -167,12 +187,15 @@ class ProgramSampler:
             s += f"cv{i}(C):- C = #count" + "{" + f"V : v{i}(V)" + "}.\n"
         s += '\n'
         
-        # only one variable per position
+        # exactly one variable per position
         if n_variables > 1:
-            c = ":- "
+            c = ""
             for i in range(n_variables):
-                c += f"v{i}(X),"
-            c = c[:-1] + '.\n\n'
+                c += f"p(X) :- v{i}(X).\n"
+            c = c + '\n\n'
+            for i in range(n_positions):
+                c += f":- not p({i}).\n"
+            c = c + '\n\n'
             s += c
         
         # all the positions must be filled
@@ -184,9 +207,9 @@ class ProgramSampler:
         c = c[:-1] + ' != n_positions.\n\n'
         s += c
         
-        # all the variables must be present
-        for i in range(n_variables):
-            s += f":- cv{i}(0).\n"
+        # all the variables must be present - removed, that can be 0
+        # for i in range(n_variables):
+        #     s += f":- cv{i}(0).\n"
         
         # only safe rules: all the variables in the heads must
         # be in a positive literal in the body
@@ -206,13 +229,40 @@ class ProgramSampler:
         for i in range(n_variables):
             # cv0_tot(C):- C = #count{V : v0(V)}.
             # :- cv0_tot(C), C < 2.
-            s += f"cv{i}_tot(C):- C = #count" + "{" + f"V : v{i}(V)" + "}.\n"
-            s += f":- cv{i}_tot(C), C < 2.\n"
+            # già inserito prima per il contatore delle variabili, cv{i}
+            # s += f"cv{i}_tot(C):- C = #count" + "{" + f"V : v{i}(V)" + "}.\n"
+            # = 1 e non < 2 perché permetto che una variabile
+            # non sia usata
+            s += f":- cv{i}(C), C = 1.\n"
+            
+        # impose an order to avoid solutions of the form
+        # this is done by inserting constraints
+        # that are equivalent
+        for i in range(n_variables - 1):
+            for j in range(i + 1, n_variables):
+                s += f":- cv{i}(0), cv{j}(V{j}), V{j} > 0.\n"
             
         s += '\n'
-        for i in range(n_variables):
-            s += f"#show v{i}/1.\n"
         
+        if not to_find_max_number:
+            for i in range(n_variables):
+                s += f"#show v{i}/1.\n"
+        else:
+            # add the part to find the maximum number of variables
+            # TODO: maybe is hella slow
+            for i in range(n_variables):
+                s += f"cnt{i}(N):- N = #count" + "{" + f"X : cv{i}(X), X > 0" + "}.\n"
+            
+            c = "\nn_vars(X):- "
+            for i in range(n_variables):
+                c += f"cnt{i}(X{i}),"
+            for i in range(n_variables):
+                c += f"X{i}+"
+            c = c[:-1] + ' = X.\n\n'
+
+            s += c + "\n#maximize{X : n_vars(X)}.\n#show n_vars/1.\n"
+
+
         return s
     
 
@@ -230,41 +280,155 @@ class ProgramSampler:
         return r
 
 
+    def place_variables_list_of_clauses(self, sampled_clauses : 'list[str]') -> 'list[list[str]]':
+        '''
+        Loop to place the variable sin all the sampled clauses
+        '''
+        placed_list : 'list[list[str]]' = []
+        
+        for clause in sampled_clauses:
+            # print("FISSATO")
+            # clause = ":- can(_____,_____),can(_____,_____)."
+            print(f"Placing variables for {clause}")
+            # TODO: miglioria. Qui i valori sono sempre gli stessi,
+            # Per esempio: :- a(_), b(_) e :- a(_), c(_) hanno le
+            # stesse possibili combinazioni quindi posso evitare di
+            # calcolarle nuovamente. Stesso numero di variabili e di
+            # posizioni
+            r = self.place_variables_clause(clause)
+            for a in r:
+                print(a)
+            # sys.exit()
+            if len(r) > 0: # and not (r in placed_list):
+                r.sort()
+                placed_list.append(r)
+        
+        return placed_list
+
+
     def place_variables_clause(self, sampled_stub : str) -> 'list[str]':
         '''
         Replaces the _____ with the variables in the clause.
         This now works with only 1 clause
         '''
         res : list[str] = []
-        asp_p = self.generate_asp_program_for_combinations(
-            sampled_stub.count('_' * UNDERSCORE_SIZE),
-            random.randint(1, self.max_variables), # random number of variables
-            sampled_stub.split(':-')[0].count('_' * UNDERSCORE_SIZE)
+        # number of position to insert the variables
+        n_positions : int = sampled_stub.count('_' * UNDERSCORE_SIZE)
+        # number of variables to insert
+        # rv = random.randint(1, self.max_variables)
+        rv = self.max_variables # deterministic is better
+        if n_positions <= 2:
+            n_variables = 1
+        else:
+            n_variables = rv
+        # number of variables in the head
+        n_vars_in_head = sampled_stub.split(':-')[0].count('_' * UNDERSCORE_SIZE)
+        # print(n_positions, n_variables, n_vars_in_head)
+        # TODO: migliorie
+        # 1) la variabile coinvolta in una ricorsione deve variare
+        # es: a(X):- b(X), a(X).
+        # 2) no variabili unsafe (quando c'è negazione)   
+        if not(n_positions == 1 and n_variables == 1 and n_vars_in_head == 0):
+            # the if is false if there is a constraint :- a(_).
+            if self.enable_find_max_vars_stub:
+                ### add the optimization part to find the max number of vars
+                # TODO: test whether is hella slow
+                asp_p = self.generate_asp_program_for_combinations(
+                    n_positions,
+                    n_variables,
+                    n_vars_in_head,
+                    True
+                )
+                # print(asp_p)
+                asp_interface = ClingoInterface([asp_p], ["--opt-mode=opt"])
+                ctl = asp_interface.init_clingo_ctl()
+                
+                max_num = 0
+                with ctl.solve(yield_=True) as handle:  # type: ignore
+                    for m in handle:  # type: ignore
+                        max_num = int(str(m).split('n_vars(')[1][:-1])
+                # print(max_num)
+                n_variables = max_num
+            #####
+            # sys.exit()
+            
+            asp_p = self.generate_asp_program_for_combinations(
+                n_positions,
+                n_variables,
+                n_vars_in_head,
+                False
             )
-        
-        # print(asp_p)
+            
+            # print(asp_p)
 
-        for el in range(0, sampled_stub.count('_'*UNDERSCORE_SIZE)):
-            sampled_stub = re.sub('_'*UNDERSCORE_SIZE, f"_v{el:02d}_", sampled_stub, count=1)
+            # sys.exit()
+            # generates the clause to fill
+            for el in range(0, sampled_stub.count('_'*UNDERSCORE_SIZE)):
+                sampled_stub = re.sub('_'*UNDERSCORE_SIZE, f"_v{el:02d}_", sampled_stub, count=1)
 
-        # print('sampled stub')
-        # print(sampled_stub)
-        # print(asp_p)
-        asp_interface = ClingoInterface([asp_p], ["0"])
-        ctl = asp_interface.init_clingo_ctl()        
+            # print('sampled stub')
+            # print(sampled_stub)
+            
+            # TEST
+            # print("VALORI FISSATI")
+            # sampled_stub =  "odd(_v00_):-  odd(_v01_), prev(_v02_,_v03_)."
+            # print(asp_p)
+            # print("FISSATO")
+            # self.find_all_possible_pos_for_vars_one_shot = False
+            
+            if not self.find_all_possible_pos_for_vars_one_shot:
+                asp_interface = ClingoInterface([asp_p], ["0"])
+                ctl = asp_interface.init_clingo_ctl()        
 
-        with ctl.solve(yield_=True) as handle:  # type: ignore
-            for m in handle:  # type: ignore
-                # print(str(m))
-                res.append(self.reconstruct_clause(str(m), sampled_stub))
+                with ctl.solve(yield_=True) as handle:  # type: ignore
+                    for m in handle:  # type: ignore
+                        # print(str(m))
+                        res.append(self.reconstruct_clause(str(m), sampled_stub))
+            else:
+                # iteratively (until SAT): compute 1 answer set, compute the equivalent
+                # answer sets, add them (and the initial) in the program as
+                # constraint and continue.
+                # This is way more efficient if we know he max number of variables,
+                # since we need to add less constraints.
+                # print(asp_p)
+                enumerated_all = False
+                while not enumerated_all:
+                    asp_interface = ClingoInterface([asp_p], ["1"])
+                    ctl = asp_interface.init_clingo_ctl()
+                    current_as = "" 
+                    with ctl.solve(yield_=True) as handle:  # type: ignore
+                        for m in handle:  # type: ignore
+                            current_as = str(m)
 
+
+                    if len(current_as) > 0:
+                        # print(current_as)
+                        res.append(self.reconstruct_clause(current_as, sampled_stub))
+                        symmetric_as = utils.find_symmetric_answer_sets(current_as)
+                        for sa in symmetric_as:
+                            symm = ':- ' + ','.join(sa.split(' ')) + '.\n'
+                            asp_p += symm
+                    else:
+                        enumerated_all = True
+            # print("RES")
+            # print(res)
+            # print(len(res))
+            # sys.exit()
+            
         return res
     
     
-    def sample_literals_list(self, literals_list : 'list[Literal]', head : bool = False) -> 'list[str]':
+    def sample_literals_list(self, 
+        literals_list : 'list[Literal]',
+        head : bool = False
+        ) -> 'list[str]':
         '''
         Samples a list of literals to be used in either in the head
         or in the body.
+        head: True if the sampling is for the head of the rule (to allow constraints)
+        body_constraint: True if the sampling is for a constraint (to 
+            discard the possibility to sample constraints with a single
+            atom, i.e., :- a(_).)
         '''
         list_indexes_sampled_literals : 'list[int]' = [] # indexes
         sampled_list : 'list[str]' = []
@@ -273,55 +437,91 @@ class ProgramSampler:
         stop = (random.random() > prob_increase_level) if head else False
         
         while (not stop) and (depth < self.max_depth):
-            lv, sampled_literal = ProgramSampler.sample_level_distr_recall(literals_list)
-            if sampled_literal == -1:
+            lv, sampled_literal_index = self.sample_level_distr_recall(literals_list)
+            if sampled_literal_index == -1:
                 stop = True
             else:
-                list_indexes_sampled_literals.append(sampled_literal)
-                literals_list[sampled_literal].recall -= 1 # decrease the recall
+                list_indexes_sampled_literals.append(sampled_literal_index)
+                literals_list[sampled_literal_index].recall -= 1 # decrease the recall
                 if lv == '_stop_':
                     stop = True
                 else:
                     sampled_list.append(lv)
-                stop = (random.random() > prob_increase_level)
+                    # here we are in the body of a constraint: we need at least 2 atoms
+                if self.body_constraint and depth == 0:
+                    stop = False
+                else:
+                    stop = (random.random() > prob_increase_level)
                 depth += 1
 
         return sampled_list
 
     
-    def sample_clause_stub(self) -> str:
+    def sample_clause_stub(self, how_many : int = 0) -> 'list[str]':
         '''
         Samples a single clause.
         '''
-        body : 'list[str]' = []
-        head : 'list[str]' = []
-        # body_atoms_copy = self.body_literals.copy()
+        # TODO: 
+        # a(_):- b(_), c(_) è equivalente a
+        # a(_):- c(_), b(_)
+        original_depth : int = self.max_depth
+        clauses : 'list[str]' = []
         
-        body = self.sample_literals_list(copy.deepcopy(self.body_literals))
-        head = self.sample_literals_list(copy.deepcopy(self.head_atoms), True)
+        for _ in range(0, how_many):
+            body : 'list[str]' = []
+            head : 'list[str]' = []
+            
+            head = self.sample_literals_list(copy.deepcopy(self.head_atoms), True) # true allows constraints
+            if len(head) == 0:
+                self.body_constraint = True
+            else:
+                self.body_constraint = False
+            
+            # decrease the depth since we already sampled atoms for the head
+            self.max_depth -= len(head)
+            
+            body = self.sample_literals_list(copy.deepcopy(self.body_literals))
 
-        sampled_program = ';'.join(head) + ":- " + ','.join(body) + '.'
+            clauses.append(';'.join(sorted(head)) + ":- " + ','.join(sorted(body)) + '.')
+            self.max_depth = original_depth
 
-        return sampled_program
+            # print(head)
+            # print(body)
+            
+            # super ugly but more interpretable
+            # remove the clauses a(_) :- a(_)
+            if len(head) == 1 and len(body) == 1 and head == body:
+                # print(f'removed: {clauses[-1]}')
+                clauses = clauses[:-1]
+            # remove the causes :- a(_), a(_)
+            elif len(head) == 0 and len(body) == 2:
+                if body[0].count('_') == UNDERSCORE_SIZE and body[1].count('_') == UNDERSCORE_SIZE and body[0] == body[1]:
+                    # print(f'removed: {clauses[-1]}')
+                    clauses = clauses[:-1]
+                    
+            
+            # sys.exit()
+        return clauses
 
 
-    # def sample_program(self) -> 'tuple[list[str],list[str]]':
-    def sample_program_stub(self) -> 'list[str]':
-        '''
-        Samples a program composed of a set of clauses.
-        TODO: consider the already taken samples to define
-        the distribution
-        TODO: by now, only a single clause
-        TODO: consider the specialization of clauses and whether
-            they cover positive or negative example
-        '''
+    #     --- UNUSED ---
+    # # def sample_program(self) -> 'tuple[list[str],list[str]]':
+    # def sample_program_stub(self) -> 'list[str]':
+    #     '''
+    #     Samples a program composed of a set of clauses.
+    #     TODO: consider the already taken samples to define
+    #     the distribution
+    #     TODO: by now, only a single clause
+    #     TODO: consider the specialization of clauses and whether
+    #         they cover positive or negative example
+    #     '''
         
-        cl : 'list[str]' = []
-        for _ in range(0, random.randint(1, self.max_clauses)):
-            s = self.sample_clause_stub()
-            cl.append(s)
+    #     cl : 'list[str]' = []
+    #     for _ in range(0, random.randint(1, self.max_clauses)):
+    #         s = self.sample_clause_stub()
+    #         cl.append(s)
 
-        return cl
+    #     return cl
 
 
 # l0 = Literal("_stop_", 0, 1, False)
