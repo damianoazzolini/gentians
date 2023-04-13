@@ -40,6 +40,16 @@ class Strategy:
                 return self.__str__()
         
         
+        def compute_score_vars_and_rules(program : 'list[str]', best_l_index : 'list[int]', cp : int, cn : int) -> float:
+            '''
+            Compute the score of a rule by considering the covered positive, covered
+            negative, number of variables for the best indexes and the number of clauses
+            to be selected. The goal is to select programs with few variables and rules.
+            TODO
+            '''
+            return -1
+
+
         def evaluate_score(program : 'list[str]') -> 'tuple[int, int, float, bool, list[int]]':
             # returns covered positive, covered negative, score
             # how to assign a score?
@@ -48,7 +58,7 @@ class Strategy:
             # if cp > 0 -> score = cp / (cp + cn)
             # if score = 1 -> optimum found
             # print(self.background)
-            # TODO: better define a score. Also consider number of variables?
+            # TODO: better define a score. Also consider the number of variables?
             asp_solver = clingo_interface.ClingoInterface(self.background, ['-Wnone', '0', '--project'])
             # program[1] = "odd(V0):- even(V1),prev(V0,V1)."
             # program[0] = "even(V0):- odd(V1),prev(V0,V1)."
@@ -59,6 +69,7 @@ class Strategy:
             best_cp = 0
             best_cn = 0
             l_index : 'list[int]' = []
+            best_l_index : 'list[int]' = []
             for res in cov:
                 if res != "Error":
                     # set to remove duplicates
@@ -69,10 +80,12 @@ class Strategy:
                     if cp > best_cp:
                         best_cp = cp
                         best_cn = cn
+                        best_l_index = l_index
                         
                     if cp == len(self.positive_examples):
                         if cn == 0:
-                            print("Best found")
+                            print("Best found with")
+                            print(program)
                             best_found = True
                         # else:
                         #     print("Coverage 100% of the positive with")

@@ -140,13 +140,14 @@ class ClingoInterface:
         # # program = ["tails(V0); heads(V0):-  coin(V0)."]
         # program = [ "odd(V1):- even(V0), prev(V1,V0).", "even(V1):-  prev(V1,V0), odd(V0).", ":- even(V1), odd(V0), prev(V1,V0)."]
         # program = ["odd(V1); even(V1):- odd(V0), prev(V1,V0), r(0).", "odd(V0):-  even(V1), prev(V0,V1), r(1)."]
+        # program = ["red(X) ; green(X) ; blue(X) :- node(X).", ":- e(X,Y), red(X), red(Y).", ":- e(X,Y), green(X), green(Y).", ":- e(X,Y), blue(X), blue(Y)."]
         try:
             generated_program = ""
             # add the background knowledge
             for clause in self.lines:
                 generated_program += f"{clause}\n"
                 # ctl.add('base', [], clause)
-                
+
             # add the sampled program
             cl_index = 0
 

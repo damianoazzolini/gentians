@@ -90,6 +90,11 @@ class ProgramSampler:
         self.max_clauses : int = max_clauses
         self.verbose : int = verbose
         self.enable_find_max_vars_stub : bool = enable_find_max_vars_stub
+        
+        # If true, generates all the answer sets and then deletes the symmetric
+        # ones. If false, iteratively generates one answer set, computes the
+        # symmetric and then add to the ASP program a constraint for each symmetric.
+        # The iterative version is way slower, so True is preferred.
         self.find_all_possible_pos_for_vars_one_shot : bool = find_all_possible_pos_for_vars_one_shot
         
         # True if we are sampling for a constraint, changed every iteration
@@ -296,12 +301,22 @@ class ProgramSampler:
             # calcolarle nuovamente. Stesso numero di variabili e di
             # posizioni
             r = self.place_variables_clause(clause)
-            for a in r:
-                print(a)
-            # sys.exit()
+            print('PLACED')
+            # for a in r:
+            #     print(a)
             if len(r) > 0: # and not (r in placed_list):
                 r.sort()
-                placed_list.append(r)
+                valid_rules : 'list[str]' = []
+                for rl in r:
+                    if utils.is_valid_rule(rl):
+                        valid_rules.append(rl)
+                        print(f"Valid: {rl}")
+                    else:
+                        print(f"Pruned: {rl}")
+
+                if len(valid_rules) > 0:
+                    placed_list.append(valid_rules)
+            # sys.exit()
         
         return placed_list
 
@@ -360,8 +375,8 @@ class ProgramSampler:
             )
             
             # print(asp_p)
-
-            # sys.exit()
+            # TODO: dire che una coppia di atomi uguali non può
+            # avere le stesse variabili
             # generates the clause to fill
             for el in range(0, sampled_stub.count('_'*UNDERSCORE_SIZE)):
                 sampled_stub = re.sub('_'*UNDERSCORE_SIZE, f"_v{el:02d}_", sampled_stub, count=1)
@@ -374,16 +389,49 @@ class ProgramSampler:
             # sampled_stub =  "odd(_v00_):-  odd(_v01_), prev(_v02_,_v03_)."
             # print(asp_p)
             # print("FISSATO")
-            # self.find_all_possible_pos_for_vars_one_shot = False
+            # self.find_all_possible_pos_for_vars_one_shot = True
+            # res0 = []  
+            # res1 = []  
             
-            if not self.find_all_possible_pos_for_vars_one_shot:
+            if self.find_all_possible_pos_for_vars_one_shot:
                 asp_interface = ClingoInterface([asp_p], ["0"])
-                ctl = asp_interface.init_clingo_ctl()        
-
+                ctl = asp_interface.init_clingo_ctl()      
+                
+                answer_sets : 'list[str]' = []
                 with ctl.solve(yield_=True) as handle:  # type: ignore
                     for m in handle:  # type: ignore
                         # print(str(m))
-                        res.append(self.reconstruct_clause(str(m), sampled_stub))
+                        a = str(m).split(' ')
+                        a.sort()
+                        a = ' '.join(a)
+                        answer_sets.append(a)
+                        # res.append(self.reconstruct_clause(str(m), sampled_stub))
+                
+                # print(answer_sets)
+                # print(len(answer_sets))
+                # generate all the combinations and prune the symmetric
+                lo : 'list[str]' = copy.deepcopy(answer_sets)
+                # for i in range(0, len(answer_sets)):
+                removed : 'list[str]' = []
+                for answer in answer_sets:
+                    symmetric_as = utils.find_symmetric_answer_sets(answer)
+                    current = symmetric_as[0]
+                    symm = symmetric_as[1:]
+                    if len(symmetric_as) > 0:
+                        # print(symmetric_as)
+                        if current not in removed:
+                            # print("Not in")
+                            # print(symmetric_as)
+                            for s in symm:
+                                s = s.split(' ')
+                                s.sort()
+                                s = ' '.join(s)
+                                removed.append(s)
+                                lo.remove(s)
+                
+                for a in lo:
+                    res.append(self.reconstruct_clause(a, sampled_stub))
+                # print(len(lo))                
             else:
                 # iteratively (until SAT): compute 1 answer set, compute the equivalent
                 # answer sets, add them (and the initial) in the program as
@@ -393,6 +441,8 @@ class ProgramSampler:
                 # print(asp_p)
                 enumerated_all = False
                 while not enumerated_all:
+                    # TODO? Invece di generare un vincolo e poi aggiungerlo,
+                    # enumerare tutti gli AS e poi scandirli e scartarli
                     asp_interface = ClingoInterface([asp_p], ["1"])
                     ctl = asp_interface.init_clingo_ctl()
                     current_as = "" 
@@ -405,16 +455,26 @@ class ProgramSampler:
                         # print(current_as)
                         res.append(self.reconstruct_clause(current_as, sampled_stub))
                         symmetric_as = utils.find_symmetric_answer_sets(current_as)
+                        # print(f"Found {len(symmetric_as)} symmetric AS")
                         for sa in symmetric_as:
                             symm = ':- ' + ','.join(sa.split(' ')) + '.\n'
                             asp_p += symm
                     else:
                         enumerated_all = True
-            # print("RES")
-            # print(res)
-            # print(len(res))
-            # sys.exit()
-            
+        # print("RES")
+        # # print(res)
+        # print(len(res))
+        # sys.exit()
+
+        # print(len(res0))
+        # print(len(res1))
+        # if len(res0) == len(res1):
+        #     res = res0
+        # else:
+        #     print("ERROR AAAAAAAA")
+        #     print(res0)
+        #     print(res1)
+        #     sys.exit()
         return res
     
     

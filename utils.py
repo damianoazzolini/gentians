@@ -34,8 +34,10 @@ def find_symmetric_answer_sets(current_as : str) -> 'list[str]':
     l_vars = [i for i in range(n_vars + 1)]
     l_vars_name = ["v" + str(a) for a in l_vars]
 
-    # this is n! # COMPLEX
+    # this is n! # COMPLEX 
     perm = itertools.permutations(l_vars)
+    # TODO: is it possible to write an ASP rule to prune the permutations
+    # instead of adding a set of constraints? This would be much faster.
 
     perms : 'list[str]' = []
     for p in perm:
@@ -46,4 +48,95 @@ def find_symmetric_answer_sets(current_as : str) -> 'list[str]':
         lc = lc.replace('_','')
         perms.append(lc)
 
+    # print(f"--- Permutation {current_as} {l_vars} ---")
+    # print(perms)
     return perms
+
+
+def get_atoms(clause: str) -> 'list[str]':
+    clause_list = clause.replace(' ','').split(':-')
+    head = clause_list[0]
+    body = clause_list[1]
+    head = head.split(';')
+    body = body.split('),')
+    body[-1] = body[-1][:-2]
+    for i in range(0, len(body)):
+        body[i] = body[i] + ')'
+
+    return head + body
+
+
+def is_valid_rule(rule : str) -> bool:
+    '''
+    Returns true if the rule is valid, i.e., there are no
+    two equal atoms. For example: 
+    :- blue(V1),blue(V1),e(V0,V0),green(V0). is not valid (blue(V1) repeated), while
+    :- blue(V1),blue(V0),e(V0,V1),green(V0). it is
+    TODO: this should be done with an ASP constraint instead of generating
+    all the rules and then discard the not valid ones.
+    '''
+    atoms = get_atoms(rule)
+    return len(atoms) == len(list(set(atoms)))
+
+
+
+def read_popper_format(folder : str):
+    # file: bias.pl, bk.pl, exs.pl
+    background : 'list[str]' = []
+    positive_examples : 'list[str]' = []
+    negative_examples : 'list[str]' = []
+    language_bias_head : 'list[str]' = []
+    language_bias_body : 'list[str]' = []
+    
+    # background
+    fp = open(folder + "bk.pl")
+    lines = fp.readlines()
+    fp.close()
+    
+    for l in lines:
+        background.append(l.replace('\n',''))
+        
+    # language bias
+    fp = open(folder + "bias.pl")
+    lines = fp.readlines()
+    fp.close()
+    
+    for line in lines:
+        if line.startswith('head_pred') or line.startswith('body_pred'):
+            t = ""
+            if line.startswith('head_pred'):
+                line = line.split('head_pred')[1][1:].replace(')','').replace('.','')
+                t = "head"
+            elif line.startswith('body_pred'):
+                line = line.split('body_pred')[1][1:].replace(')','').replace('.','')
+                t = "body"
+
+            arity = int(line.split(",")[1])
+            name = line.split(",")[0]
+            if arity > 0:
+                name += '('
+                for i in range(0,arity):
+                    name += '+,'
+                name = name[:-1] + ')'
+            
+            if t == "head":
+                name = "modeh(1," + name + ")."
+                language_bias_head.append(name)
+            elif t == "body":
+                name = "modeb(1," + name + ")."
+                language_bias_body.append(name)
+                
+    # examples
+    fp = open(folder + "exs.pl")
+    lines = fp.readlines()
+    fp.close()    
+    
+    for line in lines:
+        if line.startswith('pos'):
+            line = line.split('pos')[1][1:].replace('\n','')[:-2]
+            positive_examples.append(line)
+        elif line.startswith('neg'):
+            line = line.split('neg')[1][1:].replace('\n','')[:-2]
+            negative_examples.append(line)
+    
+    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
