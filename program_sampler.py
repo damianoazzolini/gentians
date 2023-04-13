@@ -70,7 +70,7 @@ class ProgramSampler:
         language_bias_body : 'list[str]',
         max_depth : int = 3,
         max_variables : int = 2,
-        max_clauses : int = 3,
+        # max_clauses : int = 3,
         verbose : int = 0,
         enable_find_max_vars_stub : bool = False,
         find_all_possible_pos_for_vars_one_shot : bool = True
@@ -87,7 +87,7 @@ class ProgramSampler:
 
         self.max_depth : int = max_depth
         self.max_variables : int = max_variables
-        self.max_clauses : int = max_clauses
+        # self.max_clauses : int = max_clauses
         self.verbose : int = verbose
         self.enable_find_max_vars_stub : bool = enable_find_max_vars_stub
         

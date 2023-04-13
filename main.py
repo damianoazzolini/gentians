@@ -5,6 +5,12 @@ import random
 import copy
 import time
 
+import utils
+
+import argparse
+
+import os.path
+
 import strategies
 
 from clingo_interface import ClingoInterface
@@ -13,6 +19,8 @@ from clingo_interface import Coverage
 from program_sampler import ProgramSampler
 
 import example_programs
+
+program_description = "Learn ASP rules with genetic algorithm."
 
 # class Literal:
 #     def __init__(self, string_representation : str) -> None:
@@ -141,18 +149,21 @@ class Solver:
         negative_examples : 'list[str]',
         language_bias_head : 'list[str]',
         language_bias_body : 'list[str]',
-        verbose : int = 1
+        arguments : argparse.Namespace
         ) -> None:
         self.background : 'list[str]' = background
         self.positive_examples : 'list[str]' = positive_examples
         self.negative_examples : 'list[str]' = negative_examples
         self.language_bias_head : 'list[str]' = language_bias_head
         self.language_bias_body : 'list[str]' = language_bias_body
-        self.verbose : int = verbose
-
-    
-    def sample_program(self) -> Program:
-        return Program([], 0, 0)
+        self.verbose : int = arguments.verbose
+        self.max_depth : int = arguments.depth
+        self.max_variables : int = arguments.variables
+        self.sample_loops : int = arguments.iterations
+        self.n_clauses_genetic : int = arguments.clauses
+        self.pop_size_genetic : int = arguments.pop_size
+        self.mutation_probability : float = arguments.mutation_probability
+        self.iterations_genetic : int = arguments.iterations_genetic
     
     
     def identify_set_clauses(self, program : 'list[str]', fixed : bool = True) -> 'dict[str,Coverage]':
@@ -195,21 +206,20 @@ class Solver:
         Main loop
         '''
         # maximum number of clauses in a program
-        max_clauses = 2
-        max_variables = 3
-        max_depth = 4
+        # max_variables = 3
+        # max_depth = 4
  
         # sampling loops and test
-        sample_loops : int = 10
+        # sample_loops : int = 10
         
         best_found : bool = False
 
         sampler = ProgramSampler(
             self.language_bias_head,
             self.language_bias_body,
-            max_depth = max_depth,
-            max_variables = max_variables,
-            max_clauses = max_clauses,
+            max_depth = self.max_depth,
+            max_variables = self.max_variables,
+            # max_clauses = max_clauses,
             verbose = self.verbose,
             enable_find_max_vars_stub=False,
             find_all_possible_pos_for_vars_one_shot=True
@@ -217,7 +227,7 @@ class Solver:
         
 
         start_total_time = time.time()
-        for it in range(sample_loops):
+        for it in range(self.sample_loops):
             # Step 0: sample a list of clauses
             print(f"Sampling loop: {it}")
             start_time = time.time()
@@ -256,11 +266,15 @@ class Solver:
             # Step 3: genetic algorithm
             start_time = time.time()
             current_strategy = strategies.Strategy(placed_list, self.background, positive_examples, negative_examples)
-            n_clauses_genetic = 6
-            pop_size_genetic = 50
-            iterations_genetic = 10000
-            mutation_probability = 0.2
-            prg, score, best_found = current_strategy.genetic_solver(n_clauses_genetic, pop_size_genetic, mutation_probability, iterations_genetic)
+            # n_clauses_genetic = 6
+            # pop_size_genetic = 50
+            # iterations_genetic = 10000
+            # mutation_probability = 0.2
+            prg, score, best_found = current_strategy.genetic_solver(
+                self.n_clauses_genetic, 
+                self.pop_size_genetic, 
+                self.mutation_probability,
+                self.iterations_genetic)
             genetic_time = time.time() - start_time
             
             print(f"Iteration {it} - Time {genetic_time}")
@@ -275,33 +289,67 @@ class Solver:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        folder = sys.argv[1]
+    command_parser = argparse.ArgumentParser(description=program_description)
+    command_parser.add_argument("-dir", "--directory", help="Directory storing the \
+        bk.pl, exs.pl, and bias.pl files (Popper format).", type=str, default=".")
+    command_parser.add_argument("-v", "--verbose", help="Verbose mode", type=int, \
+        choices=range(0,3), default=0)
+    command_parser.add_argument("-c", "--clauses", help="Max clauses to consider in a \
+        program", type=int, default=6)
+    command_parser.add_argument("-vars", "--variables", help="Max variables to consider \
+        in a rule", type=int, default=3)
+    command_parser.add_argument("-d", "--depth", help="Max literals in rules", \
+        type=int, default=4)
+    command_parser.add_argument("-it", "--iterations", help="Max number of sample and \
+        genetic iterations", type=int, default=10)
+    command_parser.add_argument("-s", "--sample", help="Number of clauses to sample",\
+        type=int, default=1000)
+    command_parser.add_argument("-p", "--pop-size", help="Size of the population",\
+        type=int, default=50)
+    command_parser.add_argument("-itg", "--iterations-genetic", help="Number of \
+        iterations for the genetic algorithm", type=int, default=10000)
+    command_parser.add_argument("-mp", "--mutation-probability", help="Mutation \
+        probability", type=float, default=0.2)
+    command_parser.add_argument("-e", "--example", help="Load a predefined example", \
+        choices=["coin", "even_odd", "animals_bird", "coloring", \
+            "adjacent_to_red", "grandparent"], default=None)
+    
+    args = command_parser.parse_args()
+    
+    background = []
+    positive_examples = []
+    negative_examples = []
+    language_bias_head = []
+    language_bias_body = []
+    
+    if args.example is None:
+        if (os.path.isfile(args.directory + "bk.pl") and 
+            os.path.isfile(args.directory + "exs.pl") and
+            os.path.isfile(args.directory + "bias.pl")):
+            background, positive_examples, negative_examples,\
+                language_bias_head, language_bias_body = utils.read_popper_format(
+                    args.directory)
+        else:
+            utils.print_error_and_exit("Specify a directory or an example")
     else:
-        # even - odd
-        # OK
-        # background, positive_examples, negative_examples, language_bias_head, language_bias_body = example_programs.even_odd_example()
-        
-        # coin
-        # OK
-        # background, positive_examples, negative_examples, language_bias_head, language_bias_body = example_programs.coin_example()
-        
-        # animals bird
-        # OK
-        # background, positive_examples, negative_examples, language_bias_head, language_bias_body = example_programs.animals_bird_example()
-
-        # grandparent
-        # background, positive_examples, negative_examples, language_bias_head, language_bias_body = example_programs.grandparent_example()
-
-        # adjacient to red
-        # background, positive_examples, negative_examples, language_bias_head, language_bias_body = example_programs.adjacent_to_red_example()
-        
-        # coloring
-        background, positive_examples, negative_examples, language_bias_head, language_bias_body = example_programs.coloring_example()
-        
-        # QUESTO
-        # non risolubile perché non imparo regole ground
-        # background, positive_examples, negative_examples, language_bias_head, language_bias_body = example_programs.penguin_example()
+        if args.example == "coin":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.coin_example()
+        elif args.example == "even_odd":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.even_odd_example()
+        elif args.example == "animals_birds":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.animals_bird_example()
+        elif args.example == "coloring":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.coloring_example()
+        elif args.example == "adjacent_to_red":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.adjacent_to_red_example()
+        elif args.example == "grandparent":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.grandparent_example()
 
         # folder = "examples/abduce/" # troppo grande
         # folder = "examples/andersen/"
@@ -327,7 +375,7 @@ if __name__ == "__main__":
         negative_examples, 
         language_bias_head, 
         language_bias_body,
-        verbose = 2
+        args
     )
 
     s.solve()

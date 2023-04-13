@@ -69,30 +69,31 @@ class Strategy:
             best_cp = 0
             best_cn = 0
             l_index : 'list[int]' = []
-            best_l_index : 'list[int]' = []
+            l_best_indexes : 'list[str]' = []
             for res in cov:
                 if res != "Error":
                     # set to remove duplicates
                     cp : int = len(list(set(cov[res].l_pos)))
                     cn : int = len(list(set(cov[res].l_neg)))
-                    l_index = [int(v) for v in list(res)]
+                    # l_index = [int(v) for v in list(res)]
                     # print(cp, cn, l_index)
                     if cp > best_cp:
                         best_cp = cp
                         best_cn = cn
-                        best_l_index = l_index
+                        # best_l_index = l_index
                         
                     if cp == len(self.positive_examples):
                         if cn == 0:
-                            print("Best found with")
+                            print(f"Best found with {res}")
                             print(program)
+                            l_best_indexes.append(res)
                             best_found = True
                         # else:
                         #     print("Coverage 100% of the positive with")
                         # print([program[i] for i in l_index], cp, cn)
                         
-                        if best_found:
-                            break
+            # if best_found:
+            #     break
             # print(cov)
             # print(len(cov))
             # sys.exit()
@@ -102,7 +103,12 @@ class Strategy:
             # else:
             #     score = -best_cn
             # test 2 score
+            # TODO: improve the score
             score = best_cp - best_cn
+            
+            # shortest one
+            l_best_indexes.sort(key = lambda s : len(s))
+            l_index = [int(v) for v in list(l_best_indexes[0])] if len(l_best_indexes) > 0 else []
             
             return best_cp, best_cn, score, best_found, l_index 
         
