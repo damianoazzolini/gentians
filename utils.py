@@ -101,12 +101,39 @@ def is_valid_rule(rule : str) -> bool:
     return len(atoms) == len(list(set(atoms)))
 
 
+def generate_clauses_for_coverage_interpretations(
+    interpretations : 'list[list[str]]', 
+    positive : bool
+    ) -> str:
+    '''
+    Generates the clauses for the ASP solver to check the coverage.
+    '''
+    generated_str : str = ""
+    suffix : str = "cp" if positive else "cn"
+    cl_index = 0
+    for atoms in interpretations:
+        # inclusion
+        if len(atoms[0]) > 0:
+            r = f"{suffix}i({cl_index}):- {','.join(atoms[0].split(' '))}.\n"
+            # print(r)
+            generated_str += r
+        # exclusion
+        if len(atoms[1]) > 0:
+            for atom in atoms[1].split(' '):
+                r = f"{suffix}e({cl_index}):- {atom}.\n"
+                generated_str += r
+        # ctl.add('base', [], r)
+        cl_index += 1
+    generated_str += '\n'
+    
+    return generated_str
+    
 
 def read_popper_format(folder : str):
     # file: bias.pl, bk.pl, exs.pl
     background : 'list[str]' = []
-    positive_examples : 'list[str]' = []
-    negative_examples : 'list[str]' = []
+    positive_examples : 'list[list[str]]' = []
+    negative_examples : 'list[list[str]]' = []
     language_bias_head : 'list[str]' = []
     language_bias_body : 'list[str]' = []
     

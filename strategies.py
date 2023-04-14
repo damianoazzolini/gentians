@@ -7,13 +7,13 @@ class Strategy:
     def __init__(self, 
         placed_list : 'list[list[str]]',
         background : 'list[str]',
-        positive_examples : 'list[str]',
-        negative_examples : 'list[str]',
+        positive_examples : 'list[list[str]]',
+        negative_examples : 'list[list[str]]',
         ) -> None:
         self.placed_list : 'list[list[str]]' = placed_list
         self.background : 'list[str]' = background
-        self.positive_examples : 'list[str]' = positive_examples
-        self.negative_examples : 'list[str]' = negative_examples
+        self.positive_examples : 'list[list[str]]' = positive_examples
+        self.negative_examples : 'list[list[str]]' = negative_examples
     
     def genetic_solver(self,
         number_clauses : int, # number of clauses to consider for each program
@@ -91,7 +91,8 @@ class Strategy:
                         # else:
                         #     print("Coverage 100% of the positive with")
                         # print([program[i] for i in l_index], cp, cn)
-                        
+            
+            # sys.exit()        
             # if best_found:
             #     break
             # print(cov)

@@ -1,6 +1,9 @@
 import clingo
 import sys
 
+import utils
+
+
 class Coverage:
     def __init__(self, l_pos : 'list[int]' = [], l_neg : 'list[int]' = []):
         self.l_pos = l_pos
@@ -19,6 +22,7 @@ class ClingoInterface:
         self.clingo_arguments = clingo_arguments
 
 
+    # TODO: cambiare questione coverage
     def init_clingo_ctl(self) -> 'clingo.Control':
         '''
         Init clingo and grounds the program
@@ -35,94 +39,11 @@ class ClingoInterface:
 
         return ctl
 
-
-    def test_coverage_example(self, interpretation_pos : 'list[str]', interpretation_neg : 'list[str]') -> 'tuple[int,int]':
-        '''
-        Init clingo and grounds the program.
-        Returns the number of covered positive and covered
-        negative examples.
-        '''
-        ctl = clingo.Control(self.clingo_arguments)
-        try:
-            # self.lines = self.lines[1:]
-            # self.lines.append("odd(V0):- even(V1), prev(V0,V1).")
-            # self.lines.append("even(V0):- odd(V1), prev(V0,V1).")
-            for clause in self.lines:
-                # print(clause)
-                ctl.add('base', [], clause)
-            ctl.ground([("base", [])])
-        except Exception as e:
-            return -1, -1
-            # print(type(e))
-            # print(e.args)
-            # # TODO: handle unsafe vars or check this while 
-            # # generating the clause
-            # print('Syntax error, parsing failed.')
-        
-        # res = str(ctl.solve())
-        
-        answer_sets : 'list[str] '= []
-
-        # print(f'----- {mode}')
-        with ctl.solve(yield_=True) as handle:  # type: ignore
-            for m in handle:  # type: ignore
-                answer_sets.append(str(m))
-        
-        print("answer sets")
-        print(answer_sets)
-
-        count_positive = 0
-        count_negative = 0
-        
-        # print(*answer_sets, sep='\n')
-        # print("interpretation_pos")
-        # print(interpretation_pos)
-        # print("interpretation_neg")
-        # print(interpretation_neg)
-
-        # se unsat restituire 0
-        if len(answer_sets) == 0:
-            # unsat
-            return 0, len(interpretation_neg)
-
-        # check the coverage of the positive and negative examples
-        
-        # check positive coverage
-        for interp in interpretation_pos:
-            # for each positive example
-            found = True
-            for model in answer_sets:
-                # loop through the computed answer sets
-                # print(model)
-                for ii in interp.split(' '):
-                    if ii not in model:
-                        found = False
-                        # exact coverage: every atom should be present
-                        break
-            count_positive += int(found)
-
-        # check negative coverage        
-        for interp in interpretation_neg:
-            found = False
-            for model in answer_sets:
-                for ii in interp.split(' '):
-                    if ii in model:
-                        found = True
-                        # exact coverage: none of the atoms should be present
-                        break
-            count_negative += int(found)
-
-        return count_positive, count_negative
-
-        # if (res == 'SAT' and mode) or (res == 'UNSAT' and not mode):
-        #     return True
-        # else:
-        #     return False
         
     def extract_coverage_and_set_clauses(self,
         program : 'list[str]', 
-        interpretation_pos : 'list[str]', 
-        interpretation_neg : 'list[str]',
+        interpretation_pos : 'list[list[str]]', 
+        interpretation_neg : 'list[list[str]]',
         fixed : bool = True
         ) -> 'dict[str,Coverage]':
         '''
@@ -141,6 +62,8 @@ class ClingoInterface:
         # program = [ "odd(V1):- even(V0), prev(V1,V0).", "even(V1):-  prev(V1,V0), odd(V0).", ":- even(V1), odd(V0), prev(V1,V0)."]
         # program = ["odd(V1); even(V1):- odd(V0), prev(V1,V0), r(0).", "odd(V0):-  even(V1), prev(V0,V1), r(1)."]
         # program = ["red(X) ; green(X) ; blue(X) :- node(X).", ":- e(X,Y), red(X), red(Y).", ":- e(X,Y), green(X), green(Y).", ":- e(X,Y), blue(X), blue(Y)."]
+        # program = [':- e(V0,V1),node(V0),red(V0),red(V1).', ':- e(V1,V0),green(V1),green(V0).', 'blue(V0);green(V0);red(V0):- node(V0).', 'blue(V0);red(V1):- e(V1,V0).', 'blue(V1);green(V0):- red(V1),red(V0).', 'red(V1):- blue(V1),blue(V0),e(V0,V1).']
+
         try:
             generated_program = ""
             # add the background knowledge
@@ -151,6 +74,8 @@ class ClingoInterface:
             # add the sampled program
             cl_index = 0
 
+            # program = ["heads(V1) :- coin(V1), not tails(V1).", "tails(V1) :- coin(V1), not heads(V1)."]
+            
             for clause in program:
                 if not fixed:
                     r = f"r({cl_index})"
@@ -163,48 +88,29 @@ class ClingoInterface:
                     generated_program += clause
             generated_program += '\n'
 
-            # add the interpretation pos
-            cl_index = 0
-            for atoms in interpretation_pos:
-                r = f"cp({cl_index}):- {','.join(atoms.split(' '))}.\n"
-                # print(r)
-                generated_program += r
-                # ctl.add('base', [], r)
-                cl_index += 1
-            generated_program += '\n'
+            if len(interpretation_pos) > 0:
+                generated_program += f"pos_exs(0..{len(interpretation_pos)}).\n"
+                generated_program += utils.generate_clauses_for_coverage_interpretations(
+                    interpretation_pos, True)
             
+            if len(interpretation_neg) > 0:
+                generated_program += f"neg_exs(0..{len(interpretation_neg)}).\n"
+                generated_program += utils.generate_clauses_for_coverage_interpretations(
+                    interpretation_neg, False)
             
-            # add the interpretation negative
-            cl_index = 0
-            for atoms in interpretation_neg:
-                # split the answer set since none of the atoms should be true
-                r = f"cn({cl_index}):- {','.join(atoms.split(' '))}.\n"
-                # print(r)
-                generated_program += r
-                # ctl.add('base', [], r)
-                cl_index += 1
-            generated_program += '\n'
             
             generated_program += '''
-            % s_sel(N):- N = #count{X : r(X)}.
-            covered_pos(N):- N = #count{X : cp(X)}.
-            covered_neg(N):- N = #count{X : cn(X)}.
-
-            % @p is the priority: the greter it is, the higher is the
-            % importance of the constraint. For example, here the most
-            % important task is to maximize the coverage of the positive
-            % then minimize the negative and then minimize the number
-            % of clauses.
-            % I cannot minimize or maximize since none of the AS should
-            % cover negative examples.
-            % #maximize{N@3 : covered_pos(N)}.
-            % #minimize{N@2 : covered_neg(N)}.
-            % #minimize{N@1 : s_sel(N)}.
+            extended_p(I):- pos_exs(I), cpi(I), not cpe(I).
+            extended_n(I):- neg_exs(I), cni(I), not cne(I).
             
-            #show covered_neg/1.
-            #show covered_pos/1.
-            #show cp/1.
-            #show cn/1.
+            total_extended_p(N):- N = #count{X : extended_p(X)}.
+            total_extended_n(N):- N = #count{X : extended_n(X)}.
+            
+            #show extended_p/1.
+            #show extended_n/1.
+            
+            #show total_extended_p/1.
+            #show total_extended_n/1.
             '''
             if not fixed:
                 generated_program += "\n#show r/1."
@@ -252,10 +158,10 @@ class ClingoInterface:
                 #     cn = int(atom.split('covered_neg(')[1][:-1])
                 if atom.startswith('r'):
                     l_rules.append(int(atom.split('r(')[1][:-1]))
-                elif atom.startswith('cp'):
-                    l_cp.append(int(atom.split('cp(')[1][:-1]))
-                elif atom.startswith('cn'):
-                    l_cn.append(int(atom.split('cn(')[1][:-1]))
+                elif atom.startswith('extended_p'):
+                    l_cp.append(int(atom.split('extended_p(')[1][:-1]))
+                elif atom.startswith('extended_n'):
+                    l_cn.append(int(atom.split('extended_n(')[1][:-1]))
             
             if fixed:
                 # needed since for fixed there are no r/1 atoms
@@ -268,6 +174,7 @@ class ClingoInterface:
             else:
                 comb_rules[dict_key] = Coverage(l_cp, l_cn)
 
+        # print(comb_rules)
         return comb_rules
         
         

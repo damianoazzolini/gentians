@@ -20,7 +20,7 @@ from program_sampler import ProgramSampler
 
 import example_programs
 
-program_description = "Learn ASP rules with genetic algorithm."
+program_description = "GENTIANS: GENeTic algoritm for inductive learning of ANswer Set programs."
 
 # class Literal:
 #     def __init__(self, string_representation : str) -> None:
@@ -145,15 +145,15 @@ class Program:
 class Solver:
     def __init__(self, 
         background : 'list[str]',
-        positive_examples : 'list[str]',
-        negative_examples : 'list[str]',
+        positive_examples : 'list[list[str]]',
+        negative_examples : 'list[list[str]]',
         language_bias_head : 'list[str]',
         language_bias_body : 'list[str]',
         arguments : argparse.Namespace
         ) -> None:
         self.background : 'list[str]' = background
-        self.positive_examples : 'list[str]' = positive_examples
-        self.negative_examples : 'list[str]' = negative_examples
+        self.positive_examples : 'list[list[str]]' = positive_examples
+        self.negative_examples : 'list[list[str]]' = negative_examples
         self.language_bias_head : 'list[str]' = language_bias_head
         self.language_bias_body : 'list[str]' = language_bias_body
         self.verbose : int = arguments.verbose
@@ -165,41 +165,6 @@ class Solver:
         self.mutation_probability : float = arguments.mutation_probability
         self.iterations_genetic : int = arguments.iterations_genetic
     
-    
-    def identify_set_clauses(self, program : 'list[str]', fixed : bool = True) -> 'dict[str,Coverage]':
-        '''
-        Set up the solver and call the method.
-        If fixed is true then use all the specified clauses. If false,
-        let the ASP solver to compute the set of clauses (with choice
-        rules). fixed is True for the loop with an increasing number of
-        clauses.
-        '''
-        # use projective solutions on the selected rules and atoms
-        asp_solver = ClingoInterface(self.background, ['-Wnone', '0', '--project'])
-        # print(program)
-        # sys.exit()
-        return asp_solver.extract_coverage_and_set_clauses(program, self.positive_examples, self.negative_examples, fixed=fixed)
-    
-    
-    def test_coverage(self, program : 'list[str]') -> 'tuple[int,int]':
-        '''
-        Tests the coverage represented as the number of positive
-        and negative examples covered.
-        '''
-        pos_covered : int = 0
-        neg_covered : int = 0
-        asp_solver = ClingoInterface(program + self.background)
-        
-        return asp_solver.test_coverage_example(self.positive_examples, self.negative_examples)
-
-        for el in self.positive_examples:
-            pos_covered += int(asp_solver.test_coverage_example(el.split('.')[0:-1], True))
-        for el in self.negative_examples:
-            asp_solver = ClingoInterface(program + self.background)
-            neg_covered += int(asp_solver.test_coverage_example(el.split('.')[0:-1], False))
-            
-        return pos_covered, neg_covered
-
 
     def solve(self) -> None:
         '''
@@ -338,7 +303,7 @@ if __name__ == "__main__":
         elif args.example == "even_odd":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.even_odd_example()
-        elif args.example == "animals_birds":
+        elif args.example == "animals_bird":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.animals_bird_example()
         elif args.example == "coloring":
@@ -350,6 +315,8 @@ if __name__ == "__main__":
         elif args.example == "grandparent":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.grandparent_example()
+        else:
+            utils.print_error_and_exit("Example not found")
 
         # folder = "examples/abduce/" # troppo grande
         # folder = "examples/andersen/"
@@ -368,7 +335,7 @@ if __name__ == "__main__":
     # print(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
     
     # sys.exit()
-
+    
     s = Solver(
         background, 
         positive_examples, 

@@ -15,15 +15,25 @@ def coin_example():
         'coin(c2).', 
         'coin(c3).'
     ]
-
-    positive_examples : 'list[str]' = [
-        "heads(c1) tails(c2) heads(c3)",
-        "tails(c1) heads(c2) tails(c3)",
-        "heads(c1) heads(c2) tails(c3)",
-        "tails(c1) tails(c2) heads(c3)"
+    
+    # example structure: [Included,Excluded]
+    # For positive examples, there should be at least
+    # one answer set with all the Included and none of
+    # the excluded
+    positive_examples : 'list[list[str]]' = [
+        ["heads(c1) tails(c2) heads(c3)", "tails(c1) heads(c2) tails(c3)"],
+        ["heads(c1) heads(c2) tails(c3)", "tails(c1) tails(c2) heads(c3)"]
     ]
 
-    negative_examples : 'list[str]' = []
+    
+    # positive_examples : 'list[str]' = [
+    #     "heads(c1) tails(c2) heads(c3)",
+    #     "tails(c1) heads(c2) tails(c3)",
+    #     "heads(c1) heads(c2) tails(c3)",
+    #     "tails(c1) tails(c2) heads(c3)"
+    # ]
+
+    negative_examples : 'list[list[str]]' = []
 
     language_bias_head : 'list[str]' = [
         'modeh(1, heads(+))',
@@ -58,31 +68,15 @@ def even_odd_example():
     ]
     
     # IMPORTANT: non usare . alla fine senno fallisce tutto
-    # esempi positivi: lista di stringhe con atomi separati
-    # da spazi (stessa struttura di un AS output di clingo). 
-    # Ciascuna stringa identifica un insieme di atomi che 
-    # devono essere presenti nell'answer set. Per esempio
-    # ["odd(1) odd(3) even(2)"] significa che
-    # deve esistere almeno 1 answer set tale che tutti e tre
-    # gli atomi sopra siano veri nello stesso answer set.
-    # Se invece ho ["odd(1)","odd(3)"] ho 2 esempi positivi
-    # che impongono che cia sia almeno 1 answer set con odd(1)
-    # ed almeno 1 answer set con odd(3). In questo esempio sono
-    # equivalenti
     
     positive_examples = [
-        "odd(1) odd(3) even(2)"
+        ["odd(1) odd(3) even(2)", ""]
     ]
     
-    # esempi negativi: stessa struttura di quelli positivi. 
-    # Ciascun esempio negativo
-    # ci dice che cosa non deve contenere un AS. Per esempio
-    # [ "even(3) even(1) odd(2)" ] dice che non deve 
-    # esistere un AS che abbia al suo interno tutti e 3 gli atomi.
     negative_examples = [
-        "even(3)",
-        "even(1)",
-        "odd(2)"
+        ["even(3)",""],
+        ["even(1)",""],
+        ["odd(2)",""]
         # "odd(0)"
     ]
     
@@ -154,26 +148,28 @@ def animals_bird_example():
         "has_gills(eel)."
     ]
     
+    # questi devono essere veri tutti nello stesso AS o in AS diversi?
+    # direi diversi
     positive_examples = [
-        "bird(eagle)",
-        "bird(ostrich)",
-        "bird(penguin)"
+        ["bird(eagle)", ""],
+        ["bird(ostrich)", ""],
+        ["bird(penguin)", ""]
     ]
     
     negative_examples = [
-        "bird(dog)",
-        "bird(dolphin)",
-        "bird(platypus)",
-        "bird(bat)",
-        "bird(trout)",
-        "bird(herring)",
-        "bird(shark)",
-        "bird(eel)",
-        "bird(lizard)",
-        "bird(crocodile)",
-        "bird(t_rex)",
-        "bird(snake)",
-        "bird(turtle)"
+        ["bird(dog)", ""],
+        ["bird(dolphin)", ""],
+        ["bird(platypus)", ""],
+        ["bird(bat)", ""],
+        ["bird(trout)", ""],
+        ["bird(herring)", ""],
+        ["bird(shark)", ""],
+        ["bird(eel)", ""],
+        ["bird(lizard)", ""],
+        ["bird(crocodile)", ""],
+        ["bird(t_rex)", ""],
+        ["bird(snake)", ""],
+        ["bird(turtle)", ""]
     ]
     
     language_bias_head = [
@@ -181,14 +177,14 @@ def animals_bird_example():
     ]
     
     language_bias_body = [        
-        'modeb(1,feathers(+))',
-        'modeb(1,scales(+))',
-        'modeb(1,hair(+))',
-        'modeb(2,has_covering(+,+))',
-        'modeb(1,has_milk(+))',
-        'modeb(1,homeothermic(+))',
-        'modeb(1,has_eggs(+))',
-        'modeb(1,has_gills(+))'
+        'modeb(1, feathers(+))',
+        'modeb(1, scales(+))',
+        'modeb(1, hair(+))',
+        'modeb(2, has_covering(+,+))',
+        'modeb(1, has_milk(+))',
+        'modeb(1, homeothermic(+))',
+        'modeb(1, has_eggs(+))',
+        'modeb(1, has_gills(+))'
     ]
     
     return background, positive_examples, negative_examples, language_bias_head, language_bias_body
@@ -249,12 +245,12 @@ def coloring_example():
     # equivalenti
     
     positive_examples = [
-        "red(1) blue(2) blue(3) red(4) green(5) red(6)",
-        "red(1) blue(2) green(3) blue(4) green(5) red(6)",
-        "red(1) blue(2) green(3) red(4) green(5) red(6)",
-        "green(1) blue(2) red(3) blue(4) green(5) red(6)",
-        "green(1) blue(2) blue(3) red(4) green(5) red(6)",
-        "red(1) blue(2) green(3) blue(4) red(5) green(6)"
+        ["red(1) blue(2) blue(3) red(4) green(5) red(6)", ""],
+        ["red(1) blue(2) green(3) blue(4) green(5) red(6)", ""],
+        ["red(1) blue(2) green(3) red(4) green(5) red(6)", ""],
+        ["green(1) blue(2) red(3) blue(4) green(5) red(6)", ""],
+        ["green(1) blue(2) blue(3) red(4) green(5) red(6)", ""],
+        ["red(1) blue(2) green(3) blue(4) red(5) green(6)", ""]
     ]
     
     # esempi negativi: stessa struttura di quelli positivi. 
@@ -263,10 +259,10 @@ def coloring_example():
     # [ "even(3) even(1) odd(2)" ] dice che non deve 
     # esistere un AS che abbia al suo interno tutti e 3 gli atomi.
     negative_examples = [
-        "red(1) red(2)",
-        "red(1) red(3)",
-        "blue(1) blue(2)",
-        "green(3) green(4)"
+        ["red(1) red(2)", ""],
+        ["red(1) red(3)", ""],
+        ["blue(1) blue(2)", ""],
+        ["green(3) green(4)", ""]
     ]
     
     language_bias_head = [
@@ -354,9 +350,16 @@ def adjacent_to_red_example():
         "green(green)."
     ]
     
-    pe = ["target(b)", "target(c)"]
+    pe = [
+        ["target(b)", ""], 
+        ["target(c)", ""]
+    ]
     
-    ne = ["target(a)", "target(d)", "target(e)"]
+    ne = [
+        ["target(a)", ""], 
+        ["target(d)", ""], 
+        ["target(e)", ""]
+    ]
     
     lbh = ['modeh(1, target(+))']
     
@@ -382,9 +385,20 @@ def grandparent_example():
     
     bg = ["mother(i,a).", "mother(c,f).", "mother(c,g).", "mother(f,h).", "father(a,b).", "father(a,c).", "father(b,d).", "father(b,e)."]
     
-    pe = ["target(i,b) target(i,c) target(a,d) target(a,e) target(a,f) target(a,g) target(c,h)"]
+    pe = [
+        ["target(i,b) target(i,c) target(a,d) target(a,e) target(a,f) target(a,g) target(c,h)", ""]
+    ]
     
-    ne = ["target(a,b)", "target(b,c)", "target(c,d)", "target(d,e)", "target(e,f)", "target(f,g)", "target(g,h)", "target(h,i)"]
+    ne = [
+        ["target(a,b)", ""], 
+        ["target(b,c)", ""], 
+        ["target(c,d)", ""], 
+        ["target(d,e)", ""], 
+        ["target(e,f)", ""], 
+        ["target(f,g)", ""], 
+        ["target(g,h)", ""], 
+        ["target(h,i)", ""]
+    ]
     
     lbh = ['modeh(1, target(+, +))', 'modeh(1, target_1(+, +))']
     
