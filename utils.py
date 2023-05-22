@@ -102,7 +102,7 @@ def is_valid_rule(rule : str) -> bool:
 
 
 def generate_clauses_for_coverage_interpretations(
-    interpretations : 'list[list[str]]', 
+    interpretations : 'list[list[str]]',
     positive : bool
     ) -> str:
     '''
@@ -111,18 +111,26 @@ def generate_clauses_for_coverage_interpretations(
     generated_str : str = ""
     suffix : str = "cp" if positive else "cn"
     cl_index = 0
+    # print(interpretations)
     for atoms in interpretations:
         # inclusion
         if len(atoms[0]) > 0:
             r = f"{suffix}i({cl_index}):- {','.join(atoms[0].split(' '))}.\n"
-            # print(r)
             generated_str += r
-        # exclusion
-        if len(atoms[1]) > 0:
-            for atom in atoms[1].split(' '):
-                r = f"{suffix}e({cl_index}):- {atom}.\n"
-                generated_str += r
-        # ctl.add('base', [], r)
+        
+        if len(atoms) > 1:
+            # exclusion
+            if len(atoms[1]) > 0:
+                for atom in atoms[1].split(' '):
+                    r = f"{suffix}e({cl_index}):- {atom}.\n"
+                    generated_str += r
+        
+        if len(atoms) > 2:
+            # context dependent examples
+            if len(atoms[2]) > 0:
+                for atom in atoms[2].split(' '):
+                    generated_str += atom + '.\n'
+        
         cl_index += 1
     generated_str += '\n'
     
@@ -183,9 +191,9 @@ def read_popper_format(folder : str):
     for line in lines:
         if line.startswith('pos'):
             line = line.split('pos')[1][1:].replace('\n','')[:-2]
-            positive_examples.append(line)
+            positive_examples.append([line, "", ""]) # three: included, excluded, context_dependent_example
         elif line.startswith('neg'):
             line = line.split('neg')[1][1:].replace('\n','')[:-2]
-            negative_examples.append(line)
+            negative_examples.append([line, "", ""])
     
     return background, positive_examples, negative_examples, language_bias_head, language_bias_body

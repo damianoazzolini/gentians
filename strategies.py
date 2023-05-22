@@ -1,56 +1,117 @@
 import random
 import sys
+import math
+import time
 
 import clingo_interface
 
+
+def compute_n_vars(clause : str):
+    i = 0
+    found = True
+    while found:
+        if f'V{i}' not in clause:
+            found = False
+        i +=1
+    
+    return i - 1
+    
+
+class PlacedClause:
+    '''
+    Class containing a clause.
+    '''
+    def __init__(self,
+        placed_clauses : 'list[str]'
+        ) -> None:
+        self.placed_clauses = placed_clauses
+        self.n_vars_clauses : 'list[int]' = []
+        self.n_atoms = 0
+
+        for cl in self.placed_clauses:
+            self.n_vars_clauses.append(compute_n_vars(cl))
+
+        cl = placed_clauses[0]
+        cl = cl.split(':-')
+        head = cl[0]
+        body = cl[1]
+
+        # print(len(head))
+        if len(head) != 0:
+            self.n_atoms += len(head.split(';'))
+            
+        self.n_atoms += len(body.split('),'))
+
+    def __str__(self) -> str:
+        s = ""
+        for cl in self.placed_clauses:
+            s += cl + '\n'
+        s += f"n_vars: {self.n_vars_clauses}\nn_atoms: {self.n_atoms}\n"
+        return s
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
 class Strategy:
-    def __init__(self, 
-        placed_list : 'list[list[str]]',
+    def __init__(self,
+        # placed_list : 'list[list[str]]',
+        placed_list : 'list[PlacedClause]',
         background : 'list[str]',
         positive_examples : 'list[list[str]]',
         negative_examples : 'list[list[str]]',
         ) -> None:
-        self.placed_list : 'list[list[str]]' = placed_list
+        # self.placed_list : 'list[list[str]]' = placed_list
+        self.placed_list : 'list[PlacedClause]' = placed_list
         self.background : 'list[str]' = background
         self.positive_examples : 'list[list[str]]' = positive_examples
         self.negative_examples : 'list[list[str]]' = negative_examples
-    
+
     def genetic_solver(self,
         number_clauses : int, # number of clauses to consider for each program
-        population_size : int, # number of programs to keep 
+        population_size : int, # number of programs to keep
         mutation_probability : float, # mutation probability
-        max_interations : int # maximum number of iterations
+        max_interations : int, # maximum number of iterations
+        do_tournament : bool = True, # choose tournament to pick the elements
+        tournament_size : int = 12, # number of elements considered for the tournament
+        prob_replacing_oldest : float = 0.5 # the probability to replace the oldest instead of the one with the lowest fittness
         ) -> 'tuple[list[str], float, bool]':
         '''
         Genetic algorithm to find the best program
         '''
         class Individual:
-            def __init__(self, program : 'list[str]', stub_indexes : 'list[int]', prog_indexes : 'list[int]', score : float) -> None:
+            def __init__(self,
+                program : 'list[str]',
+                stub_indexes : 'list[int]',
+                prog_indexes : 'list[int]',
+                score : float,
+                is_best : bool = False, # does this covers everyting positive and no negative?
+                l_best_indexes : 'list[int]' = [] # best indexes, if it is the best
+                ) -> None:
                 self.program = program
-                # stub_indexes is a list of int representing the index of the stub clauses selected
+                # stub_indexes is a list of int representing the index of the stub 
+                # clauses selected
                 self.stub_indexes = stub_indexes
-                # prog_indexes is a list of int representing the index of the program selected for the stub_indexes clauses - maybe not needed
+                # prog_indexes is a list of int representing the index of the program 
+                # selected for the stub_indexes clauses - maybe not needed
                 self.prog_indexes = prog_indexes
                 self.score = score
-                
+                self.is_best = is_best
+                self.l_best_indexes = l_best_indexes
+                self.generated_timestamp = time.time()
+
             def __str__(self) -> str:
                 return f"Program: {self.program} - score: {self.score}"
 
             def __repr__(self) -> str:
                 return self.__str__()
-        
-        
-        def compute_score_vars_and_rules(program : 'list[str]', best_l_index : 'list[int]', cp : int, cn : int) -> float:
-            '''
-            Compute the score of a rule by considering the covered positive, covered
-            negative, number of variables for the best indexes and the number of clauses
-            to be selected. The goal is to select programs with few variables and rules.
-            TODO
-            '''
-            return -1
 
 
-        def evaluate_score(program : 'list[str]') -> 'tuple[int, int, float, bool, list[int]]':
+        def evaluate_score(
+                stub_indexes : 'list[int]',
+                prog_indexes : 'list[int]',
+                program : 'list[str]'
+            ) -> 'tuple[float, bool, list[int]]':
             # returns covered positive, covered negative, score
             # how to assign a score?
             # Current: cp covered positive, cn covered negative
@@ -59,29 +120,41 @@ class Strategy:
             # if score = 1 -> optimum found
             # print(self.background)
             # TODO: better define a score. Also consider the number of variables?
-            asp_solver = clingo_interface.ClingoInterface(self.background, ['-Wnone', '0', '--project'])
+            asp_solver = clingo_interface.ClingoInterface(
+                self.background, ['-Wnone', '0', '--project'])
             # program[1] = "odd(V0):- even(V1),prev(V0,V1)."
             # program[0] = "even(V0):- odd(V1),prev(V0,V1)."
-            cov = asp_solver.extract_coverage_and_set_clauses(program, self.positive_examples, self.negative_examples, False)
+            # for l in asp_solver.lines:
+            #     print(l) 
+            # # print(asp_solver.lines)
+            # for p in program:
+            #     print(p)
+            
+            cov = asp_solver.extract_coverage_and_set_clauses(
+                program, self.positive_examples, self.negative_examples, False)
 
-            # print(program)
+            # print(cov)
+            # sys.exit()
             best_found = False
             best_cp = 0
             best_cn = 0
             l_index : 'list[int]' = []
             l_best_indexes : 'list[str]' = []
-            for res in cov:
+            # best_index : 'list[int]' = []
+            best_l_index = []
+
+            for res, element_coverage in cov.items():
                 if res != "Error":
                     # set to remove duplicates
-                    cp : int = len(list(set(cov[res].l_pos)))
-                    cn : int = len(list(set(cov[res].l_neg)))
-                    # l_index = [int(v) for v in list(res)]
-                    # print(cp, cn, l_index)
+                    cp : int = len(list(set(element_coverage.l_pos)))
+                    cn : int = len(list(set(element_coverage.l_neg)))
+                    l_index = [int(v) for v in list(res)]
                     if cp > best_cp:
+                        # print(cp, cn, l_index)
                         best_cp = cp
                         best_cn = cn
-                        # best_l_index = l_index
-                        
+                        best_l_index = l_index
+
                     if cp == len(self.positive_examples):
                         if cn == 0:
                             print(f"Best found with {res}")
@@ -91,98 +164,79 @@ class Strategy:
                         # else:
                         #     print("Coverage 100% of the positive with")
                         # print([program[i] for i in l_index], cp, cn)
-            
-            # sys.exit()        
-            # if best_found:
-            #     break
-            # print(cov)
-            # print(len(cov))
-            # sys.exit()
-            # test 1 score
-            # if best_cp > 0:
-            #     score = best_cp/(best_cp + best_cn)
-            # else:
-            #     score = -best_cn
-            # test 2 score
-            # TODO: improve the score
+
             score = best_cp - best_cn
-            
+
+            # if score != 0:
+            scores : 'list[float]' = []
+            # The score is now computed as the sum of exp(n_atoms + n_vars)
+            # for each clause
+            # print(best_l_index)
+            for i in best_l_index:
+                # gather the complexity from the list
+                si = stub_indexes[i]
+                pi = prog_indexes[i]
+                # print(placed_list[si].placed_clauses[pi])
+                # print(placed_list[si].n_atoms)
+                na = self.placed_list[si].n_atoms
+                nv = self.placed_list[si].n_vars_clauses[pi]
+                
+                scores.append(score*math.exp(-(na+nv)))
+            # print(program)
+            # print(score)
+            score = sum(scores)
+
             # shortest one
             l_best_indexes.sort(key = lambda s : len(s))
             l_index = [int(v) for v in list(l_best_indexes[0])] if len(l_best_indexes) > 0 else []
-            
-            return best_cp, best_cn, score, best_found, l_index 
-        
-        def initialize_population(
-            number_clauses : int, 
-            placed_list : 'list[list[str]]',
-            population_size : int
-            ) -> 'tuple[list[Individual],bool]':
-            sampled_individuals : 'list[Individual]' = []
-            best_found = False
-            
-            while len(sampled_individuals) < population_size:
-                # pick a program
-                stub_indexes : 'list[int]' = sorted(
-                    random.sample(
-                        range(len(self.placed_list)), number_clauses if len(placed_list) > number_clauses else len(placed_list)
-                    )
-                )
-                
-                # for every index, select one of the possible variable placement
-                program : 'list[str]' = []
-                prog_indexes : 'list[int]' = []
-                for i in stub_indexes:
-                    el = random.randint(0, len(placed_list[i]) - 1)
-                    prog_indexes.append(el)
-                    program.append(placed_list[i][el])
-                
-                program = sorted(program)
-                # cp is the current program
-                cp, cn, current_score, best_found, l_index = evaluate_score(program)
-                if best_found:
-                    # TODO: restituire anche la combinazione di elementi
-                    return [Individual([program[i] for i in l_index], stub_indexes, prog_indexes, current_score)], best_found
-            
-                sampled_individuals.append(Individual(program, stub_indexes, prog_indexes, current_score))
-            
-            return sampled_individuals, best_found
 
-        ###### BODY OF THE METHOD ######
+            return score, best_found, l_index
+
+    
+        def get_fittest(selected_individuals : 'list[Individual]') -> Individual:
+            '''
+            Returns the fittest element in the current selection
+            '''
+            return max(selected_individuals, key=lambda x : x.score)
+
         
-        # step 0: initialize the population
-        population : 'list[Individual]' = []
-        best_found = False
+        def tournament(
+            population: 'list[Individual]',
+            tournament_size : int = 12,
+            prob_selecting_fittest : float = 0.9
+            ):
+            '''
+            Tournament to select the individuals to combine and mutate
+            '''
+            random_subset = random.sample([x for x in population], tournament_size)
+            stop = False
+            best_element = get_fittest(random_subset)
+            while len(random_subset) > 0 and not stop:
+                if random.random() > prob_selecting_fittest:
+                    random_subset.remove(best_element)
+                else:
+                    stop = True
+                best_element = get_fittest(random_subset)
+
+            return best_element
         
-        population, best_found = initialize_population(number_clauses, self.placed_list, population_size)
         
-        if best_found:
-            return population[0].program, population[0].score, True
-        
-        # step 1: sort in terms of decreasing fittnes
-        population.sort(key = lambda x : x.score, reverse=True)
-        
-        # print("--- POPULATION ---")
-        # for p in population:
-        #     print(p)
-        # print(population)
-        # sys.exit()
-        
-        # step 2: iterate trough programs
-        print(f"Running for {max_interations} iterations")
-        for it in range(max_interations + 1):
-            # print(f"it: {it}")
-            if it % 100 == 0:
-                print(f"Iteration {it} - best: {population[0]}")
-            
-            # this since may programs have the same score
+        def pick_two_fittest(
+            population: 'list[Individual]',
+            pick_uniform : bool = True
+            ) -> 'tuple[Individual,Individual]':
+            '''
+            Pick the two fittest elements.
+            If pick_uniform is true, select a random element between the ones with
+            the highest fit (since most programs have the same fitness).
+            '''
             max_score = population[0].score
             i = 1
             j = 1
             for i in range(1, len(population)):
                 if population[i].score < max_score:
                     break
-            
+
             if i < 2:
                 max_score = population[i].score
                 for j in range(i, len(population)):
@@ -190,11 +244,11 @@ class Strategy:
                         break
             else:
                 j = i
+
             # 2.1: pick the two fittest
-            pick_uniform = True
-            # this is the naive version. However, since many programs have the same score,
-            # i should choose a random one among these
-            if not pick_uniform: 
+            if not pick_uniform:
+                # this is the naive version. However, since many programs have the same
+                # score, # i should choose a random one among these
                 best_a = population[0]
                 best_b = population[1]
             else:
@@ -203,82 +257,187 @@ class Strategy:
                 best_a = population[idx_a]
                 best_b = population[idx_b]
 
-            # print("Best A")
-            # print(best_a)
-            # print("Best B")
-            # print(best_b)
-            
-            # print(f"i: {i} j: {j}")
-            # print(max_score)
-            
-            # sys.exit()
-            
-            # 2.2: crossover
-            # TODO: controllare che la nuova regola dopo 2.2 e 2.3 non sia già
-            # presente nel programma
+            return best_a, best_b
+
+        
+        def crossover(best_a : Individual, best_b : Individual) -> 'tuple[Individual,Individual]':
+            '''
+            Crossover: pick a random index and generate a element
+            '''
             crossover_position = random.randint(0, len(best_a.program) - 1)
             # print(f"Crossover: {crossover_position}")
             new_program = list(best_a.program[:crossover_position] + best_b.program[crossover_position:])
             new_stub_indexes = best_a.stub_indexes[:crossover_position] + best_b.stub_indexes[crossover_position:]
             new_program_indexes = best_a.prog_indexes[:crossover_position] + best_b.prog_indexes[crossover_position:]
-            
-            # 2.3: mutation
+            current_score, is_best, l_indexes = evaluate_score(new_stub_indexes, new_program_indexes, new_program)
+            i0 = Individual(new_program, new_stub_indexes, new_program_indexes, current_score, is_best, l_indexes)
+
+            new_program = list(best_b.program[:crossover_position] + best_a.program[crossover_position:])
+            new_stub_indexes = best_b.stub_indexes[:crossover_position] + best_a.stub_indexes[crossover_position:]
+            new_program_indexes = best_b.prog_indexes[:crossover_position] + best_a.prog_indexes[crossover_position:]
+            current_score, is_best, l_indexes = evaluate_score(new_stub_indexes, new_program_indexes, new_program)
+            i1 = Individual(new_program, new_stub_indexes, new_program_indexes, current_score, is_best, l_indexes)
+
+            return i0, i1
+        
+        
+        def mutate(element : Individual, change_stub : bool = True):
+            '''
+            Mutation of an element
+            '''
             change_stub = True
-            for i in range(len(new_program)):
-                if random.random() < mutation_probability:                    
+            new_element = element
+            something_changed = False
+            
+            for i, _ in enumerate(element.program):
+                if random.random() < mutation_probability:
+                    something_changed = True
                     # versione 1: cambio solamente il posizionamento delle variabili
                     if not change_stub:
-                        if i < crossover_position:
-                            st_index = population[0].stub_indexes[i]
-                        else:
-                            st_index = population[1].stub_indexes[i]
-                        
-                        possibilities = self.placed_list[st_index]
-                        rand_el = random.randint(0, len(possibilities) - 1)
-                        new_program[i] = possibilities[rand_el]
-                        new_program_indexes[i] = rand_el
+                        possibilities = self.placed_list[element.stub_indexes[i]]
+                        rand_el = random.randint(0, len(possibilities.placed_clauses) - 1)
+                        new_element.program[i] = possibilities.placed_clauses[rand_el]
+                        new_element.prog_indexes[i] = rand_el
                     else:
                         # versione 2: cambio la regola
-                        # print("Change rule")
                         new_stub = random.randint(0, len(self.placed_list) - 1)
-                        new_prog_pos = random.randint(0, len(self.placed_list[new_stub]) - 1)
+                        new_prog_pos = random.randint(0, len(self.placed_list[new_stub].placed_clauses) - 1)
                         # print(f"{new_program[i]} replaced with")
-                        new_program[i] = self.placed_list[new_stub][new_prog_pos]
+                        new_element.program[i] = self.placed_list[new_stub].placed_clauses[new_prog_pos]
                         # print(f"This: {new_program[i]}")
-                        new_program_indexes[i] = new_prog_pos
-                        new_stub_indexes[i] = new_stub
-                        
-            # sort the new_program
-            new_program.sort()
+                        new_element.prog_indexes[i] = new_prog_pos
+                        new_element.stub_indexes[i] = new_stub
             
-            # check if in list
-            found = False
-            # print("Current program")
-            # print(new_program)
-            for el in population:
-                if el.program == new_program:
-                    # print("Already existing")
-                    found = True
-                    break
+            # TODO: add annealing to accept or reject the mutated program?
+            # compute the new score if something has changed
+            if something_changed:
+                new_element.generated_timestamp = time.time()
+                new_element.score, new_element.is_best, new_element.l_best_indexes =\
+                    evaluate_score(new_element.stub_indexes, new_element.prog_indexes, 
+                                   new_element.program)
             
-            # sys.exit()
-            if not found:
-                # 3: insert the new element in the population
-                cp, cn, current_score, best_found, l_index = evaluate_score(new_program)
-                
+            return new_element
+
+
+        def initialize_population(
+            number_clauses : int,
+            # placed_list : 'list[list[str]]',
+            placed_list : 'list[PlacedClause]',
+            population_size : int
+            ) -> 'tuple[list[Individual],bool]':
+            '''
+            Initialize the population of individuals
+            '''
+            sampled_individuals : 'list[Individual]' = []
+            best_found = False
+            
+            while len(sampled_individuals) < population_size:
+                # pick a program
+                # TODO: non necessariamente il sampling deve essere senza ripetizioni
+                stub_indexes : 'list[int]' = sorted(
+                    random.sample(
+                        range(len(self.placed_list)),
+                        number_clauses if len(placed_list) > number_clauses
+                                        else len(placed_list)
+                    )
+                )
+
+                # for every index, select one of the possible variable placement
+                program : 'list[str]' = []
+                prog_indexes : 'list[int]' = []
+                for i in stub_indexes:
+                    # el = random.randint(0, len(placed_list[i]) - 1)
+                    el = random.randint(0, len(placed_list[i].placed_clauses) - 1)
+                    prog_indexes.append(el)
+                    # program.append(placed_list[i][el])
+                    program.append(placed_list[i].placed_clauses[el])
+
+                program = sorted(program)
+                # cp is the current program
+                # cp, cn, current_score, best_found, l_index = evaluate_score(program)
+                current_score, best_found, l_index = evaluate_score(stub_indexes, prog_indexes, program)
+
                 if best_found:
-                    return [new_program[i] for i in l_index], current_score, True
-                
-                # ordered insert: find the position
-                i = 0
-                for i in range(0, len(population)):
-                    if current_score > population[i].score:
+                    # TODO: restituire anche la combinazione di elementi
+                    return [Individual([program[i] for i in l_index], stub_indexes, prog_indexes, current_score)], best_found
+
+                sampled_individuals.append(Individual(program, stub_indexes, prog_indexes, current_score))
+
+            return sampled_individuals, best_found
+
+        ###### BODY OF THE METHOD ######
+
+        # step 0: initialize the population
+        population : 'list[Individual]' = []
+        best_found = False
+
+        population, best_found = initialize_population(number_clauses, self.placed_list, population_size)
+
+        if best_found:
+            return population[0].program, population[0].score, True
+
+        # step 1: sort in terms of decreasing fittnes
+        population.sort(key = lambda x : x.score, reverse=True)
+
+        # step 2: iterate trough programs
+        print(f"Running for {max_interations} iterations")
+        for it in range(max_interations + 1):
+            # print(f"it: {it}")
+            if it % 100 == 0:
+                print(f"Iteration {it} - best: {population[0]}")
+
+            # 2.1: selection of the two fittest elements
+            if do_tournament:
+                best_a = tournament(population, tournament_size)
+                best_b = tournament(population, tournament_size)
+            else:
+                best_a, best_b = pick_two_fittest(population)
+            
+
+            # either do crossover or mutation semms to be not effective
+            # prob_crossover = 0.05
+            
+            # 2.2: crossover
+            new_program_1, new_program_2 = crossover(best_a, best_b)
+            
+            # 2.3: mutation
+            # https://arxiv.org/pdf/2305.01582.pdf
+            new_mutated_1 = mutate(new_program_1)
+            new_mutated_2 = mutate(new_program_2)
+            
+            l_mutated = [new_mutated_1, new_mutated_2]
+            
+            for el in l_mutated:
+                # if best, return
+                if el.is_best:
+                    return [el.program[i] for i in el.l_best_indexes], el.score, True
+
+                found = False
+                # if not best, check whether it is already in the population
+                for pop in population:
+                    if sorted(pop.program) == sorted(el.program):
+                        found = True
                         break
                 
-                population.insert(i, Individual(new_program, new_stub_indexes, new_program_indexes, current_score))
-                
-                # 4: drop the element with the lowest score
-                population = population[:-1]
+                # if not in the population, insert
+                found = False
+                if not found:
+                    i = 0
+                    for i, element in enumerate(population):
+                        # equal to have some variability?
+                        if el.score >= element.score:
+                            break
+                    population.insert(i, el)
+
+                    # drop the element
+                    if random.random() < prob_replacing_oldest:
+                        # drop the oldest element
+                        oldest = min(population, key=lambda x : x.generated_timestamp)
+                        population.remove(oldest)
+                    else:
+                        # drop the element with the lowest fitness
+                        population = population[:-1]
+
         print("Iterations completed")
-            
+   
         return population[0].program, population[0].score, False

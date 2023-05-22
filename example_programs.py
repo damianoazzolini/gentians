@@ -21,8 +21,8 @@ def coin_example():
     # one answer set with all the Included and none of
     # the excluded
     positive_examples : 'list[list[str]]' = [
-        ["heads(c1) tails(c2) heads(c3)", "tails(c1) heads(c2) tails(c3)"],
-        ["heads(c1) heads(c2) tails(c3)", "tails(c1) tails(c2) heads(c3)"]
+        ["heads(c1) tails(c2) heads(c3)", "tails(c1) heads(c2) tails(c3)", ""],
+        ["heads(c1) heads(c2) tails(c3)", "tails(c1) tails(c2) heads(c3)", ""]
     ]
 
     
@@ -47,6 +47,10 @@ def coin_example():
         'modeb(1, not tails(+))',
         'modeb(1, coin(+))'
     ]
+    
+    language_bias_aggregates : 'list[str]' = [
+        'modeagg(1, #sum)'
+    ]
 
     return background, positive_examples, negative_examples, language_bias_head, language_bias_body
 
@@ -70,13 +74,13 @@ def even_odd_example():
     # IMPORTANT: non usare . alla fine senno fallisce tutto
     
     positive_examples = [
-        ["odd(1) odd(3) even(2)", ""]
+        ["odd(1) odd(3) even(2)", "", ""]
     ]
     
     negative_examples = [
-        ["even(3)",""],
-        ["even(1)",""],
-        ["odd(2)",""]
+        ["even(3)", ""],
+        ["even(1)", ""],
+        ["odd(2)", ""]
         # "odd(0)"
     ]
     
@@ -228,7 +232,8 @@ def coloring_example():
         "edge(5, 6).",
         "node(1..6).",
         "e(X,Y) :- edge(X,Y).",
-        "e(Y,X) :- edge(Y,X)."
+        "e(Y,X) :- edge(Y,X).",
+        "node(1..6)."
     ]
     
     # IMPORTANT: non usare . alla fine senno fallisce tutto
@@ -252,11 +257,11 @@ def coloring_example():
         ["green(1) blue(2) blue(3) red(4) green(5) red(6)", ""],
         ["red(1) blue(2) green(3) blue(4) red(5) green(6)", ""]
     ]
-    
-    # esempi negativi: stessa struttura di quelli positivi. 
+
+    # esempi negativi: stessa struttura di quelli positivi.
     # Ciascun esempio negativo
     # ci dice che cosa non deve contenere un AS. Per esempio
-    # [ "even(3) even(1) odd(2)" ] dice che non deve 
+    # [ "even(3) even(1) odd(2)" ] dice che non deve
     # esistere un AS che abbia al suo interno tutti e 3 gli atomi.
     negative_examples = [
         ["red(1) red(2)", ""],
@@ -264,13 +269,13 @@ def coloring_example():
         ["blue(1) blue(2)", ""],
         ["green(3) green(4)", ""]
     ]
-    
+
     language_bias_head = [
         'modeh(1, red(+))',
         'modeh(1, green(+))',
         'modeh(1, blue(+))'
     ]
-    
+
     language_bias_body = [
         'modeb(1, e(+, +))', 
         'modeb(2, red(+))', 
@@ -280,6 +285,47 @@ def coloring_example():
     ]
     
     return background, positive_examples, negative_examples, language_bias_head, language_bias_body
+
+
+def sudoku():
+    '''
+    Sudoku example from ILASP
+    '''
+    background = [
+        "cell((1..4,1..4)).",
+        "block((X, Y), tl) :- cell((X, Y)), X < 3, Y < 3.",
+        "block((X, Y), tr) :- cell((X, Y)), X > 2, Y < 3.",
+        "block((X, Y), bl) :- cell((X, Y)), X < 3, Y > 2.",
+        "block((X, Y), br) :- cell((X, Y)), X > 2, Y > 2.",
+        "same_row((X1,Y),(X2,Y)) :- X1 != X2, cell((X1,Y)), cell((X2, Y)).",
+        "same_col((X,Y1),(X,Y2)) :- Y1 != Y2, cell((X,Y1)), cell((X, Y2)).",
+        "same_block(C1,C2) :- block(C1, B), block(C2, B), C1 != C2.",
+        "1 {value(V1,1);value(V1,2);value(V1,3);value(V1,4) } 1 :- same_block(V2,V1)."
+    ]
+    
+    positive_examples = [
+        ["value((1,1),1) value((1,2),2) value((1,3),3) value((1,4),4) value((2,3),2)",
+         "value((1,1),2) value((1,1),3) value((1,1),4)"]
+    ]
+    
+    negative_examples = [
+        ["value((1,1),1) value((1,3),1)", ""],
+        ["value((1,1),1) value((3,1),1)", ""],
+        ["value((1,1),1) value((2,2),1)", ""]
+    ]
+    
+    language_bias_head : 'list[str]' = []
+    
+    language_bias_body = [
+        'modeb(2, value(+, +))', 
+        'modeb(1, same_row(+, +))', 
+        'modeb(1, same_block(+,+))',
+        'modeb(1, same_col(+,+))'
+        # 'modeb(1, cell(+))'
+    ]
+
+    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
+
 
 def penguin_example():
     '''
@@ -411,3 +457,27 @@ def grandparent_example():
     
     return bg, pe, ne, lbh, lbb
     
+def dummy():
+    '''
+    g(X) :- a(Y), a(Z), X = Y + Z.
+    '''
+    bg = ["a(1).", "a(2)."]
+    
+    pe = [
+        ["g(3)", ""]
+    ]
+    
+    ne = []
+    
+    lbh = ['modeh(1, g(+))']
+    
+    lbb = ['modeb(2, a(+))']
+    
+    return bg, pe, ne, lbh, lbb
+    
+# def hamiltonian():
+#     '''
+#     Goal: learn the rules for hamiltonian graph.
+#     '''
+
+#     return bg, pe, ne, lbh, lbb

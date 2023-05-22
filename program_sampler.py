@@ -51,6 +51,14 @@ class Literal:
             arity = atom.count(',') + 1
 
         return Literal(name, arity, recall, negated)
+    
+
+    # @staticmethod
+    # def get_literak_for_aggregate(aggregate : str) -> 'Literal':
+    #     '''
+    #     modeagg(#sum, n) where n is the number of atoms
+    #     '''
+    #     return Literal(f"#{aggregate}",)
 
 
     def get_str_representation(self, negated : bool = False) -> str:
@@ -73,7 +81,10 @@ class ProgramSampler:
         # max_clauses : int = 3,
         verbose : int = 0,
         enable_find_max_vars_stub : bool = False,
-        find_all_possible_pos_for_vars_one_shot : bool = True
+        find_all_possible_pos_for_vars_one_shot : bool = True,
+        allowed_aggregates : 'list[str]' = [],
+        arithmetic_operators : 'list[str]' = [],
+        comparison_operators : 'list[str]' = []
         ) -> None:
         self.head_atoms : 'list[Literal]' = []
         self.body_literals : 'list[Literal]' = []
@@ -99,6 +110,77 @@ class ProgramSampler:
         
         # True if we are sampling for a constraint, changed every iteration
         self.body_constraint : bool = False
+        
+        # allowed aggregates
+        # self.aggregates : 'list[Literal]' = []
+        
+        if allowed_aggregates:
+            for el in allowed_aggregates:
+                # genero automaticamente il prodotto cartesiano tra aggregati e atomi body
+                # cioè se ho come modeb a/1 e b/1 e come aggregati #sum e #count ottengo
+                # #sum{X : a(X)} #count{X : a(X)} #sum{X : b(X)} #count{X : b(X)}
+                # print("AGGREGATES TODO")
+                # print(el)
+                self.body_literals.append(Literal(f"__{el}",1,1,False))
+        
+        # sys.exit()
+        if arithmetic_operators:
+            for el in arithmetic_operators:
+                self.body_literals.append(Literal(f"__{el}__",3,1,False))
+        
+        if comparison_operators:
+            for el in comparison_operators:
+                self.body_literals.append(Literal(f"__{el}__",2,1,False))
+
+    
+    def replace_operators(self, body : 'list[str]') -> 'tuple[list[str],bool]':
+        '''
+        Replaces the placeholder names with the comparison or arithmetic operator.
+        The boolean is false if the number of operators is the same as the number
+        of atoms in the body, i.e, the clause is not valid.
+        '''
+        # body = ["__neq__(_,_)", "__add__(_,_,_)"]
+        body_literals = body
+        placeholder = 5*'_'
+        operators_count = 0
+        for i, el in enumerate(body):
+            operators_count += 1
+            # comparison
+            if el.startswith("__lt__"):
+                body_literals[i] = placeholder + " < " + placeholder
+            elif el.startswith("__gt__"):
+                body_literals[i] = placeholder + " > " + placeholder
+            elif el.startswith("__eq__"):
+                body_literals[i] = placeholder + " == " + placeholder
+            elif el.startswith("__neq__"):
+                body_literals[i] = placeholder + " != " + placeholder
+            # arithmetic
+            elif el.startswith("__add__"):
+                body_literals[i] = f"{placeholder} + {placeholder} = {placeholder}"
+            elif el.startswith("__sub__"):
+                body_literals[i] = f"{placeholder} - {placeholder} = {placeholder}"
+            elif el.startswith("__mul__"):
+                body_literals[i] = f"{placeholder} * {placeholder} = {placeholder}"
+            elif el.startswith("__div__"):
+                body_literals[i] = f"{placeholder} * {placeholder} = {placeholder}"
+            # aggregates
+            elif el.startswith("__sum(") or el.startswith("__count(") or el.startswith("__min(") or el.startswith("__max("):
+                agg = el[2:5]
+                pos = el[6:].find(')')
+                atom_to_aggregate = el[6:pos+6]
+                name = atom_to_aggregate.split('/')[0]
+                arity = atom_to_aggregate.split('/')[1]
+                ph = ','.join([UNDERSCORE_SIZE*'_'] * int(arity))
+                body_literals[i] = "#" + agg + "{ " + ph + f" : {name}  ( {ph} )" + "} = " + UNDERSCORE_SIZE*'_'
+                # print(body_literals[i])
+                operators_count -= 1
+                # sys.exit()
+            else:
+                operators_count -= 1
+        
+        return body_literals, operators_count != len(body)
+    
+    
 
 
     def define_distribution_atoms(
@@ -316,6 +398,7 @@ class ProgramSampler:
 
                 if len(valid_rules) > 0:
                     placed_list.append(valid_rules)
+            # print("---------- STOP QUI -------------")
             # sys.exit()
         
         return placed_list
@@ -326,7 +409,7 @@ class ProgramSampler:
         Replaces the _____ with the variables in the clause.
         This now works with only 1 clause
         '''
-        res : list[str] = []
+        res : 'list[str]' = []
         # number of position to insert the variables
         n_positions : int = sampled_stub.count('_' * UNDERSCORE_SIZE)
         # number of variables to insert
@@ -373,7 +456,7 @@ class ProgramSampler:
                 n_vars_in_head,
                 False
             )
-            
+
             # print(asp_p)
             # TODO: dire che una coppia di atomi uguali non può
             # avere le stesse variabili
@@ -461,24 +544,11 @@ class ProgramSampler:
                             asp_p += symm
                     else:
                         enumerated_all = True
-        # print("RES")
-        # # print(res)
-        # print(len(res))
-        # sys.exit()
 
-        # print(len(res0))
-        # print(len(res1))
-        # if len(res0) == len(res1):
-        #     res = res0
-        # else:
-        #     print("ERROR AAAAAAAA")
-        #     print(res0)
-        #     print(res1)
-        #     sys.exit()
         return res
     
     
-    def sample_literals_list(self, 
+    def sample_literals_list(self,
         literals_list : 'list[Literal]',
         head : bool = False
         ) -> 'list[str]':
@@ -531,18 +601,35 @@ class ProgramSampler:
             body : 'list[str]' = []
             head : 'list[str]' = []
             
-            head = self.sample_literals_list(copy.deepcopy(self.head_atoms), True) # true allows constraints
-            if len(head) == 0:
-                self.body_constraint = True
-            else:
-                self.body_constraint = False
+            if len(self.head_atoms) > 0:
+                if self.verbose:
+                    print("No modeh specified")
+                head = self.sample_literals_list(copy.deepcopy(self.head_atoms), True) # true allows constraints
+                if len(head) == 0:
+                    self.body_constraint = True
+                else:
+                    self.body_constraint = False
             
             # decrease the depth since we already sampled atoms for the head
             self.max_depth -= len(head)
             
+            print(self.body_literals)
+            # sys.exit()
             body = self.sample_literals_list(copy.deepcopy(self.body_literals))
+            
+            # print(body)
+            
+            # replace __lt__, __gt__, __eq__, __neq__, __add__, __sub__, __mul__
+            
+            body, is_valid = self.replace_operators(body)
+            
+            print(body, is_valid)
+            # sys.exit()
 
-            clauses.append(';'.join(sorted(head)) + ":- " + ','.join(sorted(body)) + '.')
+            if is_valid:
+                clauses.append(';'.join(sorted(head)) + ":- " + ','.join(sorted(body)) + '.')
+            
+            # sys.exit()
             self.max_depth = original_depth
 
             # print(head)
@@ -558,7 +645,8 @@ class ProgramSampler:
                 if body[0].count('_') == UNDERSCORE_SIZE and body[1].count('_') == UNDERSCORE_SIZE and body[0] == body[1]:
                     # print(f'removed: {clauses[-1]}')
                     clauses = clauses[:-1]
-                    
+
+                
             
             # sys.exit()
         return clauses

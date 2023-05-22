@@ -64,6 +64,7 @@ class ClingoInterface:
         # program = ["red(X) ; green(X) ; blue(X) :- node(X).", ":- e(X,Y), red(X), red(Y).", ":- e(X,Y), green(X), green(Y).", ":- e(X,Y), blue(X), blue(Y)."]
         # program = [':- e(V0,V1),node(V0),red(V0),red(V1).', ':- e(V1,V0),green(V1),green(V0).', 'blue(V0);green(V0);red(V0):- node(V0).', 'blue(V0);red(V1):- e(V1,V0).', 'blue(V1);green(V0):- red(V1),red(V0).', 'red(V1):- blue(V1),blue(V0),e(V0,V1).']
 
+        # program = ["father(V0,V1):- childof(V1,V0)."]
         try:
             generated_program = ""
             # add the background knowledge
@@ -73,6 +74,7 @@ class ClingoInterface:
 
             # add the sampled program
             cl_index = 0
+            
 
             # program = ["heads(V1) :- coin(V1), not tails(V1).", "tails(V1) :- coin(V1), not heads(V1)."]
             
@@ -87,18 +89,22 @@ class ClingoInterface:
                 else:
                     generated_program += clause
             generated_program += '\n'
+            
+            
 
             if len(interpretation_pos) > 0:
                 generated_program += f"pos_exs(0..{len(interpretation_pos)}).\n"
                 generated_program += utils.generate_clauses_for_coverage_interpretations(
                     interpretation_pos, True)
             
+            # print('qui')
             if len(interpretation_neg) > 0:
                 generated_program += f"neg_exs(0..{len(interpretation_neg)}).\n"
                 generated_program += utils.generate_clauses_for_coverage_interpretations(
                     interpretation_neg, False)
             
-            
+            # print(generated_program)
+            # sys.exit()
             generated_program += '''
             extended_p(I):- pos_exs(I), cpi(I), not cpe(I).
             extended_n(I):- neg_exs(I), cni(I), not cne(I).
@@ -175,6 +181,7 @@ class ClingoInterface:
                 comb_rules[dict_key] = Coverage(l_cp, l_cn)
 
         # print(comb_rules)
+        # sys.exit()
         return comb_rules
         
         

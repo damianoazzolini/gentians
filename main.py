@@ -49,31 +49,57 @@ program_description = "GENTIANS: GENeTic algoritm for inductive learning of ANsw
 #         return self.__str__()
 
 
-class Clause:
-    def __init__(self,
-        head : 'list[str]',
-        body : 'list[str]'
-        ) -> None:
-        self.head : 'list[str]' = head
-        self.body : 'list[str]' = body
-        self.length : int = len(self.head) + len(self.body)
-
-    def get_clause(self) -> str:
-        cl : str = ''
-        for h in self.head:
-            cl += h + ';'
-        cl = cl[:-1] + ' :- '
+# def compute_n_vars(clause : str):
+#     i = 0
+#     found = True
+#     while found:
+#         if f'V{i}' not in clause:
+#             found = False
+#         i +=1
+    
+#     return i - 1
+    
+# class PlacedClause:
+#     def __init__(self,
+#         placed_clauses : 'list[str]'
+#         ) -> None:
+#         self.placed_clauses = placed_clauses
+#         self.n_vars_clauses : 'list[int]' = []
+#         self.n_atoms = 0
         
-        for b in self.body:
-            cl += b + ', '
-        cl = cl[:-2] + '.'
-        return cl
+#         for cl in self.placed_clauses:
+#             self.n_vars_clauses.append(compute_n_vars(cl))
+
+#         cl = placed_clauses[0]
+#         cl = cl.split(':-')
+#         head = cl[0]
+#         body = cl[1]
+        
+#         if len(head) != 0:
+#             self.n_atoms = len(head.split(';')) + 1
+#         self.n_atoms = len(body.split('),')) + 1
+        
+
+    # def get_clause(self) -> str:
+    #     cl : str = ''
+    #     for h in self.head:
+    #         cl += h + ';'
+    #     cl = cl[:-1] + ' :- '
+        
+    #     for b in self.body:
+    #         cl += b + ', '
+    #     cl = cl[:-2] + '.'
+    #     return cl
     
-    def __str__(self) -> str:
-        return self.get_clause()
+    # def __str__(self) -> str:
+    #     s = ""
+    #     for cl in self.placed_clauses:
+    #         s += cl + '\n'
+    #     s += f"n_vars: {self.n_vars_clauses}\nn_atoms: {self.n_atoms}\n"
+    #     return s
     
-    def __repr__(self) -> str:
-        return self.__str__()
+    # def __repr__(self) -> str:
+    #     return self.__str__()
     
 
 class Program:
@@ -164,6 +190,12 @@ class Solver:
         self.pop_size_genetic : int = arguments.pop_size
         self.mutation_probability : float = arguments.mutation_probability
         self.iterations_genetic : int = arguments.iterations_genetic
+        
+        self.aggregates : 'list[str]' = arguments.aggregates
+        self.comparison : 'list[str]' = arguments.comparison
+        self.arithm : 'list[str]' = arguments.arithm
+        self.cr : bool = arguments.cr # for choice rules
+        self.invention : bool = arguments.invention # predicate invention
     
 
     def solve(self) -> None:
@@ -187,10 +219,12 @@ class Solver:
             # max_clauses = max_clauses,
             verbose = self.verbose,
             enable_find_max_vars_stub=False,
-            find_all_possible_pos_for_vars_one_shot=True
+            find_all_possible_pos_for_vars_one_shot=True,
+            allowed_aggregates=self.aggregates,
+            arithmetic_operators=self.arithm,
+            comparison_operators=self.comparison
         )
         
-
         start_total_time = time.time()
         for it in range(self.sample_loops):
             # Step 0: sample a list of clauses
@@ -199,11 +233,11 @@ class Solver:
             print("Sampling clauses")
             cls = sampler.sample_clause_stub(1000)
             sample_time = time.time() - start_time
-            print(f"Sampled clauses in {sample_time} seconds")
         
             # Step 1: remove duplicates: TODO?: sample clauses not duplicated
             sampled_clauses = sorted(list(set(cls)))
-            # print(sampled_clauses)
+            print(f"Sampled {len(sampled_clauses)} different clauses in {sample_time} seconds")
+            print(sampled_clauses)
             # sys.exit()
             if self.verbose >= 1:
                 print(f"Total number of clauses sampled: {len(sampled_clauses)}")
@@ -221,16 +255,21 @@ class Solver:
             placed_list : 'list[list[str]]' = sampler.place_variables_list_of_clauses(sampled_clauses)
             placing_time = time.time() - start_time
             print(f"Placed variables in {placing_time} seconds")
-            # QUI
-            # for p in placed_list:
-            #     print(p)
+            # # QUI
+            placed_list_improved : 'list[strategies.PlacedClause]' = []
+            for p in placed_list:
+                # print(p)
+                pl = strategies.PlacedClause(p)
+                placed_list_improved.append(pl)
+                # print(pl)
+                # print("TODO: -- usare individual in strategies? -- placed clauses contiene anche il numero di variabili e di atomi, per considerare meglio il valore di una clausola")
             # sys.exit()
             print(f"Total clauses: {len(placed_list)}")
             # print(len(sampled_clauses))
             
             # Step 3: genetic algorithm
             start_time = time.time()
-            current_strategy = strategies.Strategy(placed_list, self.background, positive_examples, negative_examples)
+            current_strategy = strategies.Strategy(placed_list_improved, self.background, positive_examples, negative_examples)
             # n_clauses_genetic = 6
             # pop_size_genetic = 50
             # iterations_genetic = 10000
@@ -264,7 +303,7 @@ if __name__ == "__main__":
     command_parser.add_argument("-vars", "--variables", help="Max variables to consider \
         in a rule", type=int, default=3)
     command_parser.add_argument("-d", "--depth", help="Max literals in rules", \
-        type=int, default=4)
+        type=int, default=3)
     command_parser.add_argument("-it", "--iterations", help="Max number of sample and \
         genetic iterations", type=int, default=10)
     command_parser.add_argument("-s", "--sample", help="Number of clauses to sample",\
@@ -277,10 +316,29 @@ if __name__ == "__main__":
         probability", type=float, default=0.2)
     command_parser.add_argument("-e", "--example", help="Load a predefined example", \
         choices=["coin", "even_odd", "animals_bird", "coloring", \
-            "adjacent_to_red", "grandparent"], default=None)
+            "adjacent_to_red", "grandparent", "sudoku", "dummy"], default=None)
+    
+    command_parser.add_argument("--comparison", help="Set the usage of comparison \
+        predicates: less than (<) with lt, greater than (>) with gt, and \
+        equal (==) with eq. Example: --comparison lt gt eq diff", nargs='+', \
+        required=False, choices=["lt","gt","eq", "neq"])
+    command_parser.add_argument("--arithm", help="Enables the usage of arithmetic \
+        predicates: add (+), sub(-), mul(*), and div(/). Example: \
+        --arithm add sub mul div", nargs='+', required=False, choices=["add","sub",
+        "mul","div"])
+    command_parser.add_argument("--cr", help="Enables the generation of \
+        choice rules.", type=bool, default=False)
+    command_parser.add_argument("--invention", help="Enables predicate invention with \
+        n predicates. Example --invention=1", type=int, default=0)
+    command_parser.add_argument('--aggregates', help="Enable aggregates. Example:\
+        --aggregates sum(a/1) count (a/1). Specify the atom to aggregate.", 
+        nargs='+', required=False)
     
     args = command_parser.parse_args()
     
+    print(args.arithm)
+    print(args.comparison)
+    # sys.exit()
     background = []
     positive_examples = []
     negative_examples = []
@@ -288,18 +346,20 @@ if __name__ == "__main__":
     language_bias_body = []
     
     if args.example is None:
-        if (os.path.isfile(args.directory + "bk.pl") and 
+        if (os.path.isfile(args.directory + "bk.pl") and
             os.path.isfile(args.directory + "exs.pl") and
             os.path.isfile(args.directory + "bias.pl")):
             background, positive_examples, negative_examples,\
                 language_bias_head, language_bias_body = utils.read_popper_format(
                     args.directory)
+            # print(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
         else:
             utils.print_error_and_exit("Specify a directory or an example")
     else:
         if args.example == "coin":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.coin_example()
+            # print(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
         elif args.example == "even_odd":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.even_odd_example()
@@ -315,6 +375,12 @@ if __name__ == "__main__":
         elif args.example == "grandparent":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.grandparent_example()
+        elif args.example == "sudoku":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.sudoku()
+        elif args.example == "dummy":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.dummy()
         else:
             utils.print_error_and_exit("Example not found")
 
