@@ -6,6 +6,7 @@ import sys
 from clingo_interface import ClingoInterface
 
 import utils
+from utils import AggregateElement
 
 # number of underscore for placeholders in atoms
 UNDERSCORE_SIZE = 5
@@ -238,10 +239,11 @@ class ProgramSampler:
 
     def generate_asp_program_for_combinations(
         self,
-        n_positions : int, 
-        n_variables : int, 
+        n_positions : int,
+        n_variables : int,
         n_vars_in_head : int,
-        to_find_max_number : bool = False
+        to_find_max_number : bool = False,
+        aggregates : 'list[AggregateElement]' = []
         ) -> str:
         '''
         Generate an ASP program to fill the holes in rules.
@@ -251,105 +253,93 @@ class ProgramSampler:
         to compute the possible choices.
         '''
         
-        # # TEST
-        # print("VALORI FISSATI")
-        # n_positions = 4
-        # n_variables = 3
-        # n_vars_in_head = 1
+        # generate all the combinations of variables and positions
+        s = "% generate all the combinations of variables and positions\n"
+        s += f"var(0..{n_variables - 1}).\n"
+        s += f"pos(0..{n_positions - 1}).\n"
         
-        # print(f"n_positions: {n_positions}")
-        # print(f"n_variables: {n_variables}")
-        # print(f"n_vars_in_head: {n_vars_in_head}")
+        # last index for the variable in the head
+        s += "\n% last index for the variable in the head\n"
+        s += f"last_index_var_in_head({n_vars_in_head - 1}).\n"
 
-        s = f"#const n_positions = {n_positions}.\n"
-        # generators
-        # s += "% generators for the possible positions\n
-        # vk(p) states that the k-th variable is at position p\n"
+        # exactly one varible per position
+        s += "\n% exactly one varible per position\n"
+        s += "1{var_pos(Var,Pos) : var(Var)}1:- pos(Pos).\n"
+        
+        # only, safe variables (a variable in the head must appear in the body)
+        s += "\n% only, safe variables (a variable in the head must appear in the body)\n"
+        s += "cv_body(Var, C):- C = #count{Pos : var_pos(Var,Pos), Pos > VHI}, var(Var), last_index_var_in_head(VHI).\n"
+        s += "cv_head(Var, C):- C = #count{Pos : var_pos(Var,Pos), Pos <= VHI}, var(Var), last_index_var_in_head(VHI).\n"
+        s += ":- cv_head(Var,CH), cv_body(Var,0), var(Var), CH > 0.\n"
+        
+        # no variables should appear only once
+        s += "\n% no variables should appear only once\n"
+        s += ":- var(Var), #count{Pos : var_pos(Var,Pos)} = 1.\n"
+        
+        # do not use variables of index k+1 if k is not used
+        s += "\n% do not use variables of index k+1 if k is not used\n"
+        s += ":- var(Var0), var(Var1), Var0 < Var1, #count{Pos : var_pos(Var0,Pos)} = 0,  #count{Pos : var_pos(Var1,Pos)} > 0.\n"
+        
+        # fix variable 0 in position 0 to remove some symmetries
+        s += "\n% fix variable 0 in position 0 to remove some symmetries\n"
+        s += ":- not var_pos(0,0).\n"
+        
+        # to keep the compatibility with the previous version
         for i in range(n_variables):
-            s += "{v" + str(i) + f"(0..{n_positions - 1})" + '}.\n'
-        s += '\n'
+            s += f"v{i}(I):- var_pos({i},I).\n"
+            s += f"#show v{i}/1.\n"
         
-        # counters for the variables
-        for i in range(n_variables):
-            s += f"cv{i}(C):- C = #count" + "{" + f"V : v{i}(V)" + "}.\n"
-        s += '\n'
+        # s += "\n#show var_pos/2."
         
-        # exactly one variable per position
-        if n_variables > 1:
-            c = ""
-            for i in range(n_variables):
-                c += f"p(X) :- v{i}(X).\n"
-            c = c + '\n\n'
-            for i in range(n_positions):
-                c += f":- not p({i}).\n"
-            c = c + '\n\n'
-            s += c
+        # additional constraints coming from aggregates:
+        # [Term: 1 - Atoms: 2 - Eq: 3] # the number denotes positions
+        # X, Y : a(X,Y)
+        # term : atom
+        # i) all the terms must be different
+        # ii) all the terms must appear in literals
+        # iii) no global variables in tuple of aggregate elements: terms cannot appear elsewhere
+        # apart from other terms
+        # iiii) limitation: all the atoms must appear in terms? (i.e., I cannot have
+        # #sum{X : A(X,Y)}, g(Y)) ?
+        # iiiii) the result of the aggregate must be used: implicit in the constraint
+        # imposing that no variables should appear only once
         
-        # all the positions must be filled
-        c = ":- "
-        for i in range(n_variables):
-            c += f"cv{i}(X{i}),"
-        for i in range(n_variables):
-            c += f"X{i}+"
-        c = c[:-1] + ' != n_positions.\n\n'
-        s += c
+        if len(aggregates) > 0:
+            s += "\n% constraints for aggregates\n"
+            s += f"aggregate(0..{len(aggregates) - 1}).\n"
+            for index, aggregate in enumerate(aggregates):
+                for t in aggregate.var_terms:
+                    s += f"aggregate_term({index},{t}).\n"
+                for a in aggregate.var_atom:
+                    s += f"aggregate_atom({index},{a}).\n"
         
-        # all the variables must be present - removed, that can be 0
-        # for i in range(n_variables):
-        #     s += f":- cv{i}(0).\n"
-        
-        # only safe rules: all the variables in the heads must
-        # be in a positive literal in the body
-        r = "\n"
-        # for i in range(n_vars_in_head):
-        if n_vars_in_head > 0:
-            for i in range(n_variables):
-                # cv0_body(C):- C = #count{V : v0(V), V != 0}.
-                # :- v0(0), cv0_body(C), C = 0.
-                r += f"cv{i}_body(C):- C = #count" + '{' + f"V : v{i}(V), V > {n_vars_in_head - 1}" + "}.\n"
-                r += f"cv{i}_head(C):- C = #count" + '{' + f"V : v{i}(V), V <= {n_vars_in_head - 1}" + "}.\n"
-                r += f":- cv{i}_head(CH), cv{i}_body(0), CH > 0.\n\n"
+            s += "var_in_term_agg(A,V):- aggregate(A), aggregate_term(A,VPos), var_pos(V,VPos).\n"
+            s += "var_in_atom_agg(A,V):- aggregate(A), aggregate_atom(A,VPos), var_pos(V,VPos).\n"
             
-        s += r
-        
-        # no variables appearing only once
-        for i in range(n_variables):
-            # cv0_tot(C):- C = #count{V : v0(V)}.
-            # :- cv0_tot(C), C < 2.
-            # già inserito prima per il contatore delle variabili, cv{i}
-            # s += f"cv{i}_tot(C):- C = #count" + "{" + f"V : v{i}(V)" + "}.\n"
-            # = 1 e non < 2 perché permetto che una variabile
-            # non sia usata
-            s += f":- cv{i}(C), C = 1.\n"
-            
-        # impose an order to avoid solutions of the form
-        # this is done by inserting constraints
-        # that are equivalent
-        for i in range(n_variables - 1):
-            for j in range(i + 1, n_variables):
-                s += f":- cv{i}(0), cv{j}(V{j}), V{j} > 0.\n"
-            
-        s += '\n'
-        
-        if not to_find_max_number:
-            for i in range(n_variables):
-                s += f"#show v{i}/1.\n"
-        else:
-            # add the part to find the maximum number of variables
-            # TODO: maybe is hella slow
-            for i in range(n_variables):
-                s += f"cnt{i}(N):- N = #count" + "{" + f"X : cv{i}(X), X > 0" + "}.\n"
-            
-            c = "\nn_vars(X):- "
-            for i in range(n_variables):
-                c += f"cnt{i}(X{i}),"
-            for i in range(n_variables):
-                c += f"X{i}+"
-            c = c[:-1] + ' = X.\n\n'
+            # i) all the terms must be different
+            s += "\n% # i) all the terms must be different\n"
+            s += ":- aggregate(A), #count{X : var_in_term_agg(A, X)} = CVT, CAT = #count{X : aggregate_term(A,X)}, CVT != CAT.\n"
 
-            s += c + "\n#maximize{X : n_vars(X)}.\n#show n_vars/1.\n"
+            
+            # ii) all the terms must appear in literals, i.e., remove #count{X:a(Y)}
+            s += "\n% ii) all the terms must appear in literals\n"
+            s += ":- var_in_term_agg(A,V), not var_in_atom_agg(A,V).\n"
+            
+            # iii) no global variables in tuple of aggregate elements: terms cannot appear elsewhere
+            # apart from other terms
+            # TODO: secondo me basta solo uno dei due vincoli ma singolarmente non funzionano
+            s += "\n% no global variables in tuple of aggregate elements\n"
+            s += "not_in_aggregate_term(V):- aggregate(A), var(V), not var_in_term_agg(A,V).\n"
+            s += ":- var(V), aggregate(A), aggregate_term(A,V), not_in_aggregate_term(V).\n"
+            s += "not_agg_pos(P):- pos(P), not aggregate_term(_,P), not aggregate_atom(_,P).\n"
+            s += ":- var(V), var_pos(V,P), var_in_term_agg(A,V), aggregate(A), not_agg_pos(P).\n"
+        
 
-
+        
+        # print(s)
+        
+        # sys.exit()
+            
         return s
     
 
@@ -409,6 +399,11 @@ class ProgramSampler:
         Replaces the _____ with the variables in the clause.
         This now works with only 1 clause
         '''
+        # print("-- FIXED STUB ")
+        print(" ---- INSERIRE VERSIONE MIGLIORATA PROGRAMMA ASP")
+        # sampled_stub = "g(_____):- #sum{ _____, _____ : a  ( _____, _____ )} = _____."
+        sampled_stub = "g(_____):- #sum{ _____ : a  ( _____ )} = _____, #sum{ _____ : a  ( _____ )} = _____."
+        # sampled_stub = "g(_____):- #sum{ _____ : a  ( _____ )} = _____."
         res : 'list[str]' = []
         # number of position to insert the variables
         n_positions : int = sampled_stub.count('_' * UNDERSCORE_SIZE)
@@ -419,10 +414,24 @@ class ProgramSampler:
             n_variables = 1
         else:
             n_variables = rv
+        
+        print("--- STUB ---")
+        print(sampled_stub)
+        print("TODO: introdurre ulteriori vincoli per aggregati e arithm")
         # number of variables in the head
+        
+        # sampled_stub = ":- #sum{ _____,_____ : a  ( _____,_____ )} = _____,a(_____),a(_____)."
         n_vars_in_head = sampled_stub.split(':-')[0].count('_' * UNDERSCORE_SIZE)
         # print(n_positions, n_variables, n_vars_in_head)
+        aggregates : 'list[AggregateElement]' = []
+        if '#' in sampled_stub:
+            aggregates = utils.get_aggregates(sampled_stub)
+            # additional_constraints = utils.get_constraint_from_aggregates(aggregates)
+            print(aggregates)
+            # sys.exit()
+            pass
         # TODO: migliorie
+        print('---')
         # 1) la variabile coinvolta in una ricorsione deve variare
         # es: a(X):- b(X), a(X).
         # 2) no variabili unsafe (quando c'è negazione)   
@@ -437,7 +446,7 @@ class ProgramSampler:
                     n_vars_in_head,
                     True
                 )
-                # print(asp_p)
+
                 asp_interface = ClingoInterface([asp_p], ["--opt-mode=opt"])
                 ctl = asp_interface.init_clingo_ctl()
                 
@@ -454,10 +463,13 @@ class ProgramSampler:
                 n_positions,
                 n_variables,
                 n_vars_in_head,
-                False
+                False,
+                aggregates
             )
 
             # print(asp_p)
+            print(asp_p)
+
             # TODO: dire che una coppia di atomi uguali non può
             # avere le stesse variabili
             # generates the clause to fill
@@ -490,7 +502,8 @@ class ProgramSampler:
                         answer_sets.append(a)
                         # res.append(self.reconstruct_clause(str(m), sampled_stub))
                 
-                # print(answer_sets)
+                if len(aggregates) > 0:
+                    print(answer_sets)
                 # print(len(answer_sets))
                 # generate all the combinations and prune the symmetric
                 lo : 'list[str]' = copy.deepcopy(answer_sets)
@@ -506,11 +519,15 @@ class ProgramSampler:
                             # print("Not in")
                             # print(symmetric_as)
                             for s in symm:
+                                # print(s)
                                 s = s.split(' ')
                                 s.sort()
                                 s = ' '.join(s)
                                 removed.append(s)
-                                lo.remove(s)
+                                if s in lo:
+                                    # this because the answer set programs already
+                                    # removes some symmetries
+                                    lo.remove(s)
                 
                 for a in lo:
                     res.append(self.reconstruct_clause(a, sampled_stub))
@@ -545,6 +562,11 @@ class ProgramSampler:
                     else:
                         enumerated_all = True
 
+        # sys.exit()
+        if len(aggregates) > 0:
+            print(res)
+            sys.exit()
+            
         return res
     
     
