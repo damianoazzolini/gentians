@@ -74,8 +74,9 @@ class Strategy:
         max_interations : int, # maximum number of iterations
         do_tournament : bool = True, # choose tournament to pick the elements
         tournament_size : int = 12, # number of elements considered for the tournament
-        prob_replacing_oldest : float = 0.5 # the probability to replace the oldest instead of the one with the lowest fittness
-        ) -> 'tuple[list[str], float, bool]':
+        prob_replacing_oldest : float = 0.5, # the probability to replace the oldest instead of the one with the lowest fittness
+        k_best_for_the_next_round : int = 5 # the top k individuals to keep for the next round
+        ) -> 'tuple[list[str], float, bool, list[int]]':
         '''
         Genetic algorithm to find the best program
         '''
@@ -129,9 +130,11 @@ class Strategy:
             # # print(asp_solver.lines)
             # for p in program:
             #     print(p)
-            
+            # sys.exit()
             cov = asp_solver.extract_coverage_and_set_clauses(
                 program, self.positive_examples, self.negative_examples, False)
+            
+            # print(program)
 
             # print(cov)
             # sys.exit()
@@ -157,7 +160,7 @@ class Strategy:
 
                     if cp == len(self.positive_examples):
                         if cn == 0:
-                            print(f"Best found with {res}")
+                            print(f"Best found with indexes {res}")
                             print(program)
                             l_best_indexes.append(res)
                             best_found = True
@@ -214,9 +217,9 @@ class Strategy:
             while len(random_subset) > 0 and not stop:
                 if random.random() > prob_selecting_fittest:
                     random_subset.remove(best_element)
+                    best_element = get_fittest(random_subset)
                 else:
                     stop = True
-                best_element = get_fittest(random_subset)
 
             return best_element
         
@@ -355,6 +358,7 @@ class Strategy:
                 program = sorted(program)
                 # cp is the current program
                 # cp, cn, current_score, best_found, l_index = evaluate_score(program)
+                # print("evaluate score in init")
                 current_score, best_found, l_index = evaluate_score(stub_indexes, prog_indexes, program)
 
                 if best_found:
@@ -374,7 +378,7 @@ class Strategy:
         population, best_found = initialize_population(number_clauses, self.placed_list, population_size)
 
         if best_found:
-            return population[0].program, population[0].score, True
+            return population[0].program, population[0].score, True, [-1]
 
         # step 1: sort in terms of decreasing fittnes
         population.sort(key = lambda x : x.score, reverse=True)
@@ -387,6 +391,7 @@ class Strategy:
                 print(f"Iteration {it} - best: {population[0]}")
 
             # 2.1: selection of the two fittest elements
+            # print('pre torunament')
             if do_tournament:
                 best_a = tournament(population, tournament_size)
                 best_b = tournament(population, tournament_size)
@@ -394,23 +399,29 @@ class Strategy:
                 best_a, best_b = pick_two_fittest(population)
             
 
-            # either do crossover or mutation semms to be not effective
+            # either do crossover or mutation seems to be not effective
             # prob_crossover = 0.05
             
             # 2.2: crossover
+            # print('pre cross')
             new_program_1, new_program_2 = crossover(best_a, best_b)
+            # TODO: check whether best found, to stop the iteration
+            # if one of the two covers all the positive and none of the negative?
             
             # 2.3: mutation
             # https://arxiv.org/pdf/2305.01582.pdf
+            # print('pre mutate')
             new_mutated_1 = mutate(new_program_1)
             new_mutated_2 = mutate(new_program_2)
             
             l_mutated = [new_mutated_1, new_mutated_2]
             
+            # 3: replace elements in the population
+            # print('pre replace')
             for el in l_mutated:
                 # if best, return
                 if el.is_best:
-                    return [el.program[i] for i in el.l_best_indexes], el.score, True
+                    return [el.program[i] for i in el.l_best_indexes], el.score, True, [-1]
 
                 found = False
                 # if not best, check whether it is already in the population
@@ -420,7 +431,6 @@ class Strategy:
                         break
                 
                 # if not in the population, insert
-                found = False
                 if not found:
                     i = 0
                     for i, element in enumerate(population):
@@ -439,5 +449,18 @@ class Strategy:
                         population = population[:-1]
 
         print("Iterations completed")
+        
+        # keep the elements for the next round: extract all the stubs from
+        # the top k programs. Then, count the occurrences of each and return the top
+        # k stubs that occur the most
+        all_indexes_list : 'list[int]' = [] 
+        for i in range(1, k_best_for_the_next_round + 1):
+            print(population[i].program)
+            all_indexes_list.extend(population[i].stub_indexes)
+        
+        # create a dict to count the occurrences, sort it, and return the top
+        # k elements that occur the most
+        s = {x:all_indexes_list.count(x) for x in set(all_indexes_list)}
+        a = sorted(s.items(), key=lambda x: x[1], reverse=True)
    
-        return population[0].program, population[0].score, False
+        return population[0].program, population[0].score, False, [i[0] for i in a[:k_best_for_the_next_round]]

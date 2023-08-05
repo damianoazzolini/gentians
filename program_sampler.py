@@ -2,6 +2,7 @@ import random
 import copy
 import re
 import sys
+import itertools # to generate unbalanced aggregates
 
 from clingo_interface import ClingoInterface
 
@@ -83,6 +84,8 @@ class ProgramSampler:
         verbose : int = 0,
         enable_find_max_vars_stub : bool = False,
         find_all_possible_pos_for_vars_one_shot : bool = True,
+        disjunctive_head_length : int = 1, # number of atoms allowed in the head
+        unbalanced_aggregates : bool = False, # to allow #count{X : a(X,Y)} = C, g(Y).
         allowed_aggregates : 'list[str]' = [],
         arithmetic_operators : 'list[str]' = [],
         comparison_operators : 'list[str]' = []
@@ -96,7 +99,7 @@ class ProgramSampler:
         # print(language_bias_body)
         for el in language_bias_body:
             self.body_literals.append(Literal.parse_mode_from_string(el, "modeb"))
-
+        
         self.max_depth : int = max_depth
         self.max_variables : int = max_variables
         # self.max_clauses : int = max_clauses
@@ -111,9 +114,28 @@ class ProgramSampler:
         
         # True if we are sampling for a constraint, changed every iteration
         self.body_constraint : bool = False
+        # max number of atoms in the head
+        self.disjunctive_head_length : int = disjunctive_head_length
+        # a boolean, false by default, that allows unbalanced aggregates, 
+        # i.e., aggregates where some terms may appear in the body of the
+        # rule itself. For instance: #count{X : a(X,Y)} = C, g(Y).
+        # is allowed when the bool is set to true, but not allowed
+        # when false
+        self.unbalanced_aggregates : bool = unbalanced_aggregates
+        
+        # enable recursion: super carefully with aggregates since this may
+        # cause loops: for instance, this program loops
+        # {el(1,2)}.
+        # s1(V0):- V2+V1=V0,s0(V1),s1(V2).
+        # s0(V0):- #sum{V2,V1:el(V1,V2)}=V0.
+        # s1(V0):-  #sum{V2,V1:el(V1,V2)}=V0,#sum{V2,V1:el(V2,V1)}=V0.
+        self.enable_recursion = False
+        
         
         # allowed aggregates
         # self.aggregates : 'list[Literal]' = []
+        # store the already placed clauses to avoid recomputation
+        self.stub_placed_dict : 'dict[str,list[str]]' = {}
         
         if allowed_aggregates:
             for el in allowed_aggregates:
@@ -132,59 +154,116 @@ class ProgramSampler:
         if comparison_operators:
             for el in comparison_operators:
                 self.body_literals.append(Literal(f"__{el}__",2,1,False))
+                
 
-    
-    def replace_operators(self, body : 'list[str]') -> 'tuple[list[str],bool]':
+    # def __replace_operators(self, body : 'list[str]') -> 'tuple[list[str],bool]':
+    def __replace_operators(self, body : 'list[str]') -> 'list[str]':
         '''
         Replaces the placeholder names with the comparison or arithmetic operator.
         The boolean is false if the number of operators is the same as the number
-        of atoms in the body, i.e, the clause is not valid.
+        of atoms in the body, i.e, the clause is not valid (removed).
         '''
-        # body = ["__neq__(_,_)", "__add__(_,_,_)"]
+        # body = ['__add__(_____,_____,_____)', '__sum(el/2)(_____)', '__min(el/2)(_____)', 's0(_____)']
+        # body = ['__add__(_____,_____,_____)', '__sum(el/2,x/1)(_____)','s0(_____)']
+        # body = ['__add__(_____,_____,_____)', '__count(el/2)(_____)','s0(_____)']
         body_literals = body
+        # print(body_literals)
         placeholder = 5*'_'
         operators_count = 0
+        aggregates_indexes : list[int] = []
+        all_aggr : 'list[list[str]]' = []
         for i, el in enumerate(body):
             operators_count += 1
             # comparison
             if el.startswith("__lt__"):
-                body_literals[i] = placeholder + " < " + placeholder
+                body_literals[i] = placeholder + "<" + placeholder
+            if el.startswith("__leq__"):
+                body_literals[i] = placeholder + "<=" + placeholder
             elif el.startswith("__gt__"):
-                body_literals[i] = placeholder + " > " + placeholder
+                body_literals[i] = placeholder + ">" + placeholder
+            elif el.startswith("__geq__"):
+                body_literals[i] = placeholder + ">=" + placeholder
             elif el.startswith("__eq__"):
-                body_literals[i] = placeholder + " == " + placeholder
+                body_literals[i] = placeholder + "==" + placeholder
             elif el.startswith("__neq__"):
-                body_literals[i] = placeholder + " != " + placeholder
+                body_literals[i] = placeholder + "!=" + placeholder
             # arithmetic
             elif el.startswith("__add__"):
-                body_literals[i] = f"{placeholder} + {placeholder} = {placeholder}"
+                body_literals[i] = f"{placeholder}+{placeholder}={placeholder}"
             elif el.startswith("__sub__"):
-                body_literals[i] = f"{placeholder} - {placeholder} = {placeholder}"
+                body_literals[i] = f"{placeholder}-{placeholder}={placeholder}"
             elif el.startswith("__mul__"):
-                body_literals[i] = f"{placeholder} * {placeholder} = {placeholder}"
+                body_literals[i] = f"{placeholder}*{placeholder}={placeholder}"
             elif el.startswith("__div__"):
-                body_literals[i] = f"{placeholder} * {placeholder} = {placeholder}"
+                body_literals[i] = f"{placeholder}/{placeholder}={placeholder}"
             # aggregates
             elif el.startswith("__sum(") or el.startswith("__count(") or el.startswith("__min(") or el.startswith("__max("):
-                agg = el[2:5]
-                pos = el[6:].find(')')
-                atom_to_aggregate = el[6:pos+6]
-                name = atom_to_aggregate.split('/')[0]
-                arity = atom_to_aggregate.split('/')[1]
-                ph = ','.join([UNDERSCORE_SIZE*'_'] * int(arity))
-                body_literals[i] = "#" + agg + "{ " + ph + f" : {name}  ( {ph} )" + "} = " + UNDERSCORE_SIZE*'_'
-                # print(body_literals[i])
+                # TODO: count non funziona perché è lungo 4 e non 3
+                inc = 0
+                if el.startswith("__count("):
+                    inc = 2
+                agg = el[2:5 + inc]
+                pos = el[6 + inc : ].find(')')
+                atom_to_aggregate = el[6 + inc : pos + 6 + inc]
+                max_arity = 0
+                names : 'list[str]' = []
+                arities : 'list[int]' = []
+                for atom_in_agg in atom_to_aggregate.split(','):
+                    names.append(atom_in_agg.split('/')[0])
+                    arities.append(int(atom_in_agg.split('/')[1]))
+                    max_arity = max_arity + int(atom_in_agg.split('/')[1])
+
+                # if self.unbalanced_aggregates
+                # sum/2 -> #sum{ _ : a(_,_)} e #sum{ _, _ : a(_,_)}
+                if self.unbalanced_aggregates:
+                    current : 'list[str]' = []
+                    for current_arity in range(1, max_arity + 1):
+                        ph = ','.join([UNDERSCORE_SIZE*'_'] * int(current_arity))
+                        atoms_in_agg = ":"
+                        for name, arity in zip(names,arities):
+                            ph_atom = ','.join([UNDERSCORE_SIZE*'_'] * int(arity))
+                            atoms_in_agg += f"{name}({ph_atom}),"
+                        current.append("#" + agg + "{" + ph + atoms_in_agg[:-1] + "}=" + UNDERSCORE_SIZE*'_')
+                    all_aggr.append(current)
+                else:
+                    atoms_in_agg = ":"
+                    for name, arity in zip(names,arities):
+                        ph_atom = ','.join([UNDERSCORE_SIZE*'_'] * int(arity))
+                        atoms_in_agg += f"{name}({ph_atom}),"
+                    ph = ','.join([UNDERSCORE_SIZE*'_'] * sum(arities))
+                    body_literals[i] = "#" + agg + "{" + ph + atoms_in_agg[:-1] + "}=" + UNDERSCORE_SIZE*'_'
+
                 operators_count -= 1
-                # sys.exit()
+                aggregates_indexes.append(i)
             else:
                 operators_count -= 1
         
-        return body_literals, operators_count != len(body)
-    
+        
+        # p = itertools.product(*all_aggr)
+        # for el in p:
+        #     print('p: ' + str(el))
+        # print(all_aggr)
+        
+        nb = []
+        for agg_comb in itertools.product(*all_aggr):
+            cb = body_literals[:]
+            for agg, index in zip(agg_comb,aggregates_indexes):
+                # print(f"agg: {agg}")
+                cb[index] = agg
+            # print(cb)
+            nb.append(cb)
+        
+        # self.unbalanced_aggregates = True
+        # if len(all_aggr) > 0 and self.unbalanced_aggregates:
+        #     # for pair in a
+        #     nb = body_literals
+        #     print(nb)
+        # print(body_literals)
+        # return body_literals #, operators_count != len(body)
+        return nb #, operators_count != len(body)
     
 
-
-    def define_distribution_atoms(
+    def __define_distribution_atoms(
         self,
         available_atoms : 'list[Literal]'
         ) -> 'tuple[list[float],bool]':
@@ -217,7 +296,7 @@ class ProgramSampler:
         Randomly samples an element if the recall is not 0
         '''
         probs : 'list[float]'
-        probs, all_zeros = self.define_distribution_atoms(available_atoms)
+        probs, all_zeros = self.__define_distribution_atoms(available_atoms)
         # print(probs)
         if not all_zeros:
             v : float = random.random()
@@ -243,7 +322,9 @@ class ProgramSampler:
         n_variables : int,
         n_vars_in_head : int,
         to_find_max_number : bool = False,
-        aggregates : 'list[AggregateElement]' = []
+        aggregates : 'list[AggregateElement]' = [],
+        pos_arithm : 'list[list[int]]' = [],
+        pos_comparison : 'list[list[int]]' = []
         ) -> str:
         '''
         Generate an ASP program to fill the holes in rules.
@@ -268,17 +349,90 @@ class ProgramSampler:
         
         # only, safe variables (a variable in the head must appear in the body)
         s += "\n% only, safe variables (a variable in the head must appear in the body)\n"
-        s += "cv_body(Var, C):- C = #count{Pos : var_pos(Var,Pos), Pos > VHI}, var(Var), last_index_var_in_head(VHI).\n"
-        s += "cv_head(Var, C):- C = #count{Pos : var_pos(Var,Pos), Pos <= VHI}, var(Var), last_index_var_in_head(VHI).\n"
-        s += ":- cv_head(Var,CH), cv_body(Var,0), var(Var), CH > 0.\n"
+        # s += "\n% excluded positions: the ones involved in aggregates and comparison operators\n"
+        # if len(aggregates) > 0:
+        #     s += "\nexclude_pos(P):- aggregate_term_position(_,P).\n"
+        #     s += "\nexclude_pos(P):- aggregate_atom_position(_,P).\n"
+        # if len(pos_comparison) > 0:
+        #     s += "\nexclude_pos(P):- comparison_term_position(_,P).\n"
+        # if len(pos_arithm) > 0:
+        #     # TODO: controllare che sia lo stesso nome
+        #     s += "\nexclude_pos(P):- arithm_term_position(_,P).\n"
+
+        if len(aggregates) > 0 or len(pos_comparison) > 0 or len(pos_arithm) > 0:
+            s += """
+                v_body(V,P):-
+                    var_pos(V,P), 
+                    P > VHI, 
+                    last_index_var_in_head(VHI).
+                
+                % placeholders to suppress warnings
+                aggregate_term_position(-1,-1).
+                v_body_atp(V,P):-
+                    var_pos(V,P), 
+                    P > VHI, 
+                    last_index_var_in_head(VHI),
+                    aggregate_term_position(_,P).
+
+                aggregate_atom_position(-2,-2).
+                v_body_aap(V,P):-
+                    var_pos(V,P), 
+                    P > VHI, 
+                    last_index_var_in_head(VHI),
+                    aggregate_atom_position(_,P).
+
+                arithm_term_position(-3,-3).
+                v_body_arp(V,P):-
+                    var_pos(V,P), 
+                    P > VHI, 
+                    last_index_var_in_head(VHI),
+                    arithm_term_position(_,P).
+                
+                comparison_term_position(-4,-4).
+                v_body_ctp(V,P):-
+                    var_pos(V,P), 
+                    P > VHI, 
+                    last_index_var_in_head(VHI),
+                    comparison_term_position(_,P).
+                
+
+                cv_body(Var,C):-
+                    CT = #count{P : v_body(Var,P)},
+                    CATP = #count{P : v_body_aap(Var,P)},
+                    CAAP = #count{P : v_body_aap(Var,P)},
+                    CARP = #count{P : v_body_arp(Var,P)},
+                    CCOMP = #count{P : v_body_ctp(Var,P)},
+                    var(Var),          
+                    C = CT - CATP - CAAP - CARP - CCOMP.
+            """
+        else:
+            # s += "cv_body(Var, C):- C = #count{Pos : var_pos(Var,Pos), Pos > VHI}, var(Var), last_index_var_in_head(VHI).
+            s += '''
+                v_in_head(V):- last_index_var_in_head(I), var_pos(V,P), P <= I.
+                v_in_body(V):- last_index_var_in_head(I), var_pos(V,P), P > I.
+                :- v_in_head(V), not v_in_body(V).
+            '''
+
+        if len(aggregates) > 0 or len(pos_comparison) > 0 or len(pos_arithm) > 0:
+            # old version to improve for aggregates
+            s += "cv_head(Var, C):- C = #count{Pos : var_pos(Var,Pos), Pos <= VHI}, var(Var), last_index_var_in_head(VHI).\n"
+            s += ":- cv_head(Var,CH), cv_body(Var,0), var(Var), CH > 0.\n"
         
         # no variables should appear only once
         s += "\n% no variables should appear only once\n"
-        s += ":- var(Var), #count{Pos : var_pos(Var,Pos)} = 1.\n"
-        
+        # old
+        # s += ":- var(Var), #count{Pos : var_pos(Var,Pos)} = 1.\n"
+        s += '''
+            at_least_twice(V):- var_pos(V,P0), var_pos(V,P1), P0 != P1.
+            :- var_pos(V,_), not at_least_twice(V).
+            '''
         # do not use variables of index k+1 if k is not used
         s += "\n% do not use variables of index k+1 if k is not used\n"
-        s += ":- var(Var0), var(Var1), Var0 < Var1, #count{Pos : var_pos(Var0,Pos)} = 0,  #count{Pos : var_pos(Var1,Pos)} > 0.\n"
+        # old
+        # s += ":- var(Var0), var(Var1), Var0 < Var1, #count{Pos : var_pos(Var0,Pos)} = 0,  #count{Pos : var_pos(Var1,Pos)} > 0.\n"
+        # wrong
+        # s += ":- var_pos(V0,_), var_pos(V1,_), var_pos(V2,_), V0 < V1, V1 < V2.\n"
+        s += ":- var(Var0), var(Var1), Var0 < Var1, not var_pos(Var0,_), var_pos(Var1,_)."
         
         # fix variable 0 in position 0 to remove some symmetries
         s += "\n% fix variable 0 in position 0 to remove some symmetries\n"
@@ -308,17 +462,17 @@ class ProgramSampler:
             s += "\n% constraints for aggregates\n"
             s += f"aggregate(0..{len(aggregates) - 1}).\n"
             for index, aggregate in enumerate(aggregates):
-                for t in aggregate.var_terms:
-                    s += f"aggregate_term({index},{t}).\n"
-                for a in aggregate.var_atom:
-                    s += f"aggregate_atom({index},{a}).\n"
+                for t in aggregate.position_var_terms:
+                    s += f"aggregate_term_position({index},{t}).\n"
+                for a in aggregate.position_var_atom:
+                    s += f"aggregate_atom_position({index},{a}).\n"
         
-            s += "var_in_term_agg(A,V):- aggregate(A), aggregate_term(A,VPos), var_pos(V,VPos).\n"
-            s += "var_in_atom_agg(A,V):- aggregate(A), aggregate_atom(A,VPos), var_pos(V,VPos).\n"
+            s += "var_in_term_agg(A,V):- aggregate(A), aggregate_term_position(A,VPos), var_pos(V,VPos).\n"
+            s += "var_in_atom_agg(A,V):- aggregate(A), aggregate_atom_position(A,VPos), var_pos(V,VPos).\n"
             
             # i) all the terms must be different
             s += "\n% # i) all the terms must be different\n"
-            s += ":- aggregate(A), #count{X : var_in_term_agg(A, X)} = CVT, CAT = #count{X : aggregate_term(A,X)}, CVT != CAT.\n"
+            s += ":- aggregate(A), #count{X : var_in_term_agg(A, X)} = CVT, CAT = #count{X : aggregate_term_position(A,X)}, CVT != CAT.\n"
 
             
             # ii) all the terms must appear in literals, i.e., remove #count{X:a(Y)}
@@ -327,19 +481,88 @@ class ProgramSampler:
             
             # iii) no global variables in tuple of aggregate elements: terms cannot appear elsewhere
             # apart from other terms
-            # TODO: secondo me basta solo uno dei due vincoli ma singolarmente non funzionano
-            s += "\n% no global variables in tuple of aggregate elements\n"
-            s += "not_in_aggregate_term(V):- aggregate(A), var(V), not var_in_term_agg(A,V).\n"
-            s += ":- var(V), aggregate(A), aggregate_term(A,V), not_in_aggregate_term(V).\n"
-            s += "not_agg_pos(P):- pos(P), not aggregate_term(_,P), not aggregate_atom(_,P).\n"
-            s += ":- var(V), var_pos(V,P), var_in_term_agg(A,V), aggregate(A), not_agg_pos(P).\n"
-        
+            if not self.unbalanced_aggregates:
+                # TODO: secondo me basta solo uno dei due vincoli ma singolarmente non funzionano
+                s += "\n% no global variables in tuple of aggregate elements\n"
+                # s += "not_in_aggregate_term(V):- aggregate(A), var(V), not var_in_term_agg(A,V).\n"
+                # s += ":- var(V), aggregate(A), aggregate_term_position(A,V), not_in_aggregate_term(V).\n"
+                # s += "not_agg_pos(P):- pos(P), not aggregate_term_position(_,P), not aggregate_atom_position(_,P).\n"
+                # s += ":- var(V), var_pos(V,P), var_in_term_agg(A,V), aggregate(A), not_agg_pos(P).\n"
+                # qui escludo la possibilità di avere #count{X : a(X,Y)} = C, g(Y).
+                s += "not_agg_pos(P):- pos(P), not aggregate_term_position(_,P), not aggregate_atom_position(_,P).\n"
+                s += ":- not_agg_pos(P), var_pos(V,P), aggregate_term_position(_,PosTermAgg), var_pos(V,PosTermAgg).\n"
 
-        
-        # print(s)
+        if len(pos_arithm) > 0:
+            # the variables involved in arithmetic operators must be already defined
+            # in another term
+            # TODO: the same as comparison
+            s += "\n% constraints for arithm operators\n"
+            s += f"arithm(0..{len(pos_arithm) - 1}).\n"
+            for index, el in enumerate(pos_arithm):
+                for ii in range(0,len(el)):
+                    # if index > 0 and (index + 1) % 3 != 0:
+                    if (ii + 1) % 3 != 0:
+                        # since in A + B = C, C can appear in the head
+                        s += f"arithm_term_position({index},{el[ii]}).\n"
+                    s += f"all_arithm_term_position({index},{el[ii]}).\n"
+
+            # get the variables involved in arithm operators
+            s += "\n% get the variables involved in arithm operators\n"
+            s += "in_arithm_and_not(Var):- arithm(IndexArithm),\
+                arithm_term_position(IndexArithm,Position0),\
+                var_pos(Var, Position0),\
+                var_pos(Var, Position1),\
+                Position0 != Position1.\n"
+            
+            # impose that the varibles in arithm operators appear elsewhere
+            s += "\n% impose that the varibles in arithm operators appear elsewhere\n"
+            s += ":- #count{Var : in_arithm_and_not(Var)} = VP,\
+                    #count{P : arithm_term_position(I,P),arithm(I)} = NP,\
+                    NP != VP.\n"
+            
+            # impose that arithm operators must have different variables
+            # involved (i.e., V1 + V0 = V1 is not ok)
+            s += "\n% impose that arithm operators must have different variables\n" 
+            s += ":- arithm(C), all_arithm_term_position(C,P0),\
+                all_arithm_term_position(C,P1),\
+                P0 != P1,\
+                var_pos(Var0,P0),\
+                var_pos(Var1,P1),\
+                Var0 == Var1.\n"
+            
+        if len(pos_comparison) > 0:
+            s += "\n% constraints for comparison operators\n"
+            s += f"comparison(0..{len(pos_comparison) - 1}).\n"
+            for index, el in enumerate(pos_comparison):
+                for v in el:
+                    s += f"comparison_term_position({index},{v}).\n"
+
+            # get the variables involved in comparison operators
+            s += "\n% get the variables involved in comparison operators\n"
+            s += "in_comparison_and_not(Var):- comparison(IndexComparison),\
+                comparison_term_position(IndexComparison,Position0),\
+                var_pos(Var, Position0),\
+                var_pos(Var, Position1),\
+                Position0 != Position1.\n"
+            
+            # impose that the varibles in comparison operators appear elsewhere
+            s += "\n% impose that the varibles in comparison operators appear elsewhere\n"
+            s += ":- #count{Var : in_comparison_and_not(Var)} = VP,\
+                    #count{P : comparison_term_position(I,P),comparison(I)} = NP,\
+                    NP != VP.\n"
+                    
+            # impose that comparison operators must have different variables
+            # involved (i.e., V1 > V1 is not ok)
+            s += "\n% impose that comparison operators must have different variables\n"
+            s += ":- comparison(C), comparison_term_position(C,P0),\
+                    comparison_term_position(C,P1),\
+                    P0 != P1,\
+                    var_pos(Var0,P0),\
+                    var_pos(Var1,P1),\
+                    Var0 == Var1.\n"
         
         # sys.exit()
-            
+        # print(s)
         return s
     
 
@@ -363,34 +586,50 @@ class ProgramSampler:
         '''
         placed_list : 'list[list[str]]' = []
         
-        for clause in sampled_clauses:
-            # print("FISSATO")
-            # clause = ":- can(_____,_____),can(_____,_____)."
-            print(f"Placing variables for {clause}")
-            # TODO: miglioria. Qui i valori sono sempre gli stessi,
-            # Per esempio: :- a(_), b(_) e :- a(_), c(_) hanno le
-            # stesse possibili combinazioni quindi posso evitare di
-            # calcolarle nuovamente. Stesso numero di variabili e di
-            # posizioni
-            r = self.place_variables_clause(clause)
-            print('PLACED')
-            # for a in r:
-            #     print(a)
-            if len(r) > 0: # and not (r in placed_list):
-                r.sort()
-                valid_rules : 'list[str]' = []
-                for rl in r:
-                    if utils.is_valid_rule(rl):
-                        valid_rules.append(rl)
-                        print(f"Valid: {rl}")
-                    else:
-                        print(f"Pruned: {rl}")
+        for index, clause in enumerate(sampled_clauses):
+            if clause in self.stub_placed_dict:
+                # print("FOUND")
+                placed_list.append(self.stub_placed_dict[clause])
+                if self.verbose > 1:
+                    for c in self.stub_placed_dict[clause]:
+                        print(c)
+            else:
+                # print("FISSATO")
+                # clause = ":- can(_____,_____),can(_____,_____)."
+                if self.verbose >= 1:
+                    print(f"({index}/{len(sampled_clauses) - 1}) Placing variables for {clause}")
+                # TODO: miglioria. Qui i valori sono sempre gli stessi,
+                # Per esempio: :- a(_), b(_) e :- a(_), c(_) hanno le
+                # stesse possibili combinazioni quindi posso evitare di
+                # calcolarle nuovamente. Stesso numero di variabili e di
+                # posizioni
+                r = self.place_variables_clause(clause)
+                # print('PLACED')
+                # for a in r:
+                #     print(a)
+                if len(r) > 0: # and not (r in placed_list):
+                    r.sort()
+                    valid_rules : 'list[str]' = []
+                    pruned_count = 0
+                    for rl in r:
+                        if utils.is_valid_rule(rl):
+                            valid_rules.append(rl)
+                            if self.verbose > 1:
+                                print(f"Valid: {rl}")
+                        else:
+                            pruned_count += 1
+                            if self.verbose > 1:
+                                print(f"Pruned: {rl}")
+                    if self.verbose > 1:
+                        print(f"Valid / Total = {len(r) - pruned_count} / {len(r)} = {(len(r) - pruned_count) / len(r)}")
+                    if len(valid_rules) > 0:
+                        self.stub_placed_dict[clause] = valid_rules
+                        placed_list.append(valid_rules)
+                else:
+                    if self.verbose >= 1:
+                        print("No possible placements.")
 
-                if len(valid_rules) > 0:
-                    placed_list.append(valid_rules)
-            # print("---------- STOP QUI -------------")
             # sys.exit()
-        
         return placed_list
 
 
@@ -398,14 +637,28 @@ class ProgramSampler:
         '''
         Replaces the _____ with the variables in the clause.
         This now works with only 1 clause
-        '''
+        # # '''
         # print("-- FIXED STUB ")
-        print(" ---- INSERIRE VERSIONE MIGLIORATA PROGRAMMA ASP")
+        # sampled_stub = "sp(_____,_____):- #sum{_____ : p(_____,_____)}=_____, partition(_____)."
+        # sampled_stub = ":- _____-_____=_____,_____<=_____,hd(_____),pos(_____),sd(_____),v1(_____,_____)."
+        # sampled_stub = ":- #sum{_____,_____:d(_____,_____)}=_____,_____-_____=_____,_____>=_____."
+        # sampled_stub = "s0(_____):- #sum{_____,_____:el(_____,_____)}=_____,#sum{_____,_____:el(_____,_____)}=_____."
+        # sampled_stub = "s1(_____):- #sum{_____,_____:el(_____,_____)}=_____,#sum{_____,_____:el(_____,_____)}=_____,s1(_____)."
+        # sampled_stub = "odd(_____):- even(_____), prev(_____,_____)."
+        # sampled_stub = "a(_____):- _____ + _____ = _____, b(_____), c(_____)."
+        # sampled_stub = "s(_____,_____):- g(_____), h(_____,_____), i(_____)."
+        # sampled_stub = "ok(_____):- #sum{ _____,_____ : el  ( _____,_____ )} = _____,#sum{ _____,_____ : el  ( _____,_____ )} = _____,_____ + _____ = _____."
+        # sampled_stub = ":- s(_____), s(_____), s(_____), _____ + _____ = _____."
+        # sampled_stub = "s(_____):- #sum{ _____ : el  ( _____ )} = _____, _____ != _____."
+        # sampled_stub = ":- #sum{ _____ : el  ( _____ )} = _____,_____ != _____,s(_____)."
         # sampled_stub = "g(_____):- #sum{ _____, _____ : a  ( _____, _____ )} = _____."
-        sampled_stub = "g(_____):- #sum{ _____ : a  ( _____ )} = _____, #sum{ _____ : a  ( _____ )} = _____."
+        # sampled_stub = "g(_____):- #sum{ _____ : a  ( _____ )} = _____, #sum{ _____ : a  ( _____ )} = _____."
+        # sampled_stub = ":- #sum{ _____,_____ : el  ( _____,_____ )} = _____,#sum{ _____,_____ : el  ( _____,_____ )} = _____,s0(_____),s1(_____)."
         # sampled_stub = "g(_____):- #sum{ _____ : a  ( _____ )} = _____."
+        # sampled_stub = "count_row(_____,_____):- _____ = #count{_____ : x(_____,_____,_____), cell(_____)}, cell(_____)."
+        # sampled_stub = ":- in(_____), in(_____), v(_____), v(_____), _____!=_____, not e(_____,_____), not e(_____,_____)."
         res : 'list[str]' = []
-        # number of position to insert the variables
+        # number of positions to insert the variables
         n_positions : int = sampled_stub.count('_' * UNDERSCORE_SIZE)
         # number of variables to insert
         # rv = random.randint(1, self.max_variables)
@@ -415,23 +668,34 @@ class ProgramSampler:
         else:
             n_variables = rv
         
-        print("--- STUB ---")
-        print(sampled_stub)
-        print("TODO: introdurre ulteriori vincoli per aggregati e arithm")
+        # print("--- STUB ---")
+        if self.verbose > 1:
+            print(f"Placing for the stub: {sampled_stub}")
+        # print("TODO: introdurre ulteriori vincoli per aggregati e arithm")
         # number of variables in the head
         
         # sampled_stub = ":- #sum{ _____,_____ : a  ( _____,_____ )} = _____,a(_____),a(_____)."
         n_vars_in_head = sampled_stub.split(':-')[0].count('_' * UNDERSCORE_SIZE)
         # print(n_positions, n_variables, n_vars_in_head)
         aggregates : 'list[AggregateElement]' = []
+        pos_arithm : 'list[list[int]]' = []
+        pos_comparison : 'list[list[int]]' = []
+
         if '#' in sampled_stub:
             aggregates = utils.get_aggregates(sampled_stub)
             # additional_constraints = utils.get_constraint_from_aggregates(aggregates)
-            print(aggregates)
+            # print(aggregates)
             # sys.exit()
-            pass
+            # pass
+        if utils.contains_arithm(sampled_stub) or utils.contains_comparison(sampled_stub):
+            pos_arithm, pos_comparison = utils.get_arithm_or_comparison_position(sampled_stub)
+            # print(pos_arithm)
+            # print(pos_comparison)
+            # per i comparison, i due valori devono apparire da altre parti
+            # sys.exit()
+
         # TODO: migliorie
-        print('---')
+        # print('---')
         # 1) la variabile coinvolta in una ricorsione deve variare
         # es: a(X):- b(X), a(X).
         # 2) no variabili unsafe (quando c'è negazione)   
@@ -444,12 +708,15 @@ class ProgramSampler:
                     n_positions,
                     n_variables,
                     n_vars_in_head,
-                    True
+                    True,
+                    aggregates,
+                    pos_arithm=pos_arithm,
+                    pos_comparison=pos_comparison
                 )
 
                 asp_interface = ClingoInterface([asp_p], ["--opt-mode=opt"])
                 ctl = asp_interface.init_clingo_ctl()
-                
+
                 max_num = 0
                 with ctl.solve(yield_=True) as handle:  # type: ignore
                     for m in handle:  # type: ignore
@@ -458,40 +725,32 @@ class ProgramSampler:
                 n_variables = max_num
             #####
             # sys.exit()
-            
+
             asp_p = self.generate_asp_program_for_combinations(
                 n_positions,
                 n_variables,
                 n_vars_in_head,
                 False,
-                aggregates
+                aggregates,
+                pos_arithm=pos_arithm,
+                pos_comparison=pos_comparison                
             )
 
             # print(asp_p)
-            print(asp_p)
+            # print(asp_p)
+            # sys.exit()
 
-            # TODO: dire che una coppia di atomi uguali non può
-            # avere le stesse variabili
             # generates the clause to fill
             for el in range(0, sampled_stub.count('_'*UNDERSCORE_SIZE)):
                 sampled_stub = re.sub('_'*UNDERSCORE_SIZE, f"_v{el:02d}_", sampled_stub, count=1)
 
             # print('sampled stub')
             # print(sampled_stub)
-            
-            # TEST
-            # print("VALORI FISSATI")
-            # sampled_stub =  "odd(_v00_):-  odd(_v01_), prev(_v02_,_v03_)."
-            # print(asp_p)
-            # print("FISSATO")
-            # self.find_all_possible_pos_for_vars_one_shot = True
-            # res0 = []  
-            # res1 = []  
-            
+
             if self.find_all_possible_pos_for_vars_one_shot:
                 asp_interface = ClingoInterface([asp_p], ["0"])
                 ctl = asp_interface.init_clingo_ctl()      
-                
+
                 answer_sets : 'list[str]' = []
                 with ctl.solve(yield_=True) as handle:  # type: ignore
                     for m in handle:  # type: ignore
@@ -501,9 +760,9 @@ class ProgramSampler:
                         a = ' '.join(a)
                         answer_sets.append(a)
                         # res.append(self.reconstruct_clause(str(m), sampled_stub))
-                
-                if len(aggregates) > 0:
-                    print(answer_sets)
+
+                # if len(aggregates) > 0:
+                #     print(answer_sets)
                 # print(len(answer_sets))
                 # generate all the combinations and prune the symmetric
                 lo : 'list[str]' = copy.deepcopy(answer_sets)
@@ -528,8 +787,9 @@ class ProgramSampler:
                                     # this because the answer set programs already
                                     # removes some symmetries
                                     lo.remove(s)
-                
+
                 for a in lo:
+                    # print(sampled_stub)
                     res.append(self.reconstruct_clause(a, sampled_stub))
                 # print(len(lo))                
             else:
@@ -561,15 +821,82 @@ class ProgramSampler:
                             asp_p += symm
                     else:
                         enumerated_all = True
-
-        # sys.exit()
-        if len(aggregates) > 0:
-            print(res)
-            sys.exit()
+        
+        # # Remove solutions that have the same atom repeated twice
+        # # initial setup to find duplicates
+        # # print('pre res -- non va bene perché con aggregati non funziona')
+        # # print(res)
+        # temp_l = copy.deepcopy(res)
+        # for i in range(0, len(temp_l)):
+        #     temp_l[i] = temp_l[i].replace('not ', 'not_')
+        #     temp_l[i] = temp_l[i].replace(' ', '')
+        #     temp_l[i] = temp_l[i].replace('),',') ').replace(').',')')
             
+        #     # temp_l[i] = temp_l[i].replace('  ', ' ')
+        
+        # # find the index of the duplicates
+        # dup : 'list[int]' = []
+        # for i in range(0, len(temp_l)):
+        #     tmp = temp_l[i].split(' ')
+        #     # print(tmp)
+        #     # print(set(tmp))
+        #     if len(tmp) != len(set(tmp)):
+        #         dup.append(i)
+        
+        # print(dup)
+        # print('temp l')
+        # print(temp_l)
+        
+        # # remove the duplicates from the original list
+        # dup.reverse()
+        # for idx in dup:
+        #     del res[idx]
+        
+        # # print('post res')
+        # # print(res)
+        # # find other symmetric elements, i.e., that have the same atoms but in different order
+        # temp_l = copy.deepcopy(res)
+        # for i in range(0, len(temp_l)):
+        #     # print(get_atoms(temp_l[i]))
+        #     # print(temp_l[i])
+        #     head = temp_l[i].split(':-')[0]
+        #     # head = utils.get_atoms(temp_l[i].split(':-')[0])
+        #     body = temp_l[i].split(':-')[1].lstrip()
+        #     # print('body')
+        #     # print(body)
+        #     # body = utils.get_atoms(temp_l[i].split(':-')[1])
+        #     body_t = ' '.join(sorted(body.replace('not ', 'not_').replace('),',') ').replace(').',')').split(' ')))
+        #     head_t = ' '.join(sorted(head.replace('not ', 'not_').replace('),',') ').replace(').',')').split(' ')))
+        #     # print(head_t)
+        #     # print(body_t)
+        #     # temp_l[i] = ';'.join(sorted(head)) + ':- ' + ','.join(sorted(body)) + '.'
+        #     # temp_l[i] = ' '.join(sorted(temp_l[i].replace('not ', 'not_').replace('),',')').replace(').',')').split(' ')))
+        #     temp_l[i] = head_t + ':- ' + body_t
+        # temp_l.sort()
+
+        # # for el in temp_l:
+        # #     print(el)
+        
+        # s = list(set(temp_l))
+        # for i in range(0, len(s)):
+        #     s[i] = ', '.join(s[i].replace('  ',' ').split(' ')).replace(',,',',').replace(':-,',':-').replace('not_', 'not ') + ('.' if not s[i].endswith('.') else '')
+        # res = s
+
+
+        # print(len(temp_l))
+        # print(len(s))
+        # for el in res:
+        #     print(el)
+        # # print(res)
+        # sys.exit()
+        # if len(aggregates) > 0 or len(pos_arithm) > 0 or len(pos_comparison) > 0:
+        #     print(len(res))
+        #     sys.exit()
+        
+        # print(res)
         return res
-    
-    
+
+
     def sample_literals_list(self,
         literals_list : 'list[Literal]',
         head : bool = False
@@ -587,8 +914,9 @@ class ProgramSampler:
         depth = 0
         prob_increase_level = 0.5
         stop = (random.random() > prob_increase_level) if head else False
+        max_depth_head = self.disjunctive_head_length
         
-        while (not stop) and (depth < self.max_depth):
+        while (not stop) and (depth < self.max_depth) and (max_depth_head > 0):
             lv, sampled_literal_index = self.sample_level_distr_recall(literals_list)
             if sampled_literal_index == -1:
                 stop = True
@@ -605,7 +933,8 @@ class ProgramSampler:
                 else:
                     stop = (random.random() > prob_increase_level)
                 depth += 1
-
+            if head:
+                max_depth_head -= 1
         return sampled_list
 
     
@@ -624,8 +953,8 @@ class ProgramSampler:
             head : 'list[str]' = []
             
             if len(self.head_atoms) > 0:
-                if self.verbose:
-                    print("No modeh specified")
+                # if self.verbose:
+                #     print("No modeh specified")
                 head = self.sample_literals_list(copy.deepcopy(self.head_atoms), True) # true allows constraints
                 if len(head) == 0:
                     self.body_constraint = True
@@ -635,38 +964,45 @@ class ProgramSampler:
             # decrease the depth since we already sampled atoms for the head
             self.max_depth -= len(head)
             
-            print(self.body_literals)
+            # print(self.body_literals)
             # sys.exit()
             body = self.sample_literals_list(copy.deepcopy(self.body_literals))
             
-            # print(body)
-            
             # replace __lt__, __gt__, __eq__, __neq__, __add__, __sub__, __mul__
+            # body, is_valid = self.__replace_operators(body)
+            body = self.__replace_operators(body)
+            print(body)
             
-            body, is_valid = self.replace_operators(body)
+            is_valid = True
+            if is_valid and self.enable_recursion is False:
+                for b in body:
+                    subs_h = set(head).issubset(set(b)) and len(set(head)) > 0
+                    subs_b = set(b).issubset(set(head)) and len(set(b)) > 0
+                    is_valid = not (subs_h or subs_b)
+                    if is_valid:
+                        clauses.append(';'.join(sorted(head)) + ":- " + ','.join(sorted(b)) + '.')
             
-            print(body, is_valid)
+            # print(body, is_valid)
+            # for c in clauses:
+            #     print(c)
             # sys.exit()
 
-            if is_valid:
-                clauses.append(';'.join(sorted(head)) + ":- " + ','.join(sorted(body)) + '.')
-            
             # sys.exit()
             self.max_depth = original_depth
 
             # print(head)
             # print(body)
             
-            # super ugly but more interpretable
-            # remove the clauses a(_) :- a(_)
-            if len(head) == 1 and len(body) == 1 and head == body:
-                # print(f'removed: {clauses[-1]}')
-                clauses = clauses[:-1]
-            # remove the causes :- a(_), a(_)
-            elif len(head) == 0 and len(body) == 2:
-                if body[0].count('_') == UNDERSCORE_SIZE and body[1].count('_') == UNDERSCORE_SIZE and body[0] == body[1]:
-                    # print(f'removed: {clauses[-1]}')
-                    clauses = clauses[:-1]
+            # # super ugly but more interpretable
+            # # remove the clauses a(_) :- a(_)
+            # if len(head) == 1 and len(body) == 1 and head == body:
+            #     # print(f'removed: {clauses[-1]}')
+            #     clauses = clauses[:-1]
+            # # remove the causes :- a(_), a(_)
+            # elif len(head) == 0 and len(body) == 2:
+            #     if body[0].count('_') == UNDERSCORE_SIZE and body[1].count('_') == UNDERSCORE_SIZE and body[0] == body[1]:
+            #         # print(f'removed: {clauses[-1]}')
+            #         clauses = clauses[:-1]
 
                 
             

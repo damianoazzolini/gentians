@@ -27,7 +27,7 @@ class ClingoInterface:
         '''
         Init clingo and grounds the program
         '''
-        ctl = clingo.Control(self.clingo_arguments)
+        ctl = clingo.Control(self.clingo_arguments, logger=utils.wrapper_exit_callback)
         try:
             for clause in self.lines:
                 ctl.add('base', [], clause)
@@ -55,7 +55,9 @@ class ClingoInterface:
         # Potrei invece (da fare) considerare iterativamente un 
         # numero di clausole maggiore.
         
-        ctl = clingo.Control(self.clingo_arguments)
+        # print("Extract coverage")
+        # print(program)
+        ctl = clingo.Control(self.clingo_arguments, logger=utils.wrapper_exit_callback)
         # print("----- HERE -----")
         # print('FISSATO')
         # # program = ["tails(V0); heads(V0):-  coin(V0)."]

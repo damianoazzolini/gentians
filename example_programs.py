@@ -1,7 +1,7 @@
 # Some examples
 # https://github.com/metagol/metagol/tree/master/examples
 # http://hakank.org/popper/
-    
+# https://users.dimi.uniud.it/~agostino.dovier/AIGAMES/DISPENSA.pdf <-- molti interessanti
 
 def coin_example():
     # coin example
@@ -48,10 +48,6 @@ def coin_example():
         'modeb(1, coin(+))'
     ]
     
-    language_bias_aggregates : 'list[str]' = [
-        'modeagg(1, #sum)'
-    ]
-
     return background, positive_examples, negative_examples, language_bias_head, language_bias_body
 
 def even_odd_example():
@@ -219,8 +215,6 @@ def coloring_example():
     :- e(X,Y), red(X), red(Y).
     :- e(X,Y), green(X), green(Y).
     :- e(X,Y), blue(X), blue(Y).
-
-
     '''
     background = [
         "edge(1, 2).",
@@ -456,7 +450,357 @@ def grandparent_example():
     ]
     
     return bg, pe, ne, lbh, lbb
+
+
+def subset_sum():
+    '''
+    % Subset sum problem.
+    {el(1)}.
+    {el(2)}.
+    {el(3)}.
+    {el(4)}.
+    {el(5)}.
+    s(S):- S = #sum{X : el(X)}.
+    :- s(S), S != 6.
+    '''
+    bg : 'list[str]' = ["{el(1)}.", "{el(2)}.", "{el(3)}.", "{el(4)}.", "{el(5)}."]
+
+    pe : 'list[list[str]]' = [
+        ["s(6)", ""]
+    ]
+
+    ne : 'list[list[str]]' = []
+
+    lbh : 'list[str]' = ['modeh(1, s(+))']
+
+    lbb : 'list[str]' = ['modeb(1, s(+))']
+
+    return bg, pe, ne, lbh, lbb
+
+
+def subset_sum_double():
+    '''
+    % Double subset sum problem.
+    {el(1,2)}.
+    {el(2,3)}.
+    {el(3,5)}.
+    {el(4,1)}.
+    {el(5,9)}.
     
+    % to learn
+    s0(S):- S = #sum{X,Y : el(X,Y)}.
+    s1(S):- S = #sum{Y,X : el(X,Y)}.
+    ok(X):- s0(X), s1(X).
+    #show ok/1.
+    % results: ok(8). ok(9).
+    '''
+    bg : 'list[str]' = [
+        "{el(1,2)}.",
+        "{el(2,3)}.",
+        "{el(3,5)}.",
+        "{el(4,1)}.",
+        "{el(5,9)}."
+    ]
+
+    pe : 'list[list[str]]' = [
+        ["ok(30)", ""],
+        ["ok(27)", ""],
+    ]
+
+    ne : 'list[list[str]]' = []
+
+    lbh : 'list[str]' = [
+        'modeh(1, ok(+))',
+        'modeh(1, s0(+))',
+        'modeh(1, s1(+))'
+    ]
+
+    lbb : 'list[str]' = [
+        'modeb(1, s0(+))',
+        'modeb(1, s1(+))'
+    ]
+
+    return bg, pe, ne, lbh, lbb
+
+
+def hamming():
+    '''
+    Hamming distance between two binary strings.
+    Given:
+    pos(0..2).
+    num(0..1).
+    hd(0). % target distance
+    1{v0(Val,Pos) : num(Val)}1 :- pos(Pos).
+    1{v1(Val,Pos) : num(Val)}1 :- pos(Pos).
+    Learn:
+    d(Pos,X):- pos(Pos), v0(V0,Pos), v1(V1,Pos), V0 >= V1, X = V0 - V1.
+    d(Pos,X):- pos(Pos), v0(V0,Pos), v1(V1,Pos), V0 < V1, X = V1 - V0.
+    sd(V):- V = #sum{X,P : d(P,X)}.
+    :- sd(Distance), hd(D), Distance != D.
+    '''
+    bg : 'list[str]' = [
+        "pos(0..2).",
+        "num(0..1).",
+        "hd(0). % target distance",
+        "1{v0(Val,Pos) : num(Val)}1 :- pos(Pos).",
+        "1{v1(Val,Pos) : num(Val)}1 :- pos(Pos)."
+    ]
+
+    pe : 'list[list[str]]' = [
+        ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v0(1,2) v1(1,2)",""],
+        ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v1(0,2) v0(0,2)",""],
+        ["v0(1,0) v1(1,0) v0(1,1) v1(1,1) v0(1,2) v1(1,2)",""],
+        ["v0(1,0) v1(1,0) v0(1,1) v1(1,1) v1(0,2) v0(0,2)",""],
+        ["v1(0,0) v0(0,0) v1(0,1) v0(0,1) v0(1,2) v1(1,2)",""],
+        ["v1(0,0) v0(0,0) v0(1,1) v1(1,1) v0(1,2) v1(1,2)",""],
+        ["v1(0,0) v0(0,0) v1(0,1) v0(0,1) v1(0,2) v0(0,2)",""],
+        ["v1(0,0) v0(0,0) v0(1,1) v1(1,1) v1(0,2) v0(0,2)",""]
+    ]
+
+    ne : 'list[list[str]]' = [
+        ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v0(0,2) v1(1,2)",""],
+        ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v1(0,2) v0(1,2)",""],
+        ["v1(0,0) v0(0,0) v1(0,1) v0(1,1) v1(0,2) v0(1,2)",""],
+        ["v0(1,0) v1(1,0) v1(0,1) v0(1,1) v0(0,2) v1(1,2)",""],
+        ["v0(0,0) v1(1,0) v1(0,1) v0(1,1) v0(0,2) v1(1,2)",""],
+        ["v0(0,0) v1(1,0) v1(0,1) v0(1,1) v1(0,2) v0(1,2)",""]
+    ]
+
+    lbh : 'list[str]' = [
+        'modeh(1, d(+,+))',
+        'modeh(1, sd(+))'
+    ]
+
+    lbb : 'list[str]' = [
+        'modeb(1, pos(+))',
+        'modeb(1, v0(+,+))',
+        'modeb(1, v1(+,+))',
+        'modeb(1, sd(+))',
+        'modeb(1, hd(+))'
+    ]
+
+    return bg, pe, ne, lbh, lbb
+
+def n_queens():
+    '''
+    % from http://www.hakank.org/answer_set_programming/nqueens.lp
+    #const n = 4.
+
+    % domain
+    number(1..n).
+
+    % alldifferent
+    1 { q(X,Y) : number(Y) } 1 :- number(X).
+    1 { q(X,Y) : number(X) } 1 :- number(Y).
+
+    % remove conflicting answers: these rules should be learned
+    :- q(X1,Y1), q(X2,Y2), X1 < X2, Y1 == Y2.
+    :- q(X1,Y1), q(X2,Y2), X1 < X2, Y1 + X1 = Z0, Z0 == Z1, Z1 = Y2 + X2.
+    :- q(X1,Y1), q(X2,Y2), X1 < X2, Y1 - X1 = Z0, Z0 == Z1, Z1 = Y2 - X2.
+    '''
+    bg : 'list[str]' = [
+        "#const n = 4.", 
+        "number(1..n).", 
+        "1 { q(X,Y) : number(Y) } 1 :- number(X).", 
+        "1 { q(X,Y) : number(X) } 1 :- number(Y)."
+    ]
+    
+    pe : 'list[list[str]]' = [
+        ["q(1,3) q(2,1) q(3,4) q(4,2)", ""]
+    ]
+    
+    ne : 'list[list[str]]' = [
+        ["q(1,1)",""],
+        ["q(2,1)", ""]
+    ]
+    
+    lbh : 'list[str]' = []
+    
+    lbb : 'list[str]' = ['modeb(2, q(+,+))']
+    
+    return bg, pe, ne, lbh, lbb
+
+
+def clique():
+    '''
+    Clique ok size 3.
+    Given:
+    3 {in(X) : v(X)} 3.
+    v(X) :- e(X,Y).
+    v(Y) :- e(X,Y).
+    Learn:
+    :- in(X), in(Y), v(X), v(Y), X!=Y, not e(X,Y), not e(Y,X).
+    Only 2 solutions:
+    in(1) in(2) in(5)
+    in(1) in(9) in(5)
+    '''
+    bg : 'list[str]' = [
+        "v(1..9).",
+        "e(1,2).",
+        "e(1,5).",
+        "e(1,9).",
+        "e(3,1).",
+        "e(3,4).",
+        "e(3,8).",
+        "e(5,4).",
+        "e(6,3).",
+        "e(6,7).",
+        "e(2,5).",
+        "e(4,7).",
+        "e(7,1).",
+        "e(8,2).",
+        "e(9,5).",
+        "e(9,6).",
+        "3 {in(X) : v(X)} 3.",
+        "v(X) :- e(X,Y).",
+        "v(Y) :- e(X,Y)."
+    ]
+
+    pe : 'list[list[str]]' = [
+        ["in(1) in(2) in(5)", ""],
+        ["in(1) in(9) in(5)", ""]
+    ]
+
+    ne : 'list[list[str]]' = [
+        ["in(3)", ""],
+        ["in(4)", ""]
+    ]
+
+    lbh : 'list[str]' = [
+        # 'modeh(1, v(+))'
+    ]
+
+    lbb : 'list[str]' = [
+        'modeb(2, v(+))',
+        # 'modeb(2, e(+,+))',
+        'modeb(2, not e(+,+))',
+        'modeb(2, in(+))'
+    ]
+
+    return bg, pe, ne, lbh, lbb
+
+
+def partition():
+    '''
+    Partition problem: split the elements of a set S into two
+    subsets S0 and S1 such that |S0| = |S1| and the sum of the
+    elements in S0 and S1 is the same.
+    Wiki: https://en.wikipedia.org/wiki/Partition_problem
+    Inspired by: http://www.hakank.org/answer_set_programming/set_partition.lp
+    Given:
+    #const n = 8. 
+    val(1..n).
+    partition(1..2).
+    % split the numbers in two partitions
+    1 { p(P, I) : partition(P) } 1 :- val(I).
+    To learn:
+    sp(Part,Sum):- Sum = #sum{ Val : p(Part,Val)}, partition(Part).
+    ce(Part,Sum):- Sum = #count{ Val : p(Part,Val)}, partition(Part).
+    :- partition(P0), partition(P1), sp(P0,S0), sp(P1,S1), S0 != S1.
+    :- partition(P0), partition(P1), ce(P0,S0), ce(P1,S1), S0 != S1.
+    '''
+    bg : 'list[str]' = [
+        "#const n = 8.",
+        "val(1..n).",
+        "partition(1..2).",
+        "1 { p(P, I) : partition(P) } 1 :- val(I)."
+    ]
+
+    # all the possible solutions
+    pe : 'list[list[str]]' = [
+        ["p(1,3) p(1,4) p(1,5) p(1,6) p(2,1) p(2,2) p(2,7) p(2,8)",""],
+        ["p(1,2) p(1,3) p(1,5) p(1,8) p(2,1) p(2,4) p(2,6) p(2,7)",""],
+        ["p(1,2) p(1,3) p(1,6) p(1,7) p(2,1) p(2,4) p(2,5) p(2,8)",""],
+        ["p(1,2) p(1,4) p(1,5) p(1,7) p(2,1) p(2,3) p(2,6) p(2,8)",""],
+        ["p(1,1) p(1,3) p(1,6) p(1,8) p(2,2) p(2,4) p(2,5) p(2,7)",""],
+        ["p(1,1) p(1,4) p(1,6) p(1,7) p(2,2) p(2,3) p(2,5) p(2,8)",""],
+        ["p(1,1) p(1,2) p(1,7) p(1,8) p(2,3) p(2,4) p(2,5) p(2,6)",""],
+        ["p(1,1) p(1,4) p(1,5) p(1,8) p(2,2) p(2,3) p(2,6) p(2,7)",""]
+    ]
+
+    # generated by removing the constraint on the cardinality
+    ne : 'list[list[str]]' = [
+        ["p(1,5) p(1,6) p(1,7) p(2,1) p(2,2) p(2,3) p(2,4) p(2,8)",""],
+        ["p(1,3) p(1,7) p(1,8) p(2,1) p(2,2) p(2,4) p(2,5) p(2,6)",""],
+        ["p(1,4) p(1,6) p(1,8) p(2,1) p(2,2) p(2,3) p(2,5) p(2,7)",""],
+        ["p(1,1) p(1,2) p(1,4) p(1,5) p(1,6) p(2,3) p(2,7) p(2,8)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,5) p(1,7) p(2,4) p(2,6) p(2,8)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,4) p(1,8) p(2,5) p(2,6) p(2,7)",""]
+    ]
+
+    lbh : 'list[str]' = [
+        'modeh(1, sp(+,+))',
+        'modeh(1, ce(+,+))'
+    ]
+
+    lbb : 'list[str]' = [
+        'modeb(2, partition(+))',
+        'modeb(2, sp(+,+))',
+        'modeb(2, ce(+,+))'
+    ]
+
+    return bg, pe, ne, lbh, lbb
+
+def magic_square_no_diag():
+    '''
+    With aggregates: limited to the sum of columns and row.
+    Constraint: the sum of the elements in the rows and columns
+    should be the same.
+    TODO: non ancora supportato perché aggregato con x/3 e size/1
+    To learn:
+    sum_row(R,S):- S = #sum{V : x(R,C,V), size(C)}, size(R).
+    sum_col(C,S):- S = #sum{V : x(R,C,V), size(R)}, size(C).
+    :- sum_col(C0,SC0), sum_col(C1,SC1), C0 != C1, SC0 != SC1.
+    :- sum_row(R0,SR0), sum_row(R1,SR1), R0 != R1, SR0 != SR1.
+    '''
+    # https://en.wikipedia.org/wiki/Magic_square
+    bg : 'list[str]' = [
+        "#const n = 3.",
+        "#const s = n*(n*n + 1) / 2.",
+        "size(1..n).",
+        "val(1..n*n).",
+        "1 { x(Row, Col, N) : val(N) } 1 :- size(Row), size(Col).",
+        "1 { x(Row, Col, N) : size(Row), size(Col) } 1 :- val(N)."
+    ]
+    
+    pe : 'list[list[str]]' = [
+        ["sum_row(3,15) sum_col(1,15) sum_col(2,15) sum_col(3,15)", ""]
+    ]
+    
+    ne : 'list[list[str]]' = [
+        # ["q(1,1) q(2,1)", ""]
+    ]
+    
+    lbh : 'list[str]' = ["modeh(2, sum_row(+,+)", "modeh(2, sum_col(+,+)"]
+    
+    lbb : 'list[str]' = [
+        "modeb(2, sum_row(+,+)",
+        "modeb(2, sum_col(+,+)",
+        "modeb(1, size(+))"
+    ]
+    
+    return bg, pe, ne, lbh, lbb
+
+
+def latin_square():
+    '''
+    With aggregates: the same element cannot repeat in the same 
+    row or column.
+    To learn:
+    count_row(R,S):- S = #count{V : x(R,C,V), cell(C)}, cell(R).
+    count_col(C,S):- S = #count{V : x(R,C,V), cell(R)}, cell(C).
+    :- count_col(Col,C), cell(Col), size(S), C != S.
+    :- count_row(Row,C), cell(Col), size(S), C != S.
+    '''
+    # https://en.wikipedia.org/wiki/Latin_square
+    bg : 'list[str]' = [
+        "cell(1..3).",
+        "val(1..3).",
+        "size(3).",
+        "1{x(R,C,N) : val(N)}1:- cell(R), cell(C)."
+    ]
+
+
 def dummy():
     '''
     g(X) :- a(Y), a(Z), X = Y + Z.
