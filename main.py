@@ -192,6 +192,7 @@ class Solver:
         self.pop_size_genetic : int = arguments.pop_size
         self.mutation_probability : float = arguments.mutation_probability
         self.iterations_genetic : int = arguments.iterations_genetic
+        self.arguments = arguments
         
         self.aggregates : 'list[str]' = arguments.aggregates
         self.comparison : 'list[str]' = arguments.comparison
@@ -218,6 +219,7 @@ class Solver:
             self.language_bias_body,
             max_depth = self.max_depth,
             max_variables = self.max_variables,
+            prob_increase_level= self.arguments.prob_increase,
             # max_clauses = max_clauses,
             verbose = self.verbose,
             enable_find_max_vars_stub=False,
@@ -238,7 +240,7 @@ class Solver:
             print(f"Sampling loop: {it}")
             start_time = time.time()
             print("Sampling clauses")
-            cls = sampler.sample_clause_stub(1000)
+            cls = sampler.sample_clause_stub(self.arguments.sample)
             sample_time = time.time() - start_time
             
             # add the best from the previous rounds
@@ -279,6 +281,7 @@ class Solver:
                 print("No clauses found")
                 sys.exit()
 
+            # sys.exit()
             if self.verbose >= 2:
                 for el in placed_list:
                     print(f"{len(el)}: {el}")
@@ -324,6 +327,9 @@ if __name__ == "__main__":
         in a rule", type=int, default=3)
     command_parser.add_argument("-d", "--depth", help="Max literals in rules", \
         type=int, default=3)
+    command_parser.add_argument("-pil", "--prob-increase", help="Probability to add one \
+        more literal in the current clause (used in sampling)", \
+        type=float, default=0.5)
     command_parser.add_argument("-dh", "--disjunctive-head", help="Max atoms in head", \
         type=int, default=1)
     command_parser.add_argument("-s", "--sample", help="Number of clauses to sample",\
@@ -332,18 +338,19 @@ if __name__ == "__main__":
         default=False, action="store_true")
     
     command_parser.add_argument("-it", "--iterations", help="Max number of sample and \
-        genetic iterations", type=int, default=10)
+        genetic iterations", type=int, default=100)
     command_parser.add_argument("-p", "--pop-size", help="Size of the population",\
         type=int, default=50)
     command_parser.add_argument("-itg", "--iterations-genetic", help="Number of \
-        iterations for the genetic algorithm", type=int, default=1500)
+        iterations for the genetic algorithm", type=int, default=2000)
     command_parser.add_argument("-mp", "--mutation-probability", help="Mutation \
         probability", type=float, default=0.2)
     command_parser.add_argument("-e", "--example", help="Load a predefined example", \
         choices=["coin", "even_odd", "animals_bird", "coloring", \
             "adjacent_to_red", "grandparent", "sudoku", "dummy", "subset_sum",
-            "subset_sum_double","nqueens", "clique", "hamming", "partition", \
-            "magic_square_no_diag"], \
+            "subset_sum_double","4queens", "5queens", "clique", "hamming", "harder_hamming", \
+            "magic_square_no_diag", "latin_square", "set_partition_sum",\
+            "set_partition_sum_and_cardinality", "set_partition_sum_cardinality_and_square"], \
         default=None)
 
     command_parser.add_argument("--comparison", help="Set the usage of comparison \
@@ -357,14 +364,24 @@ if __name__ == "__main__":
         --arithm add sub mul div", nargs='+', required=False, choices=["add","sub",
         "mul","div"])
     command_parser.add_argument("--cr", help="Enables the generation of \
-        choice rules.", type=bool, default=False)
+        choice rules.", default=False, action="store_true")
     command_parser.add_argument("--invention", help="Enables predicate invention with \
         n predicates. Example --invention=1", type=int, default=0)
     command_parser.add_argument('--aggregates', help="Enable aggregates. Example:\
         --aggregates sum(a/1) count (a/1). Specify the atom to aggregate.", 
         nargs='+', required=False)
     
+    command_parser.add_argument("--profile", help="Enables profiling", 
+        default=False, action="store_true")
+    
     args = command_parser.parse_args()
+    
+    if args.profile:
+        import cProfile, pstats, io
+        from pstats import SortKey
+        pr = cProfile.Profile()
+        pr.enable()
+
     
     # print(args.arithm)
     # print(args.comparison)
@@ -421,21 +438,39 @@ if __name__ == "__main__":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.subset_sum_double()
             # args.aggregates = ["sum(el/1)"]
-        elif args.example == "nqueens":
+        elif args.example == "4queens":
             background, positive_examples, negative_examples,\
-            language_bias_head, language_bias_body = example_programs.n_queens()
+            language_bias_head, language_bias_body = example_programs.n_4queens()
+        elif args.example == "5queens":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.n_5queens()
         elif args.example == "clique":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.clique()
         elif args.example == "hamming":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.hamming()
-        elif args.example == "partition":
+        elif args.example == "harder_hamming":
             background, positive_examples, negative_examples,\
-            language_bias_head, language_bias_body = example_programs.partition()
+            language_bias_head, language_bias_body = example_programs.harder_hamming()
+        # elif args.example == "partition":
+        #     background, positive_examples, negative_examples,\
+        #     language_bias_head, language_bias_body = example_programs.partition()
         elif args.example == "magic_square_no_diag":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.magic_square_no_diag()
+        elif args.example == "latin_square":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.latin_square()
+        elif args.example == "set_partition_sum":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.set_partition_only_sum()
+        elif args.example == "set_partition_sum_and_cardinality":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.set_partition_sum_and_cardinality()
+        elif args.example == "set_partition_sum_cardinality_and_square":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.set_partition_sum_cardinality_and_square()
         else:
             utils.print_error_and_exit("Example not found")
 
@@ -467,3 +502,12 @@ if __name__ == "__main__":
     )
 
     s.solve()
+    
+    if args.profile:
+        pr.disable()
+        s = io.StringIO()
+        # sortby = SortKey.CUMULATIVE # sort by total time
+        sortby = SortKey.CALLS # sort by number of calls
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())

@@ -120,8 +120,10 @@ def find_symmetric_answer_sets(current_as : str) -> 'list[str]':
         
     n_vars = i - 1
 
-    l_vars = [i for i in range(n_vars + 1)]
+    l_vars = [i for i in range(1, n_vars + 1)] # from 1 since v0 is fixed at pos 0
     l_vars_name = ["v" + str(a) for a in l_vars]
+    # print(l_vars)
+    # print(l_vars_name)
 
     # this is n! # COMPLEX 
     perm = itertools.permutations(l_vars)
@@ -130,17 +132,68 @@ def find_symmetric_answer_sets(current_as : str) -> 'list[str]':
 
     perms : 'list[str]' = []
     for p in perm:
+        # print(p)
         lc = current_as
         l1 = ["v_" + str(a) for a in p]
         for f, r in zip(l_vars_name, l1):
             lc = lc.replace(f, r)
         lc = lc.replace('_','')
         perms.append(lc)
+    # print(perms)
 
     # print(f"--- Permutation {current_as} {l_vars} ---")
     # print(perms)
     return perms
 
+
+def from_list_to_as(current_list : 'list[list[int]]') -> str:
+    '''
+    From 
+    [[0,3],[1,5],[2,4]]
+    to
+    v0(0) v0(3) v1(1) v1(5) v2(2) v2(4)
+    '''
+    s = ""
+    for i in range(0,len(current_list)):
+        for ii in range(0,len(current_list[i])):
+            s = s + f"v{i}({current_list[i][ii]}) "
+    s = s[:-1]
+    return s
+
+
+def from_as_to_list(current_as : str) -> 'list[list[int]]':
+    '''
+    From 
+    v0(0) v0(3) v1(1) v1(5) v2(2) v2(4)
+    to
+    [[0,3],[1,5],[2,4]]
+    '''
+    i = 0
+    while True:
+        # count the used variables
+        if not f"v{i}" in current_as:
+            break
+        i += 1
+        
+    n_vars = i - 1
+
+    l_res : 'list[list[int]]' = []
+    for i in range(0,n_vars+1):
+        l_res.append([])
+    # print(l_res)
+    
+    for atm in current_as.split(' '):
+        pos_s = atm.find('(')
+        pos_e = atm.find(')')
+        pos_var = int(atm[pos_s + 1 : pos_e])
+        var_id = int(atm[1 : pos_s])
+        # print(var_id,pos_var)
+        l_res[var_id].append(pos_var)
+
+    for i in range(0,len(l_res)):
+        l_res[i] = sorted(l_res[i])
+    
+    return sorted(l_res)
 
 
 def get_atoms(clause: str) -> 'list[str]':
@@ -154,7 +207,9 @@ def get_atoms(clause: str) -> 'list[str]':
 
 def get_v0_v1_v2_arithm(rule : str, p : int) -> 'tuple[str,str,str]':
     '''
-    From V0+V1=V2 returns V0, V1, and V2
+    From V0+V1=V2 returns V0 V1 V2
+    IMPORTANT: I suppose that there cannot be more than 10 variables: in this
+    case, this does not work since every variable is no more of 2 chars (e.g., V10)
     '''
     v0 = rule[p-2:p]
     v1 = rule[p+1:p+3]
@@ -177,13 +232,14 @@ def is_valid_arithm_rule(rule : str) -> bool:
     Hardcoded rules to remove arithm nonsense.
     '''
     arithm = ['+','-','*','/']
-    rule = rule.replace(' ','')
+    rule = rule.replace(' ','').replace(':-','_')
     for ch in arithm:
         pos = [pos for pos, char in enumerate(rule) if char == ch]
         if len(pos) > 0:
             for p in pos:
                 v0, v1, v2 = get_v0_v1_v2_arithm(rule,p)
-                if v0 == v1 or v0 == v2 or v1 == v2:
+                # if v0 == v1 or v0 == v2 or v1 == v2:
+                if v0 == v2 or v1 == v2: # v0 and v1 can be the same, V0 + V0 = V1 is valid
                     return False
     return True
 
@@ -242,6 +298,56 @@ def is_valid_rule(rule : str) -> bool:
     atoms = get_atoms(rule)
     # print(atoms)
     return len(atoms) == len(list(set(atoms))) and is_valid_comparison_rule(rule) and is_valid_arithm_rule(rule) and (not check_sound(rule))
+
+
+def get_duplicated_positions(clause : str) -> 'list[list[list[str]]]':
+    '''
+    Returns the positions with the same atoms:
+    :- a(_____),q(_____,_____),q(_____,_____),a(_____),q(_____,_____) gets
+    [[['0'], ['5']], [['1', '2'], ['3', '4'], ['6', '7']]]
+    '''
+    atms = get_atoms(clause.replace('_' * 5,'_')) # replace otherwise error
+    uniques = list(set(atms))
+    dup_pos : 'list[list[list[str]]]' = []
+    for index, el in enumerate(uniques):
+        current_variable_position = 0
+        ld : 'list[list[str]]' = []
+        for a in atms:
+            n_vars = a.count('_')
+            if a == el:
+                # duplicated
+                lt : 'list[str]' = []
+                for nv in range(n_vars):
+                    lt.append(str(nv+current_variable_position))
+                if len(lt) > 0:
+                    ld.append(lt)
+            current_variable_position += n_vars
+        if len(ld) > 0:
+            dup_pos.append(ld)
+    return dup_pos
+
+
+def get_same_atoms(sampled_stub : str) -> 'tuple[list[str],int]':
+    '''
+    Returns the samei/n atoms for ASP to prune solutions with repeated atoms
+    % same2(Id,PosV0,posV1)
+    % indica che l'atomo di id ha 2 variabili le cui posizioni sono
+    % (0,1) e (2,3)
+    same2(0,0,1).
+    same2(0,2,3).
+    '''
+    dp = get_duplicated_positions(sampled_stub)
+    to_add : 'list[str]' = []
+    max_p = 0
+    for index, position_list_list in enumerate(dp):
+        # print(len(position_list_list))
+        if len(position_list_list) > 1:
+            for dup_pos in position_list_list:
+                s = f"same{len(dup_pos)}({index},{','.join(dup_pos)})."
+                to_add.append(s)
+                if len(dup_pos) > max_p:
+                    max_p = len(dup_pos)
+    return to_add, max_p
 
 
 def generate_clauses_for_coverage_interpretations(
@@ -410,7 +516,7 @@ def get_arithm_or_comparison_position(stub : str) -> 'tuple[list[list[int]],list
     pos_arithm : 'list[list[int]]' = []
     pos_comparison : 'list[list[int]]' = []
     for index, el in enumerate(els):
-        if el == '>' or el == '>=' or el == '<' or el == '=<' or el == '==' or el == '!=':
+        if el == '>' or el == '>=' or el == '<' or el == '<=' or el == '==' or el == '!=':
             pos_comparison.append([index - 1,index])
         
         if el == '+' or el == '-' or el == '*' or el == '/':

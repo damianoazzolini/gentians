@@ -139,8 +139,8 @@ class Strategy:
             # print(cov)
             # sys.exit()
             best_found = False
-            best_cp = 0
-            best_cn = 0
+            best_cp = -1000
+            best_cn = 1000
             l_index : 'list[int]' = []
             l_best_indexes : 'list[str]' = []
             # best_index : 'list[int]' = []
@@ -151,8 +151,11 @@ class Strategy:
                     # set to remove duplicates
                     cp : int = len(list(set(element_coverage.l_pos)))
                     cn : int = len(list(set(element_coverage.l_neg)))
+                    # print(cp,cn)
                     l_index = [int(v) for v in list(res)]
-                    if cp > best_cp:
+                    # qui non va bene: se copro tutti allora mai cp > best_cp
+                    # if cp > best_cp:
+                    if cp >= best_cp and cn <= best_cn:
                         # print(cp, cn, l_index)
                         best_cp = cp
                         best_cn = cn
@@ -174,7 +177,12 @@ class Strategy:
             scores : 'list[float]' = []
             # The score is now computed as the sum of exp(n_atoms + n_vars)
             # for each clause
-            # print(best_l_index)
+            # print(f"best_l_index: {best_l_index}")
+            # print(f"score: {score}")
+            if len(best_l_index) == 0:
+                # for the empty list (no program) i assume that the
+                # score is simply the covered positive - covered negative
+                scores.append(score)
             for i in best_l_index:
                 # gather the complexity from the list
                 si = stub_indexes[i]
@@ -186,8 +194,11 @@ class Strategy:
                 
                 scores.append(score*math.exp(-(na+nv)))
             # print(program)
-            # print(score)
+            # print(scores)
             score = sum(scores)
+            # print(score)
+            
+            # sys.exit()
 
             # shortest one
             l_best_indexes.sort(key = lambda s : len(s))

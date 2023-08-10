@@ -503,8 +503,9 @@ def subset_sum_double():
     ]
 
     pe : 'list[list[str]]' = [
-        ["ok(30)", ""],
-        ["ok(27)", ""],
+        ["ok(0)", ""],
+        ["ok(8)", ""],
+        ["ok(9)", ""],
     ]
 
     ne : 'list[list[str]]' = []
@@ -532,9 +533,69 @@ def hamming():
     hd(0). % target distance
     1{v0(Val,Pos) : num(Val)}1 :- pos(Pos).
     1{v1(Val,Pos) : num(Val)}1 :- pos(Pos).
+    % too slow if i add these two rules to learn
+    d(Pos,X):- v0(V0,Pos), v1(V1,Pos), V0 >= V1, X = V0 - V1.
+    d(Pos,X):- v0(V0,Pos), v1(V1,Pos), V0 < V1, X = V1 - V0.
     Learn:
-    d(Pos,X):- pos(Pos), v0(V0,Pos), v1(V1,Pos), V0 >= V1, X = V0 - V1.
-    d(Pos,X):- pos(Pos), v0(V0,Pos), v1(V1,Pos), V0 < V1, X = V1 - V0.
+    sd(V):- V = #sum{X,P : d(P,X)}.
+    :- sd(Distance), hd(D), Distance != D.
+    '''
+    bg : 'list[str]' = [
+        "pos(0..2).",
+        "num(0..1).",
+        "hd(0). % target distance",
+        "1{v0(Val,Pos) : num(Val)}1 :- pos(Pos).",
+        "1{v1(Val,Pos) : num(Val)}1 :- pos(Pos).",
+        "d(Pos,X):- pos(Pos), v0(V0,Pos), v1(V1,Pos), V0 >= V1, X = V0 - V1.",
+        "d(Pos,X):- pos(Pos), v0(V0,Pos), v1(V1,Pos), V0 < V1, X = V1 - V0."
+    ]
+
+    pe : 'list[list[str]]' = [
+        ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v0(1,2) v1(1,2)",""],
+        ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v1(0,2) v0(0,2)",""],
+        ["v0(1,0) v1(1,0) v0(1,1) v1(1,1) v0(1,2) v1(1,2)",""],
+        ["v0(1,0) v1(1,0) v0(1,1) v1(1,1) v1(0,2) v0(0,2)",""],
+        ["v1(0,0) v0(0,0) v1(0,1) v0(0,1) v0(1,2) v1(1,2)",""],
+        ["v1(0,0) v0(0,0) v0(1,1) v1(1,1) v0(1,2) v1(1,2)",""],
+        ["v1(0,0) v0(0,0) v1(0,1) v0(0,1) v1(0,2) v0(0,2)",""],
+        ["v1(0,0) v0(0,0) v0(1,1) v1(1,1) v1(0,2) v0(0,2)",""]
+    ]
+
+    ne : 'list[list[str]]' = [
+        ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v0(0,2) v1(1,2)",""],
+        ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v1(0,2) v0(1,2)",""],
+        ["v1(0,0) v0(0,0) v1(0,1) v0(1,1) v1(0,2) v0(1,2)",""],
+        ["v0(1,0) v1(1,0) v1(0,1) v0(1,1) v0(0,2) v1(1,2)",""],
+        ["v0(0,0) v1(1,0) v1(0,1) v0(1,1) v0(0,2) v1(1,2)",""],
+        ["v0(0,0) v1(1,0) v1(0,1) v0(1,1) v1(0,2) v0(1,2)",""]
+    ]
+
+    lbh : 'list[str]' = [
+        'modeh(1, sd(+))'
+    ]
+
+    lbb : 'list[str]' = [
+        'modeb(1, pos(+))',
+        'modeb(1, sd(+))',
+        'modeb(1, hd(+))'
+    ]
+
+    return bg, pe, ne, lbh, lbb
+
+
+def harder_hamming():
+    '''
+    Hamming distance between two binary strings.
+    Given:
+    pos(0..2).
+    num(0..1).
+    hd(0). % target distance
+    1{v0(Val,Pos) : num(Val)}1 :- pos(Pos).
+    1{v1(Val,Pos) : num(Val)}1 :- pos(Pos).
+    % too slow if i add these two rules to learn
+    Learn:
+    d(Pos,X):- v0(V0,Pos), v1(V1,Pos), V0 >= V1, X = V0 - V1.
+    d(Pos,X):- v0(V0,Pos), v1(V1,Pos), V0 < V1, X = V1 - V0.
     sd(V):- V = #sum{X,P : d(P,X)}.
     :- sd(Distance), hd(D), Distance != D.
     '''
@@ -567,8 +628,8 @@ def hamming():
     ]
 
     lbh : 'list[str]' = [
-        'modeh(1, d(+,+))',
-        'modeh(1, sd(+))'
+        'modeh(1, sd(+))',
+        'modeh(1, d(+,+))'
     ]
 
     lbb : 'list[str]' = [
@@ -581,7 +642,7 @@ def hamming():
 
     return bg, pe, ne, lbh, lbb
 
-def n_queens():
+def n_4queens():
     '''
     % from http://www.hakank.org/answer_set_programming/nqueens.lp
     #const n = 4.
@@ -605,13 +666,122 @@ def n_queens():
         "1 { q(X,Y) : number(X) } 1 :- number(Y)."
     ]
     
+    # all the existing solutions
     pe : 'list[list[str]]' = [
-        ["q(1,3) q(2,1) q(3,4) q(4,2)", ""]
+        ["q(1,3) q(2,1) q(3,4) q(4,2)", ""],
+        ["q(1,2) q(2,4) q(3,1) q(4,3)", ""]
     ]
     
+    # all the possible placements - all existing solutions
     ne : 'list[list[str]]' = [
-        ["q(1,1)",""],
-        ["q(2,1)", ""]
+        ["q(4,1) q(3,2) q(2,3) q(1,4)",""],
+        ["q(3,1) q(4,2) q(2,3) q(1,4)",""],
+        ["q(4,1) q(2,2) q(3,3) q(1,4)",""],
+        ["q(2,1) q(4,2) q(3,3) q(1,4)",""],
+        ["q(3,1) q(2,2) q(4,3) q(1,4)",""],
+        ["q(2,1) q(3,2) q(4,3) q(1,4)",""],
+        # ["q(3,1) q(1,2) q(4,3) q(2,4)",""],
+        ["q(4,1) q(1,2) q(3,3) q(2,4)",""],
+        ["q(3,1) q(4,2) q(1,3) q(2,4)",""],
+        ["q(4,1) q(3,2) q(1,3) q(2,4)",""],
+        ["q(4,1) q(2,2) q(1,3) q(3,4)",""],
+        ["q(2,1) q(1,2) q(4,3) q(3,4)",""],
+        ["q(4,1) q(1,2) q(2,3) q(3,4)",""],
+        # ["q(2,1) q(4,2) q(1,3) q(3,4)",""],
+        ["q(3,1) q(2,2) q(1,3) q(4,4)",""],
+        ["q(3,1) q(1,2) q(2,3) q(4,4)",""],
+        ["q(2,1) q(3,2) q(1,3) q(4,4)",""],
+        ["q(2,1) q(1,2) q(3,3) q(4,4)",""],
+        ["q(1,1) q(2,2) q(4,3) q(3,4)",""],
+        ["q(1,1) q(3,2) q(4,3) q(2,4)",""],
+        ["q(1,1) q(2,2) q(3,3) q(4,4)",""],
+        ["q(1,1) q(4,2) q(3,3) q(2,4)",""],
+        ["q(1,1) q(4,2) q(2,3) q(3,4)",""],
+        ["q(1,1) q(3,2) q(2,3) q(4,4)",""]
+    ]
+    
+    lbh : 'list[str]' = []
+    
+    lbb : 'list[str]' = ['modeb(2, q(+,+))']
+    
+    return bg, pe, ne, lbh, lbb
+
+
+def n_5queens():
+    '''
+    % from http://www.hakank.org/answer_set_programming/nqueens.lp
+    #const n = 5.
+
+    % domain
+    number(1..n).
+
+    % alldifferent
+    1 { q(X,Y) : number(Y) } 1 :- number(X).
+    1 { q(X,Y) : number(X) } 1 :- number(Y).
+
+    % remove conflicting answers: these rules should be learned
+    :- q(X1,Y1), q(X2,Y2), X1 < X2, Y1 == Y2.
+    :- q(X1,Y1), q(X2,Y2), X1 < X2, Y1 + X1 = Z0, Z0 == Z1, Z1 = Y2 + X2.
+    :- q(X1,Y1), q(X2,Y2), X1 < X2, Y1 - X1 = Z0, Z0 == Z1, Z1 = Y2 - X2.
+    '''
+    bg : 'list[str]' = [
+        "#const n = 5.", 
+        "number(1..n).", 
+        "1 { q(X,Y) : number(Y) } 1 :- number(X).", 
+        "1 { q(X,Y) : number(X) } 1 :- number(Y)."
+    ]
+    
+    # all existing solutions (10)
+    pe : 'list[list[str]]' = [
+        ["q(1,3) q(2,1) q(3,4) q(4,2) q(5,5)",""],
+        ["q(1,1) q(2,3) q(3,5) q(4,2) q(5,4)",""],
+        ["q(2,3) q(3,1) q(4,4) q(5,2) q(1,5)",""],
+        ["q(1,2) q(2,4) q(3,1) q(4,3) q(5,5)",""],
+        ["q(1,1) q(2,4) q(3,2) q(4,5) q(5,3)",""],
+        ["q(1,3) q(2,5) q(3,2) q(4,4) q(5,1)",""],
+        ["q(2,2) q(1,4) q(3,5) q(4,3) q(5,1)",""],
+        ["q(2,2) q(3,4) q(4,1) q(5,3) q(1,5)",""],
+        ["q(1,4) q(2,1) q(3,3) q(4,5) q(5,2)",""],
+        ["q(1,2) q(2,5) q(3,3) q(4,1) q(5,4)",""]
+    ]
+    
+    # some random examples (35) among all the solutions - valid
+    ne : 'list[list[str]]' = [
+        ["q(1,1) q(2,5) q(3,4) q(4,3) q(5,2)",""],
+        ["q(1,1) q(2,2) q(3,5) q(4,4) q(5,3)",""],
+        ["q(1,1) q(2,4) q(3,5) q(4,2) q(5,3)",""],
+        ["q(1,1) q(2,3) q(3,5) q(4,4) q(5,2)",""],
+        ["q(1,1) q(2,3) q(3,4) q(4,5) q(5,2)",""],
+        ["q(1,1) q(2,4) q(3,3) q(4,2) q(5,5)",""],
+        ["q(1,1) q(2,3) q(3,4) q(4,2) q(5,5)",""],
+        ["q(1,1) q(2,4) q(3,2) q(4,3) q(5,5)",""],
+        ["q(1,1) q(2,2) q(3,4) q(4,3) q(5,5)",""],
+        ["q(1,1) q(2,3) q(3,2) q(4,4) q(5,5)",""],
+        ["q(1,1) q(2,2) q(3,3) q(4,4) q(5,5)",""],
+        ["q(1,3) q(2,4) q(3,1) q(4,5) q(5,2)",""],
+        ["q(1,3) q(2,4) q(3,2) q(4,5) q(5,1)",""],
+        ["q(1,2) q(2,3) q(3,1) q(4,5) q(5,4)",""],
+        ["q(1,4) q(2,3) q(3,1) q(4,5) q(5,2)",""],
+        ["q(1,4) q(2,3) q(3,2) q(4,5) q(5,1)",""],
+        ["q(1,2) q(2,3) q(3,4) q(4,5) q(5,1)",""],
+        ["q(1,3) q(2,2) q(3,4) q(4,1) q(5,5)",""],
+        ["q(1,3) q(2,4) q(3,5) q(4,1) q(5,2)",""],
+        ["q(1,2) q(2,1) q(3,5) q(4,3) q(5,4)",""],
+        ["q(1,2) q(2,4) q(3,5) q(4,3) q(5,1)",""],
+        ["q(1,2) q(2,4) q(3,5) q(4,1) q(5,3)",""],
+        ["q(1,3) q(2,1) q(3,5) q(4,2) q(5,4)",""],
+        ["q(1,3) q(2,4) q(3,5) q(4,2) q(5,1)",""],
+        ["q(1,3) q(2,2) q(3,5) q(4,4) q(5,1)",""],
+        ["q(1,5) q(2,3) q(3,2) q(4,4) q(5,1)",""],
+        ["q(1,5) q(2,2) q(3,3) q(4,4) q(5,1)",""],
+        ["q(1,5) q(2,1) q(3,3) q(4,4) q(5,2)",""],
+        ["q(1,5) q(2,2) q(3,1) q(4,4) q(5,3)",""],
+        ["q(1,5) q(2,1) q(3,2) q(4,4) q(5,3)",""],
+        ["q(1,5) q(2,2) q(3,1) q(4,3) q(5,4)",""],
+        ["q(1,5) q(2,3) q(3,1) q(4,2) q(5,4)",""],
+        ["q(1,5) q(2,4) q(3,3) q(4,2) q(5,1)",""],
+        ["q(1,5) q(2,4) q(3,3) q(4,1) q(5,2)",""],
+        ["q(1,5) q(2,4) q(3,2) q(4,3) q(5,1)",""]
     ]
     
     lbh : 'list[str]' = []
@@ -680,73 +850,11 @@ def clique():
     return bg, pe, ne, lbh, lbb
 
 
-def partition():
-    '''
-    Partition problem: split the elements of a set S into two
-    subsets S0 and S1 such that |S0| = |S1| and the sum of the
-    elements in S0 and S1 is the same.
-    Wiki: https://en.wikipedia.org/wiki/Partition_problem
-    Inspired by: http://www.hakank.org/answer_set_programming/set_partition.lp
-    Given:
-    #const n = 8. 
-    val(1..n).
-    partition(1..2).
-    % split the numbers in two partitions
-    1 { p(P, I) : partition(P) } 1 :- val(I).
-    To learn:
-    sp(Part,Sum):- Sum = #sum{ Val : p(Part,Val)}, partition(Part).
-    ce(Part,Sum):- Sum = #count{ Val : p(Part,Val)}, partition(Part).
-    :- partition(P0), partition(P1), sp(P0,S0), sp(P1,S1), S0 != S1.
-    :- partition(P0), partition(P1), ce(P0,S0), ce(P1,S1), S0 != S1.
-    '''
-    bg : 'list[str]' = [
-        "#const n = 8.",
-        "val(1..n).",
-        "partition(1..2).",
-        "1 { p(P, I) : partition(P) } 1 :- val(I)."
-    ]
-
-    # all the possible solutions
-    pe : 'list[list[str]]' = [
-        ["p(1,3) p(1,4) p(1,5) p(1,6) p(2,1) p(2,2) p(2,7) p(2,8)",""],
-        ["p(1,2) p(1,3) p(1,5) p(1,8) p(2,1) p(2,4) p(2,6) p(2,7)",""],
-        ["p(1,2) p(1,3) p(1,6) p(1,7) p(2,1) p(2,4) p(2,5) p(2,8)",""],
-        ["p(1,2) p(1,4) p(1,5) p(1,7) p(2,1) p(2,3) p(2,6) p(2,8)",""],
-        ["p(1,1) p(1,3) p(1,6) p(1,8) p(2,2) p(2,4) p(2,5) p(2,7)",""],
-        ["p(1,1) p(1,4) p(1,6) p(1,7) p(2,2) p(2,3) p(2,5) p(2,8)",""],
-        ["p(1,1) p(1,2) p(1,7) p(1,8) p(2,3) p(2,4) p(2,5) p(2,6)",""],
-        ["p(1,1) p(1,4) p(1,5) p(1,8) p(2,2) p(2,3) p(2,6) p(2,7)",""]
-    ]
-
-    # generated by removing the constraint on the cardinality
-    ne : 'list[list[str]]' = [
-        ["p(1,5) p(1,6) p(1,7) p(2,1) p(2,2) p(2,3) p(2,4) p(2,8)",""],
-        ["p(1,3) p(1,7) p(1,8) p(2,1) p(2,2) p(2,4) p(2,5) p(2,6)",""],
-        ["p(1,4) p(1,6) p(1,8) p(2,1) p(2,2) p(2,3) p(2,5) p(2,7)",""],
-        ["p(1,1) p(1,2) p(1,4) p(1,5) p(1,6) p(2,3) p(2,7) p(2,8)",""],
-        ["p(1,1) p(1,2) p(1,3) p(1,5) p(1,7) p(2,4) p(2,6) p(2,8)",""],
-        ["p(1,1) p(1,2) p(1,3) p(1,4) p(1,8) p(2,5) p(2,6) p(2,7)",""]
-    ]
-
-    lbh : 'list[str]' = [
-        'modeh(1, sp(+,+))',
-        'modeh(1, ce(+,+))'
-    ]
-
-    lbb : 'list[str]' = [
-        'modeb(2, partition(+))',
-        'modeb(2, sp(+,+))',
-        'modeb(2, ce(+,+))'
-    ]
-
-    return bg, pe, ne, lbh, lbb
-
 def magic_square_no_diag():
     '''
     With aggregates: limited to the sum of columns and row.
     Constraint: the sum of the elements in the rows and columns
     should be the same.
-    TODO: non ancora supportato perché aggregato con x/3 e size/1
     To learn:
     sum_row(R,S):- S = #sum{V : x(R,C,V), size(C)}, size(R).
     sum_col(C,S):- S = #sum{V : x(R,C,V), size(R)}, size(C).
@@ -786,7 +894,12 @@ def latin_square():
     '''
     With aggregates: the same element cannot repeat in the same 
     row or column.
-    To learn:
+    Given:
+    cell(1..3).
+    val(1..3).
+    size(3).
+    1{x(R,C,N) : val(N)}1:- cell(R), cell(C).
+    Learn:
     count_row(R,S):- S = #count{V : x(R,C,V), cell(C)}, cell(R).
     count_col(C,S):- S = #count{V : x(R,C,V), cell(R)}, cell(C).
     :- count_col(Col,C), cell(Col), size(S), C != S.
@@ -799,7 +912,305 @@ def latin_square():
         "size(3).",
         "1{x(R,C,N) : val(N)}1:- cell(R), cell(C)."
     ]
+    
+    # all the existing solutions (12)
+    pe : 'list[list[str]]' = [
+        ["x(1,3,1) x(1,2,2) x(1,1,3) x(2,2,1) x(2,1,2) x(2,3,3) x(3,1,1) x(3,3,2) x(3,2,3)",""],
+        ["x(1,3,1) x(1,1,2) x(1,2,3) x(2,1,1) x(2,2,2) x(2,3,3) x(3,2,1) x(3,3,2) x(3,1,3)",""],
+        ["x(1,3,1) x(1,2,2) x(1,1,3) x(2,1,1) x(2,3,2) x(2,2,3) x(3,2,1) x(3,1,2) x(3,3,3)",""],
+        ["x(1,3,1) x(1,1,2) x(1,2,3) x(2,2,1) x(2,3,2) x(2,1,3) x(3,1,1) x(3,2,2) x(3,3,3)",""],
+        ["x(1,1,1) x(1,3,2) x(1,2,3) x(2,3,1) x(2,2,2) x(2,1,3) x(3,2,1) x(3,1,2) x(3,3,3)",""],
+        ["x(1,2,1) x(1,3,2) x(1,1,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,1,1) x(3,2,2) x(3,3,3)",""],
+        ["x(1,2,1) x(1,3,2) x(1,1,3) x(2,1,1) x(2,2,2) x(2,3,3) x(3,3,1) x(3,1,2) x(3,2,3)",""],
+        ["x(1,1,1) x(1,3,2) x(1,2,3) x(2,2,1) x(2,1,2) x(2,3,3) x(3,3,1) x(3,2,2) x(3,1,3)",""],
+        ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,2,1) x(3,3,2) x(3,1,3)",""],
+        ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,2,1) x(2,3,2) x(2,1,3) x(3,3,1) x(3,1,2) x(3,2,3)",""],
+        ["x(1,2,1) x(1,1,2) x(1,3,3) x(2,3,1) x(2,2,2) x(2,1,3) x(3,1,1) x(3,3,2) x(3,2,3)",""],
+        ["x(1,2,1) x(1,1,2) x(1,3,3) x(2,1,1) x(2,3,2) x(2,2,3) x(3,3,1) x(3,2,2) x(3,1,3)",""]
+    ]
+    
+    ne : 'list[list[str]]' = [
+        ["x(2,1,1) x(3,1,2) x(1,1,3) x(2,2,1) x(3,2,2) x(1,2,3) x(2,3,1) x(3,3,2) x(1,3,3)",""],
+        ["x(3,1,1) x(2,1,2) x(1,1,3) x(3,2,1) x(2,2,2) x(1,2,3) x(3,3,1) x(2,3,2) x(1,3,3)",""],
+        ["x(3,1,1) x(2,1,2) x(1,1,3) x(2,2,1) x(3,2,2) x(1,2,3) x(3,3,1) x(2,3,2) x(1,3,3)",""],
+        ["x(3,1,1) x(2,1,2) x(1,1,3) x(2,2,1) x(3,2,2) x(1,2,3) x(2,3,1) x(3,3,2) x(1,3,3)",""],
+        ["x(3,1,1) x(2,1,2) x(1,1,3) x(3,2,1) x(2,2,2) x(1,2,3) x(2,3,1) x(3,3,2) x(1,3,3)",""],
+        ["x(2,1,1) x(3,1,2) x(1,1,3) x(2,2,1) x(3,2,2) x(1,2,3) x(3,3,1) x(2,3,2) x(1,3,3)",""],
+        ["x(2,1,1) x(3,1,2) x(1,1,3) x(3,2,1) x(2,2,2) x(1,2,3) x(3,3,1) x(2,3,2) x(1,3,3)",""],
+        ["x(2,1,1) x(3,1,2) x(1,1,3) x(3,2,1) x(2,2,2) x(1,2,3) x(2,3,1) x(3,3,2) x(1,3,3)",""],
+        ["x(2,1,1) x(3,1,2) x(1,1,3) x(2,2,1) x(3,2,2) x(1,2,3) x(3,3,1) x(1,3,2) x(2,3,3)",""],
+        ["x(2,1,1) x(3,1,2) x(1,1,3) x(2,2,1) x(3,2,2) x(1,2,3) x(2,3,1) x(1,3,2) x(3,3,3)",""],
+        ["x(1,2,1) x(1,1,2) x(1,3,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,2,1) x(3,1,2) x(3,3,3)",""],
+        ["x(1,2,1) x(1,1,2) x(1,3,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,2,1) x(3,3,2) x(3,1,3)",""],
+        ["x(1,3,1) x(1,1,2) x(1,2,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,3,1) x(3,1,2) x(3,2,3)",""],
+        ["x(1,3,1) x(1,1,2) x(1,2,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,3,1) x(3,2,2) x(3,1,3)",""],
+        ["x(1,3,1) x(1,1,2) x(1,2,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,2,1) x(3,1,2) x(3,3,3)",""],
+        ["x(1,3,1) x(1,2,2) x(1,1,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,3,1) x(3,1,2) x(3,2,3)",""],
+        ["x(1,3,1) x(1,2,2) x(1,1,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,3,1) x(3,2,2) x(3,1,3)",""],
+        ["x(1,3,1) x(1,2,2) x(1,1,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,2,1) x(3,1,2) x(3,3,3)",""],
+        ["x(1,3,1) x(1,1,2) x(1,2,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,2,1) x(3,3,2) x(3,1,3)",""],
+        ["x(1,3,1) x(1,2,2) x(1,1,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,2,1) x(3,3,2) x(3,1,3)",""],
+        ["x(1,1,3) x(2,1,3) x(3,1,3) x(2,2,1) x(1,2,3) x(3,2,3) x(2,3,1) x(1,3,3) x(3,3,3)",""],
+        ["x(1,1,3) x(2,1,3) x(3,1,3) x(1,2,1) x(2,2,3) x(3,2,3) x(2,3,1) x(1,3,3) x(3,3,3)",""],
+        ["x(1,1,3) x(2,1,3) x(3,1,3) x(1,2,1) x(2,2,1) x(3,2,3) x(2,3,1) x(1,3,3) x(3,3,3)",""],
+        ["x(1,1,3) x(2,1,3) x(3,1,3) x(1,2,1) x(2,2,3) x(3,2,3) x(1,3,1) x(2,3,1) x(3,3,3)",""],
+        ["x(1,1,3) x(2,1,3) x(3,1,3) x(2,2,1) x(1,2,3) x(3,2,3) x(1,3,1) x(2,3,1) x(3,3,3)",""]
+    ]
+    
+    lbh : 'list[str]' = [
+        "modeh(1, count_row(+,+)",
+        "modeh(1, count_col(+,+)"
+    ]
+    
+    lbb : 'list[str]' = [
+        "modeb(1, count_row(+,+)",
+        "modeb(1, count_row(+,+)",
+        "modeb(1, size(+))",
+        "modeb(1, cell(+))"
+    ]
+    
+    return bg, pe, ne, lbh, lbb
+    
 
+def set_partition_only_sum():
+    '''
+    Inspired by: http://www.hakank.org/answer_set_programming/set_partition.lp
+    Set partition problem: given the set S = {1, 2, ..., n}, 
+    find two sets A and B such that:
+    - A U B = S
+    - sum(A) = sum(B)
+    -------------
+    Given:
+    #const n = 12. 
+    val(1..n).
+    partition(1..2).
+    % split the numbers in two partitions
+    1 { p(P, I) : partition(P) } 1 :- val(I).
+    % symmetry breaking
+    p(1,1).
+    Learn:
+    sum_partition(Sum,Partition):-
+        partition(Partition),
+        Sum = #sum{I : p(Partition,I)}.
+    :- sum_partition(P0, S1), sum_partition(P1, S2), P0 != P1, S1 != S2.
+    '''
+
+    bg : 'list[str]' = [
+        "#const n = 12.",
+        "val(1..n).",
+        "partition(1..2).",
+        "1 { p(P, I) : partition(P) } 1 :- val(I).",
+        "p(1,1)."
+    ]
+    
+    # 10 of the 62 existing solutions
+    pe : 'list[list[str]]' = [
+        ["p(1,1) p(1,5) p(1,10) p(1,11) p(1,12) p(2,2) p(2,3) p(2,4) p(2,6) p(2,7) p(2,8) p(2,9)",""],
+        ["p(1,1) p(1,4) p(1,5) p(1,8) p(1,10) p(1,11) p(2,2) p(2,3) p(2,6) p(2,7) p(2,9) p(2,12)",""],
+        ["p(1,1) p(1,3) p(1,5) p(1,8) p(1,10) p(1,12) p(2,2) p(2,4) p(2,6) p(2,7) p(2,9) p(2,11)",""],
+        ["p(1,1) p(1,3) p(1,4) p(1,8) p(1,11) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,9) p(2,10)",""],
+        ["p(1,1) p(1,3) p(1,5) p(1,9) p(1,10) p(1,11) p(2,2) p(2,4) p(2,6) p(2,7) p(2,8) p(2,12)",""],
+        ["p(1,1) p(1,3) p(1,4) p(1,9) p(1,10) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,8) p(2,11)",""],
+        ["p(1,1) p(1,8) p(1,9) p(1,10) p(1,11) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,7) p(2,12)",""],
+        ["p(1,1) p(1,4) p(1,5) p(1,8) p(1,9) p(1,12) p(2,2) p(2,3) p(2,6) p(2,7) p(2,10) p(2,11)",""],
+        ["p(1,1) p(1,4) p(1,5) p(1,7) p(1,10) p(1,12) p(2,2) p(2,3) p(2,6) p(2,8) p(2,9) p(2,11)",""],
+        ["p(1,1) p(1,7) p(1,9) p(1,10) p(1,12) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,8) p(2,11)",""]
+    ]
+    
+    # some of the 2048 possible placements
+    ne : 'list[list[str]]' = [
+        ["p(1,1) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,2) p(2,3) p(2,5) p(2,10)",""],
+        ["p(1,1) p(1,2) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,3) p(2,10) p(2,12)",""],
+        ["p(1,1) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,2) p(2,3) p(2,10) p(2,12)",""],
+        ["p(1,1) p(1,2) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,3) p(2,5) p(2,10) p(2,12)",""],
+        ["p(1,1) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,2) p(2,3) p(2,5) p(2,10) p(2,12)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,4) p(2,10)",""],
+        ["p(1,1) p(1,2) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,3) p(2,4) p(2,10)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,4) p(2,5) p(2,10)",""],
+        ["p(1,1) p(1,2) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,3) p(2,4) p(2,5) p(2,10)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,4) p(2,10) p(2,12)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,4) p(2,5) p(2,10) p(2,12)",""],
+        ["p(1,1) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,7) p(2,8) p(2,9) p(2,10) p(2,11) p(2,12)",""],
+        ["p(1,1) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,10) p(1,11) p(1,12) p(2,2)",""]
+    ]
+    
+    lbh : 'list[str]' = [
+        "modeh(1, sum_partition(+,+)"
+    ]
+    
+    lbb : 'list[str]' = [
+        "modeb(1, partition(+)",
+        "modeb(2, sum_partition(+,+)"
+    ]
+    
+    return bg, pe, ne, lbh, lbb
+
+def set_partition_sum_and_cardinality():
+    '''
+    Inspired by: http://www.hakank.org/answer_set_programming/set_partition.lp
+    Set partition problem: given the set S = {1, 2, ..., n}, 
+    find two sets A and B such that:
+    - A U B = S
+    - sum(A) = sum(B)
+    - |A| = |B|
+    -------------
+    Given:
+    #const n = 12. 
+    val(1..n).
+    partition(1..2).
+    % split the numbers in two partitions
+    1 { p(P, I) : partition(P) } 1 :- val(I).
+    % symmetry breaking
+    p(1,1).
+    Learn:
+    sum_partition(Sum,Partition):-
+        partition(Partition),
+        Sum = #sum{I : p(Partition,I)}.
+    :- sum_partition(P0, S1), sum_partition(P1, S2), P0 != P1, S1 != S2.
+    count_partition(Count,Partition):-
+        partition(Partition),
+        Count = #count{I : p(Partition,I)}.
+    :- count_partition(P0, S1), count_partition(P1, S2), P0 != P1, S1 != S2.
+    '''
+
+    bg : 'list[str]' = [
+        "#const n = 12.",
+        "val(1..n).",
+        "partition(1..2).",
+        "1 { p(P, I) : partition(P) } 1 :- val(I).",
+        "p(1,1)."
+    ]
+    
+    # all the 29 existing solutions
+    pe : 'list[list[str]]' = [
+        ["p(1,1) p(1,4) p(1,5) p(1,8) p(1,9) p(1,12) p(2,2) p(2,3) p(2,6) p(2,7) p(2,10) p(2,11)",""],
+        ["p(1,1) p(1,4) p(1,5) p(1,8) p(1,10) p(1,11) p(2,2) p(2,3) p(2,6) p(2,7) p(2,9) p(2,12)",""],
+        ["p(1,1) p(1,3) p(1,4) p(1,9) p(1,10) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,8) p(2,11)",""],
+        ["p(1,1) p(1,3) p(1,5) p(1,9) p(1,10) p(1,11) p(2,2) p(2,4) p(2,6) p(2,7) p(2,8) p(2,12)",""],
+        ["p(1,1) p(1,3) p(1,5) p(1,8) p(1,10) p(1,12) p(2,2) p(2,4) p(2,6) p(2,7) p(2,9) p(2,11)",""],
+        ["p(1,1) p(1,3) p(1,4) p(1,8) p(1,11) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,9) p(2,10)",""],
+        ["p(1,1) p(1,4) p(1,5) p(1,7) p(1,10) p(1,12) p(2,2) p(2,3) p(2,6) p(2,8) p(2,9) p(2,11)",""],
+        ["p(1,1) p(1,3) p(1,5) p(1,7) p(1,11) p(1,12) p(2,2) p(2,4) p(2,6) p(2,8) p(2,9) p(2,10)",""],
+        ["p(1,1) p(1,3) p(1,7) p(1,8) p(1,9) p(1,11) p(2,2) p(2,4) p(2,5) p(2,6) p(2,10) p(2,12)",""],
+        ["p(1,1) p(1,4) p(1,7) p(1,8) p(1,9) p(1,10) p(2,2) p(2,3) p(2,5) p(2,6) p(2,11) p(2,12)",""],
+        ["p(1,1) p(1,5) p(1,6) p(1,7) p(1,8) p(1,12) p(2,2) p(2,3) p(2,4) p(2,9) p(2,10) p(2,11)",""],
+        ["p(1,1) p(1,5) p(1,6) p(1,7) p(1,9) p(1,11) p(2,2) p(2,3) p(2,4) p(2,8) p(2,10) p(2,12)",""],
+        ["p(1,1) p(1,5) p(1,6) p(1,8) p(1,9) p(1,10) p(2,2) p(2,3) p(2,4) p(2,7) p(2,11) p(2,12)",""],
+        ["p(1,1) p(1,3) p(1,6) p(1,7) p(1,10) p(1,12) p(2,2) p(2,4) p(2,5) p(2,8) p(2,9) p(2,11)",""],
+        ["p(1,1) p(1,3) p(1,6) p(1,8) p(1,9) p(1,12) p(2,2) p(2,4) p(2,5) p(2,7) p(2,10) p(2,11)",""],
+        ["p(1,1) p(1,3) p(1,6) p(1,8) p(1,10) p(1,11) p(2,2) p(2,4) p(2,5) p(2,7) p(2,9) p(2,12)",""],
+        ["p(1,1) p(1,4) p(1,6) p(1,8) p(1,9) p(1,11) p(2,2) p(2,3) p(2,5) p(2,7) p(2,10) p(2,12)",""],
+        ["p(1,1) p(1,4) p(1,5) p(1,6) p(1,11) p(1,12) p(2,2) p(2,3) p(2,7) p(2,8) p(2,9) p(2,10)",""],
+        ["p(1,1) p(1,4) p(1,6) p(1,7) p(1,10) p(1,11) p(2,2) p(2,3) p(2,5) p(2,8) p(2,9) p(2,12)",""],
+        ["p(1,1) p(1,4) p(1,6) p(1,7) p(1,9) p(1,12) p(2,2) p(2,3) p(2,5) p(2,8) p(2,10) p(2,11)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,10) p(1,11) p(1,12) p(2,4) p(2,5) p(2,6) p(2,7) p(2,8) p(2,9)",""],
+        ["p(1,1) p(1,2) p(1,5) p(1,9) p(1,10) p(1,12) p(2,3) p(2,4) p(2,6) p(2,7) p(2,8) p(2,11)",""],
+        ["p(1,1) p(1,2) p(1,4) p(1,9) p(1,11) p(1,12) p(2,3) p(2,5) p(2,6) p(2,7) p(2,8) p(2,10)",""],
+        ["p(1,1) p(1,2) p(1,6) p(1,7) p(1,11) p(1,12) p(2,3) p(2,4) p(2,5) p(2,8) p(2,9) p(2,10)",""],
+        ["p(1,1) p(1,2) p(1,6) p(1,8) p(1,10) p(1,12) p(2,3) p(2,4) p(2,5) p(2,7) p(2,9) p(2,11)",""],
+        ["p(1,1) p(1,2) p(1,5) p(1,8) p(1,11) p(1,12) p(2,3) p(2,4) p(2,6) p(2,7) p(2,9) p(2,10)",""],
+        ["p(1,1) p(1,2) p(1,7) p(1,8) p(1,9) p(1,12) p(2,3) p(2,4) p(2,5) p(2,6) p(2,10) p(2,11)",""],
+        ["p(1,1) p(1,2) p(1,7) p(1,8) p(1,10) p(1,11) p(2,3) p(2,4) p(2,5) p(2,6) p(2,9) p(2,12)",""],
+        ["p(1,1) p(1,2) p(1,6) p(1,9) p(1,10) p(1,11) p(2,3) p(2,4) p(2,5) p(2,7) p(2,8) p(2,12)",""]
+    ]
+    
+    # some of the 2048 possible placements
+    ne : 'list[list[str]]' = [
+        ["p(1,1) p(1,2) p(1,6) p(1,7) p(1,11) p(1,12) p(2,3) p(2,4) p(2,5) p(2,8) p(2,9) p(2,10)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,6) p(1,7) p(1,8) p(1,12) p(2,4) p(2,5) p(2,9) p(2,10) p(2,11)",""], 
+        ["p(1,1) p(1,2) p(1,6) p(1,7) p(1,8) p(1,9) p(2,3) p(2,4) p(2,5) p(2,10) p(2,11) p(2,12)",""],
+        ["p(1,1) p(1,2) p(1,4) p(1,6) p(1,7) p(1,8) p(2,3) p(2,5) p(2,9) p(2,10) p(2,11) p(2,12)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,10) p(2,5) p(2,11) p(2,12)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,10) p(1,12) p(2,4) p(2,11)",""]
+    ]
+    
+    lbh : 'list[str]' = [
+        "modeh(1, sum_partition(+,+)",
+        "modeh(1, count_partition(+,+)"
+    ]
+    
+    lbb : 'list[str]' = [
+        "modeb(1, partition(+)",
+        "modeb(2, sum_partition(+,+)",
+        "modeb(2, count_partition(+,+)"
+    ]
+    
+    return bg, pe, ne, lbh, lbb
+
+
+def set_partition_sum_cardinality_and_square():
+    '''
+    Inspired by: http://www.hakank.org/answer_set_programming/set_partition.lp
+    Set partition problem: given the set S = {1, 2, ..., n}, 
+    find two sets A and B such that:
+    - A U B = S
+    - sum(A) = sum(B)
+    - |A| = |B|
+    - sum of squares of A = sum of squares of B 
+    -------------
+    Given:
+    #const n = 12. 
+    val(1..n).
+    partition(1..2).
+    % split the numbers in two partitions
+    1 { p(P, I) : partition(P) } 1 :- val(I).
+    % symmetry breaking
+    p(1,1).
+    % sum of squares
+    sq(Partition,Val):- p(Partition,V), Val = V*V.
+    Learn (6 rules):
+    % NOTE: the aggregation on p/2 can be avoided when the one on sq/2 is used (for this setting)
+    sum_partition(Sum,Partition):-
+        partition(Partition),
+        Sum = #sum{I : p(Partition,I)}.
+    :- sum_partition(P0, S1), sum_partition(P1, S2), P0 != P1, S1 != S2.
+    count_partition(Count,Partition):-
+        partition(Partition),
+        Count = #count{I : p(Partition,I)}.
+    :- count_partition(P0, S1), count_partition(P1, S2), P0 != P1, S1 != S2.
+    sum_partition_sq(Sum,Partition):-
+        partition(Partition),
+        Sum = #sum{I : sq(Partition,I)}.
+    :- sum_partition_sq(P0, S1), sum_partition_sq(P1, S2), P0 != P1, S1 != S2.
+    '''
+
+    bg : 'list[str]' = [
+        "#const n = 12.",
+        "val(1..n).",
+        "partition(1..2).",
+        "1 { p(P, I) : partition(P) } 1 :- val(I).",
+        "p(1,1).",
+        "sq(Partition,Val):- p(Partition,V), Val = V*V."
+    ]
+    
+    # only one solution
+    pe : 'list[list[str]]' = [
+        ["p(1,1) p(2,2) p(1,3) p(2,4) p(2,5) p(2,6) p(1,7) p(1,8) p(1,9) p(2,10) p(1,11) p(2,12)", ""]
+    ]
+    
+    # some of the 2048 possible placements
+    ne : 'list[list[str]]' = [
+        ["p(1,1) p(1,2) p(2,3) p(2,4) p(2,5) p(1,6) p(2,7) p(1,8) p(2,9) p(1,10) p(2,11) p(1,12)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(2,9) p(2,10) p(1,11) p(2,12)",""],
+        ["p(1,1) p(1,2) p(1,3) p(1,4) p(1,5) p(2,6) p(1,7) p(2,8) p(2,9) p(1,10) p(1,11) p(2,12)",""],
+        ["p(1,1) p(2,2) p(1,3) p(1,4) p(1,5) p(2,6) p(1,7) p(2,8) p(1,9) p(2,10) p(2,11) p(1,12)",""],
+        ["p(1,1) p(2,2) p(2,3) p(1,4) p(2,5) p(2,6) p(2,7) p(1,8) p(2,9) p(1,10) p(2,11) p(1,12)",""]
+    ]
+    
+    lbh : 'list[str]' = [
+        "modeh(1, sum_partition(+,+)",
+        "modeh(1, count_partition(+,+)",
+        "modeh(1, sum_partition_sq(+,+)"
+    ]
+    
+    lbb : 'list[str]' = [
+        "modeb(1, partition(+)",
+        "modeb(2, sum_partition(+,+)",
+        "modeb(2, count_partition(+,+)",
+        "modeb(2, sum_partition_sq(+,+)"
+    ]
+    
+    return bg, pe, ne, lbh, lbb
 
 def dummy():
     '''
