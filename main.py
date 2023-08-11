@@ -22,86 +22,6 @@ import example_programs
 
 program_description = "GENTIANS: GENeTic algoritm for inductive learning of ANswer Set programs."
 
-# class Literal:
-#     def __init__(self, string_representation : str) -> None:
-#         def parse_literal(string_representation : str) -> 'tuple[str,int,bool]':
-#             # supposing no nested literals, no a(b(x)) but a(x)
-#             negated = False
-#             if string_representation.startswith('not '):
-#                 negated = True
-#             if negated:
-#                 name = string_representation[4:].split('(')[0]
-#             else:
-#                 name = string_representation.split('(')[0]
-#             if '(' in string_representation and not(',' in string_representation):
-#                 arity = 1
-#             else:
-#                 arity = string_representation.count(',') + 1
-            
-#             return name, arity, negated
-        
-#         self.name, self.arity, self.negated = parse_literal(string_representation)
-        
-#     def __str__(self) -> str:
-#         return f"Name: {self.name}, arity: {self.arity}, negated: {self.negated}"
-    
-#     def __repr__(self) -> str:
-#         return self.__str__()
-
-
-# def compute_n_vars(clause : str):
-#     i = 0
-#     found = True
-#     while found:
-#         if f'V{i}' not in clause:
-#             found = False
-#         i +=1
-    
-#     return i - 1
-    
-# class PlacedClause:
-#     def __init__(self,
-#         placed_clauses : 'list[str]'
-#         ) -> None:
-#         self.placed_clauses = placed_clauses
-#         self.n_vars_clauses : 'list[int]' = []
-#         self.n_atoms = 0
-        
-#         for cl in self.placed_clauses:
-#             self.n_vars_clauses.append(compute_n_vars(cl))
-
-#         cl = placed_clauses[0]
-#         cl = cl.split(':-')
-#         head = cl[0]
-#         body = cl[1]
-        
-#         if len(head) != 0:
-#             self.n_atoms = len(head.split(';')) + 1
-#         self.n_atoms = len(body.split('),')) + 1
-        
-
-    # def get_clause(self) -> str:
-    #     cl : str = ''
-    #     for h in self.head:
-    #         cl += h + ';'
-    #     cl = cl[:-1] + ' :- '
-        
-    #     for b in self.body:
-    #         cl += b + ', '
-    #     cl = cl[:-2] + '.'
-    #     return cl
-    
-    # def __str__(self) -> str:
-    #     s = ""
-    #     for cl in self.placed_clauses:
-    #         s += cl + '\n'
-    #     s += f"n_vars: {self.n_vars_clauses}\nn_atoms: {self.n_atoms}\n"
-    #     return s
-    
-    # def __repr__(self) -> str:
-    #     return self.__str__()
-    
-
 class Program:
     def __init__(self,
         # clauses : 'list[Clause]',
@@ -193,6 +113,7 @@ class Solver:
         self.mutation_probability : float = arguments.mutation_probability
         self.iterations_genetic : int = arguments.iterations_genetic
         self.arguments = arguments
+        self.max_as = arguments.max_as
         
         self.aggregates : 'list[str]' = arguments.aggregates
         self.comparison : 'list[str]' = arguments.comparison
@@ -336,6 +257,8 @@ if __name__ == "__main__":
         type=int, default=1000)
     command_parser.add_argument("-ua", "--unbalanced-agg", help="Unabalnced aggregates",\
         default=False, action="store_true")
+    command_parser.add_argument("--max_as", help="Max number of answer sets to generate",\
+        type=int, default=5000)
     
     command_parser.add_argument("-it", "--iterations", help="Max number of sample and \
         genetic iterations", type=int, default=100)
@@ -349,7 +272,7 @@ if __name__ == "__main__":
         choices=["coin", "even_odd", "animals_bird", "coloring", \
             "adjacent_to_red", "grandparent", "sudoku", "dummy", "subset_sum",
             "subset_sum_double", "subset_sum_double_and_sum","subset_sum_triple","4queens", \
-            "5queens", "clique", "hamming", "harder_hamming", \
+            "5queens", "clique", "hamming_0", "hamming_1", "harder_hamming_0", "harder_hamming_1", \
             "magic_square_no_diag", "latin_square", "set_partition_sum",\
             "set_partition_sum_and_cardinality", "set_partition_sum_cardinality_and_square"], \
         default=None)
@@ -361,9 +284,9 @@ if __name__ == "__main__":
         Example: --comparison lt gt eq diff", nargs='+', \
         required=False, choices=["lt","leq","gt","geq","eq","neq"])
     command_parser.add_argument("--arithm", help="Enables the usage of arithmetic \
-        predicates: add (+), sub(-), mul(*), and div(/). Example: \
-        --arithm add sub mul div", nargs='+', required=False, choices=["add","sub",
-        "mul","div"])
+        predicates: add (+), sub(-), mul(*), div(/), and abs (||). Example: \
+        --arithm add sub mul div abs", nargs='+', required=False, choices=["add","sub",
+        "mul","div","abs"])
     command_parser.add_argument("--cr", help="Enables the generation of \
         choice rules.", default=False, action="store_true")
     command_parser.add_argument("--invention", help="Enables predicate invention with \
@@ -453,12 +376,18 @@ if __name__ == "__main__":
         elif args.example == "clique":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.clique()
-        elif args.example == "hamming":
+        elif args.example == "hamming_0":
             background, positive_examples, negative_examples,\
-            language_bias_head, language_bias_body = example_programs.hamming()
-        elif args.example == "harder_hamming":
+            language_bias_head, language_bias_body = example_programs.hamming(0, False)
+        elif args.example == "hamming_1":
             background, positive_examples, negative_examples,\
-            language_bias_head, language_bias_body = example_programs.harder_hamming()
+            language_bias_head, language_bias_body = example_programs.hamming(1, False)
+        elif args.example == "harder_hamming_0":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.hamming(0, True)
+        elif args.example == "harder_hamming_1":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.hamming(1, True)
         # elif args.example == "partition":
         #     background, positive_examples, negative_examples,\
         #     language_bias_head, language_bias_body = example_programs.partition()

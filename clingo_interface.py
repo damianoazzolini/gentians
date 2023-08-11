@@ -33,8 +33,6 @@ class ClingoInterface:
                 ctl.add('base', [], clause)
             ctl.ground([("base", [])])
         except RuntimeError:
-            # TODO: handle unsafe vars or check this while 
-            # generating the clause
             print('Syntax error, parsing failed.')
 
         return ctl
@@ -77,9 +75,6 @@ class ClingoInterface:
             # add the sampled program
             cl_index = 0
             
-
-            # program = ["heads(V1) :- coin(V1), not tails(V1).", "tails(V1) :- coin(V1), not heads(V1)."]
-            
             for clause in program:
                 if not fixed:
                     r = f"r({cl_index})"
@@ -91,8 +86,6 @@ class ClingoInterface:
                 else:
                     generated_program += clause
             generated_program += '\n'
-            
-            
 
             if len(interpretation_pos) > 0:
                 generated_program += f"pos_exs(0..{len(interpretation_pos)}).\n"

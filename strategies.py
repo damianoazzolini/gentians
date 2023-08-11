@@ -60,12 +60,16 @@ class Strategy:
         background : 'list[str]',
         positive_examples : 'list[list[str]]',
         negative_examples : 'list[list[str]]',
+        max_as : int = 5000
         ) -> None:
         # self.placed_list : 'list[list[str]]' = placed_list
         self.placed_list : 'list[PlacedClause]' = placed_list
         self.background : 'list[str]' = background
         self.positive_examples : 'list[list[str]]' = positive_examples
         self.negative_examples : 'list[list[str]]' = negative_examples
+        # maximum number of AS to generate: this helps when the program has a generator
+        # and there are too many options
+        self.max_as_to_generate_foreach_program : int = max_as
 
     def genetic_solver(self,
         number_clauses : int, # number of clauses to consider for each program
@@ -122,7 +126,7 @@ class Strategy:
             # print(self.background)
             # TODO: better define a score. Also consider the number of variables?
             asp_solver = clingo_interface.ClingoInterface(
-                self.background, ['-Wnone', '0', '--project'])
+                self.background, ['-Wnone', f'{self.max_as_to_generate_foreach_program}', '--project'])
             # program[1] = "odd(V0):- even(V1),prev(V0,V1)."
             # program[0] = "even(V0):- odd(V1),prev(V0,V1)."
             # for l in asp_solver.lines:
