@@ -348,7 +348,8 @@ if __name__ == "__main__":
     command_parser.add_argument("-e", "--example", help="Load a predefined example", \
         choices=["coin", "even_odd", "animals_bird", "coloring", \
             "adjacent_to_red", "grandparent", "sudoku", "dummy", "subset_sum",
-            "subset_sum_double","4queens", "5queens", "clique", "hamming", "harder_hamming", \
+            "subset_sum_double", "subset_sum_double_and_sum","subset_sum_triple","4queens", \
+            "5queens", "clique", "hamming", "harder_hamming", \
             "magic_square_no_diag", "latin_square", "set_partition_sum",\
             "set_partition_sum_and_cardinality", "set_partition_sum_cardinality_and_square"], \
         default=None)
@@ -437,7 +438,12 @@ if __name__ == "__main__":
         elif args.example == "subset_sum_double":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.subset_sum_double()
-            # args.aggregates = ["sum(el/1)"]
+        elif args.example == "subset_sum_double_and_sum":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.subset_sum_double_and_sum()
+        elif args.example == "subset_sum_triple":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.subset_sum_triple()
         elif args.example == "4queens":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.n_4queens()
@@ -464,7 +470,7 @@ if __name__ == "__main__":
             language_bias_head, language_bias_body = example_programs.latin_square()
         elif args.example == "set_partition_sum":
             background, positive_examples, negative_examples,\
-            language_bias_head, language_bias_body = example_programs.set_partition_only_sum()
+            language_bias_head, language_bias_body = example_programs.set_partition_sum()
         elif args.example == "set_partition_sum_and_cardinality":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.set_partition_sum_and_cardinality()

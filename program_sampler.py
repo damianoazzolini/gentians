@@ -339,6 +339,7 @@ class ProgramSampler:
         of clauses. In this way we find the maximum number according
         to the constraints and avoid the generation of unused rules 
         to compute the possible choices.
+        TODO: improve the usafety check (not trivial)
         '''
         
         # generate all the combinations of variables and positions
@@ -493,8 +494,21 @@ class ProgramSampler:
             :- var_in_term_agg(A,V), not var_in_atom_agg(A,V).
             '''
             
-            # iii) no global variables in tuple of aggregate elements: terms cannot appear elsewhere
-            # apart from other terms
+            s += '''
+            % iii) no global variables in tuple of aggregate elements
+            aggregate_in_position(Pos):-
+                aggregate_term_position(_,Pos).
+            aggregate_in_position(Pos):-
+                aggregate_atom_position(_,Pos).
+            global_var_tuple(Var):- 
+                var_pos(Var,Pos0),
+                aggregate_term_position(_,Pos0),
+                var_pos(Var,Pos1),
+                not aggregate_in_position(Pos1),
+                Pos0 != Pos1.
+
+            :- global_var_tuple(_).
+            '''
             if not self.unbalanced_aggregates:
                 # TODO: secondo me basta solo uno dei due vincoli ma singolarmente non funzionano
                 s += "\n% no global variables in tuple of aggregate elements\n"
@@ -610,6 +624,8 @@ class ProgramSampler:
             # alternative to :- not atom_pos(_).
             # :- #count{P : atom_pos(P)} = CP, CP = 0.
         
+        # rules to prune symmetric solutions
+        # Is there a more compact way?
         equal_1 = '''
         equal:-
             same1(Id,P0),
@@ -632,20 +648,88 @@ class ProgramSampler:
             VA0 = VB0,
             VA1 = VB1.
         '''
-        l_eq = [equal_1,equal_2]
+        equal_3 = '''
+        equal:-
+            same3(Id,PA0,PA1,PA2),
+            same3(Id,PB0,PB1,PB2),
+            var_pos(VA0,PA0),
+            var_pos(VA1,PA1),
+            var_pos(VA2,PA2),
+            var_pos(VB0,PB0),
+            var_pos(VB1,PB1),
+            var_pos(VB2,PB2),
+            PA0 != PB0,
+            PA1 != PB1,
+            PA2 != PB2,
+            VA0 = VB0,
+            VA1 = VB1,
+            VA2 = VB2.
+        '''
+        equal_4 = '''
+        equal:-
+            same4(Id,PA0,PA1,PA2,PA3),
+            same4(Id,PB0,PB1,PB2,PB3),
+            var_pos(VA0,PA0),
+            var_pos(VA1,PA1),
+            var_pos(VA2,PA2),
+            var_pos(VA3,PA3),
+            var_pos(VB0,PB0),
+            var_pos(VB1,PB1),
+            var_pos(VB2,PB2),
+            var_pos(VB3,PB3),
+            PA0 != PB0,
+            PA1 != PB1,
+            PA2 != PB2,
+            PA3 != PB3,
+            VA0 = VB0,
+            VA1 = VB1,
+            VA2 = VB2,
+            VA3 = VB3.
+        '''
+        equal_5 = '''
+        equal:-
+            same5(Id,PA0,PA1,PA2,PA3,PA4),
+            same5(Id,PB0,PB1,PB2,PB3,PB4),
+            var_pos(VA0,PA0),
+            var_pos(VA1,PA1),
+            var_pos(VA2,PA2),
+            var_pos(VA3,PA3),
+            var_pos(VA4,PA4),
+            var_pos(VB0,PB0),
+            var_pos(VB1,PB1),
+            var_pos(VB2,PB2),
+            var_pos(VB3,PB3),
+            var_pos(VB4,PB4),
+            PA0 != PB0,
+            PA1 != PB1,
+            PA2 != PB2,
+            PA3 != PB3,
+            PA4 != PB4,
+            VA0 = VB0,
+            VA1 = VB1,
+            VA2 = VB2,
+            VA3 = VB3,
+            VA4 = VB4.
+        '''
+  
+        l_eq = [equal_1,equal_2,equal_3,equal_4,equal_5]
         # add the constraints to prevent two equal atoms in a solution
         if arity_same_atoms > 0:
             for i in range(1, arity_same_atoms + 1):
-                if i < 3: # for the moment only arity 1 and 2, later add arity 3+
+                if i < 6 and any(f"same{i}" in l for l in same_atoms): 
+                    # for the moment only arity 1 .. 6, later add other?
+                    # add only if there is a samei/i atom
                     s += l_eq[i - 1]
 
             for v in same_atoms:
                 s += v + '\n'
             
             s += ":- equal."
+
         
+        # print(same_atoms)
         # print(s)
-        # sys.exit()
+        # # sys.exit()
         return s
     
 
@@ -722,9 +806,14 @@ class ProgramSampler:
         This now works with only 1 clause
         '''
         # print("-- FIXED STUB ")
+        # sampled_stub = "sum_partition(_____,_____):- #sum{_____:p(_____,_____)}=_____,partition(_____)."
+        # sampled_stub = ":- #sum{_____:p(_____,_____)}=_____, #sum{_____:p(_____,_____)}=_____."
+        # sampled_stub = ":- #sum{_____:p(_____,_____)}=_____."
         # sampled_stub = ":- _____+_____=_____,_____-_____=_____,_____<_____,_____==_____,q(_____,_____)."
         # sampled_stub = ":- _____+_____=_____,_____==_____,q(_____,_____)." # qui attenzione che se ho > o < invece di == allora è unsafe
         # sampled_stub = ":- _____+_____=_____,q(_____,_____)."
+        # sampled_stub = ":- q(_____,_____,_____),q(_____,_____,_____)."
+        # sampled_stub = ":- #sum{_____,_____:el(_____,_____)}=_____,#sum{_____,_____:el(_____,_____)}=_____,_____+_____=_____,s1(_____)."
         # sampled_stub = ":- _____==_____,q(_____,_____)."
         # sampled_stub = ":- _____-_____=_____,_____<_____."
         # sampled_stub = ":- _____>_____,q(_____,_____)."

@@ -508,7 +508,11 @@ def subset_sum_double():
         ["ok(9)", ""],
     ]
 
-    ne : 'list[list[str]]' = []
+    ne : 'list[list[str]]' = [
+        ["ok(1)", ""],
+        ["ok(2)", ""],
+        ["ok(10)", ""],
+    ]
 
     lbh : 'list[str]' = [
         'modeh(1, ok(+))',
@@ -519,6 +523,99 @@ def subset_sum_double():
     lbb : 'list[str]' = [
         'modeb(1, s0(+))',
         'modeb(1, s1(+))'
+    ]
+
+    return bg, pe, ne, lbh, lbb
+
+
+def subset_sum_double_and_sum():
+    '''
+    % Double subset sum problem.
+    {el(1,2)}.
+    {el(2,3)}.
+    {el(3,5)}.
+    {el(4,1)}.
+    {el(5,9)}.
+    
+    % to learn
+    ok(S):- S0 = #sum{X,Y : el(X,Y)}, S0 = #sum{Y,X : el(X,Y)}, S = S0 + S0.
+    #show ok/1.
+    % results: ok(8). ok(9).
+    '''
+    bg : 'list[str]' = [
+        "{el(1,2)}.",
+        "{el(2,3)}.",
+        "{el(3,5)}.",
+        "{el(4,1)}.",
+        "{el(5,9)}."
+    ]
+
+    pe : 'list[list[str]]' = [
+        ["ok(0)", ""],
+        ["ok(16)", ""],
+        ["ok(18)", ""],
+    ]
+
+    ne : 'list[list[str]]' = [
+        ["ok(1)", ""],
+        ["ok(2)", ""],
+        ["ok(10)", ""],
+    ]
+
+    lbh : 'list[str]' = [
+        'modeh(1, ok(+))',
+        'modeh(1, s0(+))',
+        'modeh(1, s1(+))'
+    ]
+
+    lbb : 'list[str]' = [
+        'modeb(1, s0(+))',
+        'modeb(1, s1(+))'
+    ]
+
+    return bg, pe, ne, lbh, lbb
+
+
+def subset_sum_triple():
+    '''
+    Sum of the terms at each position.
+    {el(1,2,3)}.
+    {el(2,3,5)}.
+    {el(3,5,1)}.
+    {el(4,1,3)}.
+    {el(5,9,4)}.
+    ok(V0):- #sum{V1,V2,V3:el(V1,V2,V3)}=V0,#sum{V2,V1,V3:el(V1,V2,V3)}=V0,#sum{V3,V1,V2:el(V1,V2,V3)}=V0.
+    '''
+    bg : 'list[str]' = [
+        "{el(1,2,3)}.",
+        "{el(2,3,5)}.",
+        "{el(3,5,1)}.",
+        "{el(4,1,3)}.",
+        "{el(5,9,4)}."
+    ]
+
+    pe : 'list[list[str]]' = [
+        ["ok(0)", ""],
+        # ["ok(8)", ""],
+        ["ok(9)", ""],
+    ]
+
+    ne : 'list[list[str]]' = [
+        ["ok(1)", ""],
+        ["ok(2)", ""],
+        ["ok(10)", ""],
+        ["ok(15)", ""],
+    ]
+
+    lbh : 'list[str]' = [
+        'modeh(1, ok(+))'
+        # 'modeh(1, s0(+))',
+        # 'modeh(1, s1(+))'
+    ]
+
+    lbb : 'list[str]' = [
+        # 'modeb(1, s0(+))',
+        # 'modeb(1, s1(+))'
     ]
 
     return bg, pe, ne, lbh, lbb
@@ -972,7 +1069,7 @@ def latin_square():
     return bg, pe, ne, lbh, lbb
     
 
-def set_partition_only_sum():
+def set_partition_sum():
     '''
     Inspired by: http://www.hakank.org/answer_set_programming/set_partition.lp
     Set partition problem: given the set S = {1, 2, ..., n}, 

@@ -57,11 +57,15 @@ class CheckSanityRulesCallback:
     Wrapper to check unsafe rules
     '''
     def __init__(self) -> None:
-        self.sound_rule : bool = False
+        self.unsound_rule : bool = False
     
     def sink(self, x, y):
         # global for the error: info: global variable in tuple of aggregate element
-        self.sound_rule = ("unsafe" in y) or ("global" in y)
+        # print(f"x: {x}")
+        # print(f"y: {y}")
+        # print(("unsafe" in y) or ("global" in y))
+        # or because there can be more errors
+        self.unsound_rule = self.unsound_rule or (("unsafe" in y) or ("global" in y))
         
 
 def wrapper_exit_callback(x, y):
@@ -271,7 +275,7 @@ def is_valid_comparison_rule(rule : str) -> bool:
     return True
 
 
-def check_sound(clause : str) -> bool:
+def is_unsound(clause : str) -> bool:
     '''
     Returns true if the rule is unsafe.
     '''
@@ -283,7 +287,7 @@ def check_sound(clause : str) -> bool:
     except:
         pass
 
-    return l.sound_rule
+    return l.unsound_rule
 
 
 def is_valid_rule(rule : str) -> bool:
@@ -297,7 +301,7 @@ def is_valid_rule(rule : str) -> bool:
     '''
     atoms = get_atoms(rule)
     # print(atoms)
-    return len(atoms) == len(list(set(atoms))) and is_valid_comparison_rule(rule) and is_valid_arithm_rule(rule) and (not check_sound(rule))
+    return len(atoms) == len(list(set(atoms))) and is_valid_comparison_rule(rule) and is_valid_arithm_rule(rule) and (not is_unsound(rule))
 
 
 def get_duplicated_positions(clause : str) -> 'list[list[list[str]]]':
