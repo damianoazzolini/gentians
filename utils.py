@@ -9,6 +9,8 @@ YELLOW = '\33[93m'
 RED = '\033[91m'
 END = '\033[0m'
 
+UNDERSCORE_SIZE = 5
+
 class AggregateElement:
     def __init__(self, position_var_terms : 'list[int]', position_var_atom : 'list[int]', var_eq : int) -> None:
         self.position_var_terms = position_var_terms
@@ -78,6 +80,29 @@ def wrapper_exit_callback(x, y):
         sys.exit()
 
 
+class WrapperStopIfWarn:
+    '''
+    Wrapper for the clingo Control callback.
+    '''
+    def __init__(self) -> None:
+        self.atom_undefined = False
+        
+    def wrapper_warn_undefined_callback(self, x, y):
+        '''
+        Clingo callback: exit when there is an atom undefined.
+        Used when check coverage: if there is an atom undefined, clearly
+        the program is not ok, so we can skip the check of the coverage.
+        To do so, I check whether there is a warning of an atom undefined
+        (excluding the ones for coverage positive and negative) in y. 
+        For instance:
+        x = MessageCode.AtomUndefined
+        y = <block>:24:10-19: info: atom does not occur in any rule head: tails(c2)
+        Maybe there is a better (more robust) method of doing this.
+        '''
+        continue_when_met = ["neg_exs(I)","pos_exs(I)","cni(I)","cne(I)","cpi(I)","cpe(I)"]
+        self.atom_undefined = self.atom_undefined or not any(cwm in y for cwm in continue_when_met)
+    
+    
 def print_error_and_exit(message : str):
     '''
     Prints the error message 'message' and exits.
@@ -371,18 +396,18 @@ def generate_clauses_for_coverage_interpretations(
             r = f"{suffix}i({cl_index}):- {','.join(atoms[0].split(' '))}.\n"
             generated_str += r
         
-        if len(atoms) > 1:
-            # exclusion
-            if len(atoms[1]) > 0:
-                for atom in atoms[1].split(' '):
-                    r = f"{suffix}e({cl_index}):- {atom}.\n"
-                    generated_str += r
+            if len(atoms) > 1:
+                # exclusion
+                if len(atoms[1]) > 0:
+                    for atom in atoms[1].split(' '):
+                        r = f"{suffix}e({cl_index}):- {atom}.\n"
+                        generated_str += r
         
-        if len(atoms) > 2:
-            # context dependent examples
-            if len(atoms[2]) > 0:
-                for atom in atoms[2].split(' '):
-                    generated_str += atom + '.\n'
+                if len(atoms) > 2:
+                    # context dependent examples
+                    if len(atoms[2]) > 0:
+                        for atom in atoms[2].split(' '):
+                            generated_str += atom + '.\n'
         
         cl_index += 1
     generated_str += '\n'

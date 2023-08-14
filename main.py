@@ -17,6 +17,7 @@ from clingo_interface import ClingoInterface
 from clingo_interface import Coverage
 
 from program_sampler import ProgramSampler
+from variable_placer import VariablePlacer
 
 import example_programs
 
@@ -126,14 +127,9 @@ class Solver:
         '''
         Main loop
         '''
-        # maximum number of clauses in a program
-        # max_variables = 3
-        # max_depth = 4
- 
-        # sampling loops and test
-        # sample_loops : int = 10
-        
+
         best_found : bool = False
+        best_stub_for_next_round : 'list[str]' = []
 
         sampler = ProgramSampler(
             self.language_bias_head,
@@ -151,10 +147,14 @@ class Solver:
             arithmetic_operators=self.arithm,
             comparison_operators=self.comparison
         )
+
+        placer = VariablePlacer(
+            max_variables=self.max_variables,
+            verbose=self.verbose,
+            unbalanced_aggregates=self.unbalanced_aggregates
+        )
         
         start_total_time = time.time()
-
-        best_stub_for_next_round : 'list[str]' = []
         
         for it in range(self.sample_loops):
             # Step 0: sample a list of clauses
@@ -179,41 +179,40 @@ class Solver:
                     print(f"{index}) {current_cl}")
 
             # Step 2: place the variables
-            # TODO: this is a bottleneck: generation of all the 
+            # This is THE bottleneck: generation of all the 
             # possible locations, which are #n_vars^#n_pos in the 
             # worst case
             start_time = time.time()
-            placed_list : 'list[list[str]]' = sampler.place_variables_list_of_clauses(sampled_clauses)
+            
+            placed_list : 'list[list[str]]' = placer.place_variables_list_of_clauses(sampled_clauses)
             placing_time = time.time() - start_time
             print(f"Placed variables in {placing_time} seconds")
-            # # QUI
+
             placed_list_improved : 'list[strategies.PlacedClause]' = []
             for p in placed_list:
-                # print(p)
                 pl = strategies.PlacedClause(p)
                 placed_list_improved.append(pl)
-                # print(pl)
-                # print("TODO: -- usare individual in strategies? -- placed clauses contiene anche il numero di variabili e di atomi, per considerare meglio il valore di una clausola")
-            # sys.exit()
+
             print(f"Total clauses stub: {len(placed_list)}")
             print(f"Total number of possible clauses: {sum(len(pl) for pl in placed_list)}")
-            # print(len(sampled_clauses))
+
             if len(placed_list) == 0:
                 print("No clauses found")
                 sys.exit()
 
-            # sys.exit()
             if self.verbose >= 2:
                 for el in placed_list:
                     print(f"{len(el)}: {el}")
-            # sys.exit()
+
             # Step 3: genetic algorithm
             start_time = time.time()
-            current_strategy = strategies.Strategy(placed_list_improved, self.background, positive_examples, negative_examples)
-            # n_clauses_genetic = 6
-            # pop_size_genetic = 50
-            # iterations_genetic = 10000
-            # mutation_probability = 0.2
+            current_strategy = strategies.Strategy(
+                placed_list_improved,
+                self.background,
+                positive_examples,
+                negative_examples
+            )
+
             prg, score, best_found, best_index_stub_for_the_next_round = current_strategy.genetic_solver(
                 self.n_clauses_genetic,
                 self.pop_size_genetic,
@@ -268,13 +267,36 @@ if __name__ == "__main__":
         iterations for the genetic algorithm", type=int, default=2000)
     command_parser.add_argument("-mp", "--mutation-probability", help="Mutation \
         probability", type=float, default=0.2)
-    command_parser.add_argument("-e", "--example", help="Load a predefined example", \
-        choices=["coin", "even_odd", "animals_bird", "coloring", \
-            "adjacent_to_red", "grandparent", "sudoku", "dummy", "subset_sum",
-            "subset_sum_double", "subset_sum_double_and_sum","subset_sum_triple","4queens", \
-            "5queens", "clique", "hamming_0", "hamming_1", "harder_hamming_0", "harder_hamming_1", \
-            "magic_square_no_diag", "latin_square", "set_partition_sum",\
-            "set_partition_sum_and_cardinality", "set_partition_sum_cardinality_and_square"], \
+    command_parser.add_argument("-e", "--example", help="Load a predefined example",
+        choices=[
+            "coin", 
+            "even_odd",
+            "animals_bird",
+            "coloring",
+            "adjacent_to_red",
+            "grandparent",
+            "4queens",
+            "5queens", 
+            "clique", 
+            # "sudoku",
+            # "dummy", 
+            "subset_sum",
+            "subset_sum_double",
+            "subset_sum_double_and_sum",
+            "subset_sum_double_and_prod",
+            "subset_sum_triple",
+            "hamming_0", 
+            "hamming_1", 
+            # "harder_hamming_0",
+            # "harder_hamming_1",
+            "magic_square_no_diag", 
+            "latin_square", 
+            "set_partition_sum",
+            "set_partition_sum_and_cardinality", 
+            "set_partition_sum_cardinality_and_square",
+            "set_partition_sum_new", 
+            "set_partition_sum_and_cardinality_new"
+        ],
         default=None)
 
     command_parser.add_argument("--comparison", help="Set the usage of comparison \
@@ -352,9 +374,9 @@ if __name__ == "__main__":
         elif args.example == "sudoku":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.sudoku()
-        elif args.example == "dummy":
-            background, positive_examples, negative_examples,\
-            language_bias_head, language_bias_body = example_programs.dummy()
+        # elif args.example == "dummy":
+        #     background, positive_examples, negative_examples,\
+        #     language_bias_head, language_bias_body = example_programs.dummy()
         elif args.example == "subset_sum":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.subset_sum()
@@ -364,6 +386,9 @@ if __name__ == "__main__":
         elif args.example == "subset_sum_double_and_sum":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.subset_sum_double_and_sum()
+        elif args.example == "subset_sum_double_and_prod":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.subset_sum_double_and_prod()
         elif args.example == "subset_sum_triple":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.subset_sum_triple()
@@ -382,12 +407,12 @@ if __name__ == "__main__":
         elif args.example == "hamming_1":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.hamming(1, False)
-        elif args.example == "harder_hamming_0":
-            background, positive_examples, negative_examples,\
-            language_bias_head, language_bias_body = example_programs.hamming(0, True)
-        elif args.example == "harder_hamming_1":
-            background, positive_examples, negative_examples,\
-            language_bias_head, language_bias_body = example_programs.hamming(1, True)
+        # elif args.example == "harder_hamming_0":
+        #     background, positive_examples, negative_examples,\
+        #     language_bias_head, language_bias_body = example_programs.hamming(0, True)
+        # elif args.example == "harder_hamming_1":
+        #     background, positive_examples, negative_examples,\
+        #     language_bias_head, language_bias_body = example_programs.hamming(1, True)
         # elif args.example == "partition":
         #     background, positive_examples, negative_examples,\
         #     language_bias_head, language_bias_body = example_programs.partition()
@@ -403,6 +428,12 @@ if __name__ == "__main__":
         elif args.example == "set_partition_sum_and_cardinality":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.set_partition_sum_and_cardinality()
+        elif args.example == "set_partition_sum_new":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.set_partition_new(False)
+        elif args.example == "set_partition_sum_and_cardinality_new":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.set_partition_new(True)
         elif args.example == "set_partition_sum_cardinality_and_square":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.set_partition_sum_cardinality_and_square()

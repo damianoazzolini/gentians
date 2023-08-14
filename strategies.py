@@ -60,7 +60,7 @@ class Strategy:
         background : 'list[str]',
         positive_examples : 'list[list[str]]',
         negative_examples : 'list[list[str]]',
-        max_as : int = 5000
+        max_as : int = 10000
         ) -> None:
         # self.placed_list : 'list[list[str]]' = placed_list
         self.placed_list : 'list[PlacedClause]' = placed_list
@@ -112,7 +112,7 @@ class Strategy:
                 return self.__str__()
 
 
-        def evaluate_score(
+        def evaluate_score_old(
                 stub_indexes : 'list[int]',
                 prog_indexes : 'list[int]',
                 program : 'list[str]'
@@ -126,22 +126,11 @@ class Strategy:
             # print(self.background)
             # TODO: better define a score. Also consider the number of variables?
             asp_solver = clingo_interface.ClingoInterface(
-                self.background, ['-Wnone', f'{self.max_as_to_generate_foreach_program}', '--project'])
-            # program[1] = "odd(V0):- even(V1),prev(V0,V1)."
-            # program[0] = "even(V0):- odd(V1),prev(V0,V1)."
-            # for l in asp_solver.lines:
-            #     print(l) 
-            # # print(asp_solver.lines)
-            # for p in program:
-            #     print(p)
-            # sys.exit()
+                self.background, [f'{self.max_as_to_generate_foreach_program}', '--project'])
+
             cov = asp_solver.extract_coverage_and_set_clauses(
                 program, self.positive_examples, self.negative_examples, False)
             
-            # print(program)
-
-            # print(cov)
-            # sys.exit()
             best_found = False
             best_cp = -1000
             best_cn = 1000
@@ -151,16 +140,14 @@ class Strategy:
             best_l_index = []
 
             for res, element_coverage in cov.items():
-                if res != "Error":
+                if res != "Error" and res != "Undefined":
                     # set to remove duplicates
                     cp : int = len(list(set(element_coverage.l_pos)))
                     cn : int = len(list(set(element_coverage.l_neg)))
                     # print(cp,cn)
                     l_index = [int(v) for v in list(res)]
-                    # qui non va bene: se copro tutti allora mai cp > best_cp
-                    # if cp > best_cp:
+
                     if cp >= best_cp and cn <= best_cn:
-                        # print(cp, cn, l_index)
                         best_cp = cp
                         best_cn = cn
                         best_l_index = l_index
@@ -210,6 +197,67 @@ class Strategy:
 
             return score, best_found, l_index
 
+        def evaluate_score(
+                stub_indexes : 'list[int]',
+                prog_indexes : 'list[int]',
+                program : 'list[str]'
+            ) -> 'tuple[float, bool, list[int]]':
+            '''
+            Evaluates the score of an individual: first it computes the covered positive
+            and negative for every subset of the clauses. Then, the score of every
+            subset is defined as math.exp(covered_pos/tot_pos - covered_neg/tot_neg)*10.
+            Simply considering the difference I think it is not enough (expecially when
+            there are few positive examples).
+            The score of an individual is the average of the scores.
+            '''
+            asp_solver = clingo_interface.ClingoInterface(
+                self.background, [f'{self.max_as_to_generate_foreach_program}', '--project'])
+
+            cov = asp_solver.extract_coverage_and_set_clauses(
+                program, self.positive_examples, self.negative_examples, False)
+            
+            best_found = False
+            l_index : 'list[int]' = []
+            l_best_indexes : 'list[str]' = []
+            scores : 'list[float]' = []
+
+            for res, element_coverage in cov.items():
+                if res != "Error" and res != "Undefined":
+                    # set to remove duplicates
+                    cp : int = len(list(set(element_coverage.l_pos)))
+                    cn : int = len(list(set(element_coverage.l_neg)))
+
+                    # scores.append(math.exp((cp - cn)))
+                    v_pos = (cp/len(self.positive_examples)) if len(self.positive_examples) > 0 else 0
+                    v_neg = (cn/len(self.negative_examples)) if len(self.negative_examples) > 0 else 0
+                    scores.append(math.exp((v_pos - v_neg)*10))
+                    # consideration: here, [0,1] and [1,2] have the same score
+                    # where the first element is the covered positive and the
+                    # scond is covered negative. However, is the first worst
+                    # than the second (the first only covers 1 negative example)
+                    # while the second two but it has one positive covered
+
+                    if cp == len(self.positive_examples):
+                        if cn == 0:
+                            print(f"Best found with indexes {res}")
+                            print(program)
+                            l_best_indexes.append(res)
+                            best_found = True
+                        # else:
+                        #     print("Coverage 100% of the positive with")
+                        # print([program[i] for i in l_index], cp, cn)
+
+            # mean
+            if len(scores) > 0:
+                score = sum(scores)/len(scores)
+            else:
+                score = -2000
+
+            # shortest one
+            l_best_indexes.sort(key = lambda s : len(s))
+            l_index = [int(v) for v in list(l_best_indexes[0])] if len(l_best_indexes) > 0 else []
+
+            return score, best_found, l_index
     
         def get_fittest(selected_individuals : 'list[Individual]') -> Individual:
             '''
@@ -420,8 +468,14 @@ class Strategy:
             # 2.2: crossover
             # print('pre cross')
             new_program_1, new_program_2 = crossover(best_a, best_b)
-            # TODO: check whether best found, to stop the iteration
-            # if one of the two covers all the positive and none of the negative?
+            # If the best found, stop the iteration
+            _, is_best, l_best_indexes = evaluate_score([],[],new_program_1.program)
+            if is_best:
+                return [new_program_1.program[i] for i in l_best_indexes], new_program_1.score, True, [-1]
+            _, is_best, l_best_indexes = evaluate_score([],[],new_program_2.program)
+            if is_best:
+                return [new_program_1.program[i] for i in l_best_indexes], new_program_2.score, True, [-1]
+                 
             
             # 2.3: mutation
             # https://arxiv.org/pdf/2305.01582.pdf
