@@ -1,13 +1,8 @@
 import random
 import copy
-import re
 import sys
 import itertools # to generate unbalanced aggregates
 
-from clingo_interface import ClingoInterface
-
-import utils
-from utils import AggregateElement
 from utils import UNDERSCORE_SIZE
 
 # number of underscore for placeholders in atoms
@@ -108,8 +103,10 @@ class ProgramSampler:
         
         # True if we are sampling for a constraint, changed every iteration
         self.body_constraint : bool = False
+        
         # max number of atoms in the head
         self.disjunctive_head_length : int = disjunctive_head_length
+        
         # a boolean, false by default, that allows unbalanced aggregates, 
         # i.e., aggregates where some terms may appear in the body of the
         # rule itself. For instance: #count{X : a(X,Y)} = C, g(Y).
@@ -132,10 +129,6 @@ class ProgramSampler:
         # store the already placed clauses to avoid recomputation
         # removed since allhte clauses are different
         # self.stub_placed_dict : 'dict[str,list[str]]' = {}
-        
-        # dict: hash of the asp program to place vars -> result, to avoid the
-        # same computation
-        self.already_encountered_asp_programs : 'dict[int,list[list[list[int]]]]' = {}
         
         if allowed_aggregates:
             for el in allowed_aggregates:

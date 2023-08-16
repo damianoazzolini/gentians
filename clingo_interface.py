@@ -122,17 +122,17 @@ class ClingoInterface:
             return {"Undefined": Coverage([],[])}
                 
         # res = str(ctl.solve())
-        answer_sets : 'list[str] '= []
+        # answer_sets : 'list[str] '= []
         
         # key: rule_id (string containing the selected rules)
         # value: tuple(covered_pos, covered_neg)
         # needes since I need to check that NO answer sets cover
         # negative examples.
         comb_rules : 'dict[str,Coverage]' = {}
-        
+
         with ctl.solve(yield_=True) as handle:  # type: ignore
             for m in handle:  # type: ignore
-                answer_sets.append(str(m))
+                # answer_sets.append(str(m))
                 answer_set = str(m)
                 l_cp : 'list[int]' = []
                 l_cn : 'list[int]' = []

@@ -223,7 +223,7 @@ class Solver:
             for i in best_index_stub_for_the_next_round:
                 best_stub_for_next_round.append(sampled_clauses[i]) 
             # print(best_stub_for_next_round)
-            print(f"Iteration {it} - Time {genetic_time}")
+            print(f"Evolutionary cycle {it} - Time {genetic_time}")
             print(f"Program: {prg}")
             if best_found:
                 print("Best found")
@@ -278,7 +278,7 @@ if __name__ == "__main__":
             "4queens",
             "5queens", 
             "clique", 
-            # "sudoku",
+            "sudoku",
             # "dummy", 
             "subset_sum",
             "subset_sum_double",
@@ -472,8 +472,8 @@ if __name__ == "__main__":
     if args.profile:
         pr.disable()
         s = io.StringIO()
-        # sortby = SortKey.CUMULATIVE # sort by total time
-        sortby = SortKey.CALLS # sort by number of calls
+        sortby = SortKey.CUMULATIVE # sort by total time
+        # sortby = SortKey.CALLS # sort by number of calls
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
         ps.print_stats()
         print(s.getvalue())

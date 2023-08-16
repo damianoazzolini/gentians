@@ -1077,7 +1077,14 @@ def magic_square_no_diag():
     With aggregates: limited to the sum of columns and row.
     Constraint: the sum of the elements in the rows and columns
     should be the same.
-    To learn:
+    Given
+    #const n = 3.
+    #const s = n*(n*n + 1) / 2.
+    size(1..n).
+    val(1..n*n).
+    1 { x(Row, Col, N) : val(N) } 1 :- size(Row), size(Col).
+    1 { x(Row, Col, N) : size(Row), size(Col) } 1 :- val(N).
+    % To learn:
     sum_row(R,S):- S = #sum{V : x(R,C,V), size(C)}, size(R).
     sum_col(C,S):- S = #sum{V : x(R,C,V), size(R)}, size(C).
     :- sum_col(C0,SC0), sum_col(C1,SC1), C0 != C1, SC0 != SC1.
@@ -1432,7 +1439,7 @@ def set_partition_sum():
         ["p(1,1) p(1,7) p(1,9) p(1,10) p(1,12) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,8) p(2,11)",""]
     ]
     
-    # some of the 2048 possible placements
+    # some of the 62 possible placements
     ne : 'list[list[str]]' = [
         ["p(1,1) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,2) p(2,3) p(2,5) p(2,10)",""],
         ["p(1,1) p(1,2) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,3) p(2,10) p(2,12)",""],

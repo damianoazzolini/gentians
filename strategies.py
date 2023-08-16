@@ -448,11 +448,12 @@ class Strategy:
 
         # step 2: iterate trough programs
         print(f"Running for {max_interations} iterations")
+        start_time = time.time()
         for it in range(max_interations + 1):
             # print(f"it: {it}")
             if it % 100 == 0:
-                print(f"Iteration {it} - best: {population[0]}")
-
+                print(f"Iteration {it} - taken for 100: {time.time() - start_time} - best: {population[0]}")
+                start_time = time.time()
             # 2.1: selection of the two fittest elements
             # print('pre torunament')
             if do_tournament:
@@ -469,13 +470,10 @@ class Strategy:
             # print('pre cross')
             new_program_1, new_program_2 = crossover(best_a, best_b)
             # If the best found, stop the iteration
-            _, is_best, l_best_indexes = evaluate_score([],[],new_program_1.program)
-            if is_best:
-                return [new_program_1.program[i] for i in l_best_indexes], new_program_1.score, True, [-1]
-            _, is_best, l_best_indexes = evaluate_score([],[],new_program_2.program)
-            if is_best:
-                return [new_program_1.program[i] for i in l_best_indexes], new_program_2.score, True, [-1]
-                 
+            # _, is_best, l_best_indexes = evaluate_score([], [], new_program_1.program)
+            for prg in [new_program_1, new_program_2]:
+                if prg.is_best:
+                    return [prg.program[i] for i in prg.l_best_indexes], prg.score, True, [-1]
             
             # 2.3: mutation
             # https://arxiv.org/pdf/2305.01582.pdf
