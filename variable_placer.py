@@ -459,6 +459,7 @@ class VariablePlacer:
         This now works with only 1 clause
         '''
         # print("-- FIXED STUB ")
+        # sampled_stub = ":- a(_____,_____),a(_____,_____)."
         # sampled_stub = "d(V0,V0):- #sum{V1,V2:d(V2,V1)}=V0."
         # sampled_stub = " :- x(_____,_____,_____), x(_____,_____,_____), less_than(_____,_____, _____,_____), _____ >= _____."
         # sampled_stub = ":- #sum{_____:x(_____),size(_____)}=_____,_____!=_____,size(_____),sum_col(_____,_____)."
@@ -615,5 +616,4 @@ class VariablePlacer:
                 if self.verbose >= 1:
                     print("No possible placements.")
 
-            # sys.exit()
         return placed_list

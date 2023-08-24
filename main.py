@@ -23,6 +23,8 @@ import example_programs
 
 program_description = "GENTIANS: GENeTic algoritm for inductive learning of ANswer Set programs."
 
+version = "1.0.1" 
+
 class Program:
     def __init__(self,
         # clauses : 'list[Clause]',
@@ -224,12 +226,16 @@ class Solver:
                 best_stub_for_next_round.append(sampled_clauses[i]) 
             # print(best_stub_for_next_round)
             print(f"Evolutionary cycle {it} - Time {genetic_time}")
-            print(f"Program: {prg}")
             if best_found:
-                print("Best found")
-                break
+                print("--- Found best program ---")
             else:
-                print(f"Score: {score}")
+                print(f"Current best with score: {score}")
+            for r in prg:
+                print(r)
+            print("--------------------------")
+            # print(f"Program: {prg}")
+            if best_found:
+                break
         
         print(f"Total time: {time.time() - start_total_time}")
 
@@ -241,8 +247,6 @@ if __name__ == "__main__":
     command_parser.add_argument("-v", "--verbose", help="Verbose mode", type=int, \
         choices=range(0,3), default=0)
     
-    command_parser.add_argument("-c", "--clauses", help="Max clauses to consider in a \
-        program", type=int, default=6)
     command_parser.add_argument("-vars", "--variables", help="Max variables to consider \
         in a rule", type=int, default=3)
     command_parser.add_argument("-d", "--depth", help="Max literals in rules", \
@@ -259,6 +263,8 @@ if __name__ == "__main__":
     command_parser.add_argument("--max_as", help="Max number of answer sets to generate",\
         type=int, default=5000)
     
+    command_parser.add_argument("-c", "--clauses", help="Max clauses to consider in a \
+        program", type=int, default=6)
     command_parser.add_argument("-it", "--iterations", help="Max number of sample and \
         genetic iterations", type=int, default=100)
     command_parser.add_argument("-p", "--pop-size", help="Size of the population",\
@@ -295,7 +301,8 @@ if __name__ == "__main__":
             "set_partition_sum_and_cardinality", 
             "set_partition_sum_cardinality_and_square",
             "set_partition_sum_new", 
-            "set_partition_sum_and_cardinality_new"
+            "set_partition_sum_and_cardinality_new",
+            "user_defined"
         ],
         default=None)
 
@@ -317,7 +324,10 @@ if __name__ == "__main__":
         --aggregates sum(a/1) count (a/1). Specify the atom to aggregate.", 
         nargs='+', required=False)
     
-    command_parser.add_argument("--profile", help="Enables profiling", 
+    command_parser.add_argument("--profile", help="Enables profiling.", 
+        default=False, action="store_true")
+    
+    command_parser.add_argument("--version", help="Prints the software version and exits.", 
         default=False, action="store_true")
     
     args = command_parser.parse_args()
@@ -327,6 +337,10 @@ if __name__ == "__main__":
         from pstats import SortKey
         pr = cProfile.Profile()
         pr.enable()
+        
+    if args.version:
+        print(f"GENTIANS version: {version}.")
+        sys.exit()
 
     
     # print(args.arithm)
@@ -437,26 +451,12 @@ if __name__ == "__main__":
         elif args.example == "set_partition_sum_cardinality_and_square":
             background, positive_examples, negative_examples,\
             language_bias_head, language_bias_body = example_programs.set_partition_sum_cardinality_and_square()
+        elif args.example == "user_defined":
+            background, positive_examples, negative_examples,\
+            language_bias_head, language_bias_body = example_programs.user_defined()
         else:
             utils.print_error_and_exit("Example not found")
 
-        # folder = "examples/abduce/" # troppo grande
-        # folder = "examples/andersen/"
-        # folder = "examples/animals_bird/"
-        # folder = "examples/buildwall/"
-        # folder = "examples/cliquer-leg/"
-        # folder = "examples/krk/"
-        
-        # folder = "../Popper/examples/path/"
-        # folder = "../Popper/examples/kinship-ancestor/"
-        # folder = "examples/path/" # OK
-        # folder = "examples/small/" # ancora troppo complesso
-        # folder = "examples/1-type-pointsto/" # TODO: qui mostra il bottleneck nel piazzare le clausole, questo si blocca nel campionamento delle clausole
-        # background, positive_examples, negative_examples, language_bias_head, language_bias_body = utils.read_popper_format(folder)
-
-    # print(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
-    
-    # sys.exit()
     
     s = Solver(
         background, 

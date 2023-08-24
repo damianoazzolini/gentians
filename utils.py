@@ -385,6 +385,8 @@ def generate_clauses_for_coverage_interpretations(
     ) -> str:
     '''
     Generates the clauses for the ASP solver to check the coverage.
+    TODO: alternative ({a,b},{c,d}) <=> a,b,not c, not d instead
+    of two different rules.
     '''
     generated_str : str = ""
     suffix : str = "cp" if positive else "cn"
