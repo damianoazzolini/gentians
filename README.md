@@ -3,7 +3,6 @@
 This tool learns answer set programs from examples.
 It also allows aggregates.
 
-
 The documentation is in progress.
 
 ## Usage
@@ -25,3 +24,17 @@ All the experiments are stored as examples, so with the flag `-e` is it possible
 
 To specify your own example, fill the needed data into the function `user_defined` of `example_programs.py`.
 Soon there will be the possibility to specifty a scenario via files.
+
+## Main Available Options
+
+You can check all the available options with the flag `--help`.
+Here we discuss only some of the most important:
+- --variables: maximum number of variables to consider in a rule. Default 3.
+- `-d`: maximum number of literals in a rule (number of atoms in the head + number of literals in the body). Default 3
+- `-dh`: set the maximum number of atoms in disjunctive head. Default 0.
+- `-s`: number of clauses to sample. Default 1000
+- `-ua`: enable unbalanced aggregates. Default false (i.e., not enabled).
+- `-e`: run a predefined example
+- `--comparison`: enable comparison operators. It should be followed by one or more among `lt`,`leq`,`gt`,`geq`,`eq`,`neq`. To allow the use of the same operator more than once (i.e., to increase it recall) write it many times. For example, `--comparison lt lt` enables the use of the operator `<` at most twive in the body. Default none (i.e., no comparison operators)
+- `--arithm`: enable arithmetic operators. It should be followed by one or more among `add`,`sub`,`mul`,`div`,`abs`. To allow the use of the same operator more than once (i.e., to increase it recall) write it many times. For example, `--arithm add add` enables the use of the addition at most twive in the body. Default none (i.e., no arithmetic operators)
+- `--aggregates`: enable the use of aggregates. It should be followed by an atom of the form `sum(a/1)`, where sum is the aggregate and a/1 is the atom to consider in the aggregation. Multiple atoms can be separated by a comma, such as `sum(a/1,b/1)`. 
