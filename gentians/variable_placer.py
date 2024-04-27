@@ -456,7 +456,7 @@ class VariablePlacer:
         return s
 
 
-    def __place_variables_clause(self, sampled_stub : str) -> 'list[str]':
+    def _place_variables_clause(self, sampled_stub : str) -> 'list[str]':
         '''
         Replaces the _____ with the variables in the clause.
         This now works with only 1 clause
@@ -594,7 +594,7 @@ class VariablePlacer:
             if self.verbose >= 1:
                 print(f"({index}/{len(sampled_clauses) - 1}) Placing variables for {clause}")
 
-            r = self.__place_variables_clause(clause)
+            r = self._place_variables_clause(clause)
 
             if len(r) > 0:
                 r.sort()

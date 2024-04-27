@@ -1,11 +1,11 @@
 import unittest
 
-from .gentians import main as gentians
+from gentians.gentians import Solver
 
 # c1 = Clause(["penguin(X)"],["bird(X)","not can(X,fly)"])
 
-def init_program_bird() -> 'gentians.Solver':
-    backgorund : 'list[str]' = [
+def init_program_bird() -> 'Solver':
+    background : 'list[str]' = [
     'bird(alice).', 
     'bird(betty).', 
     'can(alice,fly).', 
@@ -20,7 +20,7 @@ def init_program_bird() -> 'gentians.Solver':
     language_bias_head : 'list[str]' = ['modeh(1, penguin(+)).']
     language_bias_body : 'list[str]' = ['modeb(1, bird(+)).', 'modeb(*, not can(+,#)).']
 
-    return gentians.Solver(backgorund, positive_examples, negative_examples, language_bias_head, language_bias_body)
+    return Solver(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 class TestCoverage(unittest.TestCase):

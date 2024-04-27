@@ -1,0 +1,1 @@
+py.test benchmarking.py --benchmark-compare
