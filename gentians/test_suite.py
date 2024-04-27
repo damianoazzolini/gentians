@@ -1,10 +1,10 @@
 import unittest
 
-import main
+from .gentians import main as gentians
 
 # c1 = Clause(["penguin(X)"],["bird(X)","not can(X,fly)"])
 
-def init_program_bird() -> 'main.Solver':
+def init_program_bird() -> 'gentians.Solver':
     backgorund : 'list[str]' = [
     'bird(alice).', 
     'bird(betty).', 
@@ -20,15 +20,15 @@ def init_program_bird() -> 'main.Solver':
     language_bias_head : 'list[str]' = ['modeh(1, penguin(+)).']
     language_bias_body : 'list[str]' = ['modeb(1, bird(+)).', 'modeb(*, not can(+,#)).']
 
-    return main.Solver(backgorund, positive_examples, negative_examples, language_bias_head, language_bias_body)
+    return gentians.Solver(backgorund, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 class TestCoverage(unittest.TestCase):
     
 
     def test_coverage_1_1(self):
-        c1 = main.Clause(["penguin(X)"],["bird(X)"])
-        p = main.Program([c1], 0, 0)
+        c1 = gentians.Clause(["penguin(X)"],["bird(X)"])
+        p = gentians.Program([c1], 0, 0)
         s = init_program_bird()
         pos, neg = s.test_coverage(p)
         expected_pos = 1
@@ -37,8 +37,8 @@ class TestCoverage(unittest.TestCase):
         self.assertEqual(neg, expected_neg, f"Neg expected {expected_neg} found {neg}")
 
     def test_coverage_1_0(self):
-        c1 = main.Clause(["penguin(X)"],["bird(X)", "not can(X,fly)"])
-        p = main.Program([c1], 0, 0)
+        c1 = gentians.Clause(["penguin(X)"],["bird(X)", "not can(X,fly)"])
+        p = gentians.Program([c1], 0, 0)
         s = init_program_bird()
         pos, neg = s.test_coverage(p)
         expected_pos = 1
@@ -48,8 +48,8 @@ class TestCoverage(unittest.TestCase):
 
     
     def test_coverage_0_1(self):
-        c1 = main.Clause(["penguin(X)"],["bird(X)", "can(X,fly)"])
-        p = main.Program([c1], 0, 0)
+        c1 = gentians.Clause(["penguin(X)"],["bird(X)", "can(X,fly)"])
+        p = gentians.Program([c1], 0, 0)
         s = init_program_bird()
         pos, neg = s.test_coverage(p)
         expected_pos = 0

@@ -8,7 +8,13 @@ programs.md
 test_ok.sh
 other_tools/
 old_iterative.py
+datasets/
+extract_solutions_and_not.py
 
+test.lp
+lp_test_2.lp
+TODO.md
+old/
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/

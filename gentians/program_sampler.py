@@ -3,7 +3,7 @@ import copy
 import sys
 import itertools # to generate unbalanced aggregates
 
-from utils import UNDERSCORE_SIZE
+from .utils import UNDERSCORE_SIZE
 
 # number of underscore for placeholders in atoms
 # UNDERSCORE_SIZE = 5

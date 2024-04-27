@@ -3,7 +3,7 @@ import sys
 import math
 import time
 
-import clingo_interface
+from .clingo_interface import ClingoInterface
 
 
 def compute_n_vars(clause : str):
@@ -125,7 +125,7 @@ class Strategy:
             # if score = 1 -> optimum found
             # print(self.background)
             # TODO: better define a score. Also consider the number of variables?
-            asp_solver = clingo_interface.ClingoInterface(
+            asp_solver = ClingoInterface(
                 self.background, [f'{self.max_as_to_generate_foreach_program}', '--project'])
 
             cov = asp_solver.extract_coverage_and_set_clauses(
@@ -206,11 +206,11 @@ class Strategy:
             Evaluates the score of an individual: first it computes the covered positive
             and negative for every subset of the clauses. Then, the score of every
             subset is defined as math.exp(covered_pos/tot_pos - covered_neg/tot_neg)*10.
-            Simply considering the difference I think it is not enough (expecially when
+            Simply considering the difference I think it is not enough (specially when
             there are few positive examples).
             The score of an individual is the average of the scores.
             '''
-            asp_solver = clingo_interface.ClingoInterface(
+            asp_solver = ClingoInterface(
                 self.background, [f'{self.max_as_to_generate_foreach_program}', '--project'])
 
             cov = asp_solver.extract_coverage_and_set_clauses(

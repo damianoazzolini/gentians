@@ -1,11 +1,14 @@
 import re
 import itertools
-import utils
 
-from utils import UNDERSCORE_SIZE
-from utils import AggregateElement
+from .utils import UNDERSCORE_SIZE
+from .utils import AggregateElement
+from .utils import is_valid_rule
+from .utils import from_list_to_as, from_as_to_list
+from .utils import get_arithm_or_comparison_position, get_aggregates, get_same_atoms
+from .utils import contains_comparison, contains_arithm
 
-from clingo_interface import ClingoInterface
+from .clingo_interface import ClingoInterface
 
 
 
@@ -62,7 +65,7 @@ class VariablePlacer:
         of clauses. In this way we find the maximum number according
         to the constraints and avoid the generation of unused rules 
         to compute the possible choices.
-        TODO: improve the usafety check (not trivial)
+        TODO: improve the unsafety check (not trivial)
         '''
         
         # generate all the combinations of variables and positions
@@ -75,7 +78,7 @@ class VariablePlacer:
         s += f"last_index_var_in_head({n_vars_in_head - 1}).\n"
 
         # exactly one varible per position
-        s += "\n% exactly one varible per position\n"
+        s += "\n% exactly one variable per position\n"
         s += "1{var_pos(Var,Pos) : var(Var)}1:- pos(Pos).\n"
         
         # only, safe variables (a variable in the head must appear in the body)
@@ -321,8 +324,8 @@ class VariablePlacer:
             #     var_pos(Var, Position1),\
             #     Position0 != Position1.\n"
             
-            # # impose that the varibles in comparison operators appear elsewhere
-            # s += "\n% impose that the varibles in comparison operators appear elsewhere\n"
+            # # impose that the variables in comparison operators appear elsewhere
+            # s += "\n% impose that the variables in comparison operators appear elsewhere\n"
             # s += ":- #count{Var : in_comparison_and_not(Var)} = VP,\
             #         #count{P : comparison_term_position(I,P),comparison(I)} = NP,\
             #         NP != VP.\n"
@@ -515,17 +518,17 @@ class VariablePlacer:
         pos_comparison : 'list[list[int]]' = []
 
         if '#' in sampled_stub:
-            aggregates = utils.get_aggregates(sampled_stub)
+            aggregates = get_aggregates(sampled_stub)
 
-        if utils.contains_arithm(sampled_stub) or utils.contains_comparison(sampled_stub):
-            pos_arithm, pos_comparison = utils.get_arithm_or_comparison_position(sampled_stub)
+        if contains_arithm(sampled_stub) or contains_comparison(sampled_stub):
+            pos_arithm, pos_comparison = get_arithm_or_comparison_position(sampled_stub)
 
         # Possible: improvements
         # 1) la variabile coinvolta in una ricorsione deve variare
         # es: a(X):- b(X), a(X).
         # 2) no variabili unsafe (quando c'è negazione)   
 
-        same_atoms, arity_same = utils.get_same_atoms(sampled_stub)
+        same_atoms, arity_same = get_same_atoms(sampled_stub)
         
         asp_p = self.__generate_asp_program_for_combinations(
             n_positions,
@@ -563,7 +566,7 @@ class VariablePlacer:
                     a.sort()
                     a = ' '.join(a)
                     # answer_sets.append(a)
-                    answer_sets_in_list.append(utils.from_as_to_list(str(m)))
+                    answer_sets_in_list.append(from_as_to_list(str(m)))
                     # res.append(self.__reconstruct_clause(str(m), sampled_stub))
             if self.verbose > 1:
                 print("Removing symmetries")
@@ -576,7 +579,7 @@ class VariablePlacer:
         
         # reconstruct the clause
         for rt in r:
-            res.append(self.__reconstruct_clause(utils.from_list_to_as(rt), sampled_stub))
+            res.append(self.__reconstruct_clause(from_list_to_as(rt), sampled_stub))
         
         return res
     
@@ -598,7 +601,7 @@ class VariablePlacer:
                 valid_rules : 'list[str]' = []
                 pruned_count = 0
                 for rl in r:
-                    if utils.is_valid_rule(rl):
+                    if is_valid_rule(rl):
                         valid_rules.append(rl)
                         if self.verbose > 1:
                             print(f"Valid: {rl}")

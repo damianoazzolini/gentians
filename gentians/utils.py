@@ -479,6 +479,63 @@ def read_popper_format(folder : str):
     return background, positive_examples, negative_examples, language_bias_head, language_bias_body
 
 
+def read_from_file(filename : str):
+    '''
+    Read all the information from file.
+    '''
+    # background knowledge
+    bg : 'list[str]' = []
+
+    # positive examples
+    pe : 'list[list[str]]' = []
+
+    # negative examples
+    ne : 'list[list[str]]' = []
+
+    # mode bias for the head
+    lbh : 'list[str]' = []
+
+    # mode bias for the body
+    lbb : 'list[str]' = []
+    
+    fp = open(filename, "r")
+    lines = fp.readlines()
+    fp.close()
+    
+    for line in lines:
+        lc = line.replace('\n','').replace(' ','')
+        
+        if lc.startswith("#modeh"):
+            if lc.endswith("."):
+                lbh.append(line[1:-1])
+            else:
+                lbh.append(line[1:])
+        elif lc.startswith("#modeb"):
+            if lc.endswith("."):
+                lbb.append(line[1:-1])
+            else:
+                lbb.append(line[1:])
+        elif lc.startswith("#pos"):
+            # #pos({heads(c1), tails(c2), heads(c3)}, {tails(c1), heads(c2), tails(c3)}, {}).
+            elements = lc[6:].split('{')
+            inc = []
+            exc = []
+            own_bg = []
+            for el in elements:
+                atoms = el.split('),')
+                for a in atoms:
+                    if not ('(' in a):
+                        pass
+                
+            pass
+        elif lc.startswith("#neg"):
+            pass
+        else:
+            bg.append(lc)
+        
+    return bg, pe, ne, lbh, lbb
+        
+
 def get_aggregates(clause : str) -> 'list[AggregateElement]':
     '''
     Extracts the variables in the aggregates in the clause

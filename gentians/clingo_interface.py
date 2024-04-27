@@ -1,7 +1,7 @@
 import clingo
 import sys
 
-import utils
+from .utils import wrapper_exit_callback, generate_clauses_for_coverage_interpretations, WrapperStopIfWarn
 
 
 class Coverage:
@@ -27,7 +27,7 @@ class ClingoInterface:
         '''
         Init clingo and grounds the program
         '''
-        ctl = clingo.Control(self.clingo_arguments, logger=utils.wrapper_exit_callback)
+        ctl = clingo.Control(self.clingo_arguments, logger=wrapper_exit_callback)
         try:
             for clause in self.lines:
                 ctl.add('base', [], clause)
@@ -84,12 +84,12 @@ class ClingoInterface:
 
         if len(interpretation_pos) > 0:
             generated_program += f"pos_exs(0..{len(interpretation_pos)}).\n"
-            generated_program += utils.generate_clauses_for_coverage_interpretations(
+            generated_program += generate_clauses_for_coverage_interpretations(
                 interpretation_pos, True)
         
         if len(interpretation_neg) > 0:
             generated_program += f"neg_exs(0..{len(interpretation_neg)}).\n"
-            generated_program += utils.generate_clauses_for_coverage_interpretations(
+            generated_program += generate_clauses_for_coverage_interpretations(
                 interpretation_neg, False)
 
         generated_program += '''
@@ -110,7 +110,7 @@ class ClingoInterface:
 
         # print("ASP PROGRAM\n"+ generated_program)
         
-        wrp = utils.WrapperStopIfWarn()
+        wrp = WrapperStopIfWarn()
         ctl = clingo.Control(self.clingo_arguments, logger=wrp.wrapper_warn_undefined_callback)
         ctl.add('base', [], generated_program)
         ctl.ground([("base", [])])

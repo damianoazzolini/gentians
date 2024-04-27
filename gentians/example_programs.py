@@ -3,6 +3,8 @@
 # http://hakank.org/popper/
 # https://users.dimi.uniud.it/~agostino.dovier/AIGAMES/DISPENSA.pdf <-- molti interessanti
 
+from .utils import print_error_and_exit
+
 def coin_example():
     '''
     # coin example
@@ -1388,13 +1390,13 @@ def magic_square_no_diag():
     ]
     
     lbh : 'list[str]' = [
-        "modeh(2, sum_row(+,+)",
-        "modeh(2, sum_col(+,+)"
+        "modeh(2, sum_row(+,+))",
+        "modeh(2, sum_col(+,+))"
     ]
     
     lbb : 'list[str]' = [
-        "modeb(2, sum_row(+,+)",
-        "modeb(2, sum_col(+,+)",
+        "modeb(2, sum_row(+,+))",
+        "modeb(2, sum_col(+,+))",
         "modeb(1, size(+))"
     ]
     
@@ -1464,12 +1466,12 @@ def set_partition_sum():
     ]
     
     lbh : 'list[str]' = [
-        "modeh(1, sum_partition(+,+)"
+        "modeh(1, sum_partition(+,+))"
     ]
     
     lbb : 'list[str]' = [
-        "modeb(1, partition(+)",
-        "modeb(2, sum_partition(+,+)"
+        "modeb(1, partition(+))",
+        "modeb(2, sum_partition(+,+))"
     ]
     
     return bg, pe, ne, lbh, lbb
@@ -2019,13 +2021,13 @@ def latin_square():
     ]
     
     lbh : 'list[str]' = [
-        "modeh(1, count_row(+,+)",
-        "modeh(1, count_col(+,+)"
+        "modeh(1, count_row(+,+))",
+        "modeh(1, count_col(+,+))"
     ]
     
     lbb : 'list[str]' = [
-        "modeb(1, count_row(+,+)",
-        "modeb(1, count_row(+,+)",
+        "modeb(1, count_row(+,+))",
+        "modeb(1, count_row(+,+))",
         "modeb(1, size(+))",
         "modeb(1, cell(+))"
     ]
@@ -2053,3 +2055,103 @@ def user_defined():
     lbb : 'list[str]' = []
 
     return bg, pe, ne, lbh, lbb
+
+def run_example(example : str) -> 'tuple[list[str],list[list[str]],list[list[str]],list[str],list[str]]':
+    '''
+    Runs the selected example
+    '''
+    if example == "coin":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = coin_example()
+        # print(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
+    elif example == "even_odd":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = even_odd_example()
+    elif example == "animals_bird":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = animals_bird_example()
+    # elif example == "penguin":
+    #     background, positive_examples, negative_examples,\
+    #     language_bias_head, language_bias_body = penguin_example()
+    elif example == "coloring":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = coloring_example()
+    elif example == "adjacent_to_red":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = adjacent_to_red_example()
+    elif example == "grandparent":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = grandparent_example()
+    elif example == "sudoku":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = sudoku()
+    # elif example == "dummy":
+    #     background, positive_examples, negative_examples,\
+    #     language_bias_head, language_bias_body = dummy()
+    elif example == "subset_sum":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = subset_sum()
+    elif example == "subset_sum_double":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = subset_sum_double()
+    elif example == "subset_sum_double_and_sum":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = subset_sum_double_and_sum()
+    elif example == "subset_sum_double_and_prod":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = subset_sum_double_and_prod()
+    elif example == "subset_sum_triple":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = subset_sum_triple()
+    elif example == "4queens":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = n_4queens()
+    elif example == "5queens":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = n_5queens()
+    elif example == "clique":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = clique()
+    elif example == "hamming_0":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = hamming(0, False)
+    elif example == "hamming_1":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = hamming(1, False)
+    # elif example == "harder_hamming_0":
+    #     background, positive_examples, negative_examples,\
+    #     language_bias_head, language_bias_body = hamming(0, True)
+    # elif example == "harder_hamming_1":
+    #     background, positive_examples, negative_examples,\
+    #     language_bias_head, language_bias_body = hamming(1, True)
+    # elif example == "partition":
+    #     background, positive_examples, negative_examples,\
+    #     language_bias_head, language_bias_body = partition()
+    elif example == "magic_square_no_diag":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = magic_square_no_diag()
+    elif example == "latin_square":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = latin_square()
+    elif example == "set_partition_sum":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = set_partition_sum()
+    elif example == "set_partition_sum_and_cardinality":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = set_partition_sum_and_cardinality()
+    elif example == "set_partition_sum_new":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = set_partition_new(False)
+    elif example == "set_partition_sum_and_cardinality_new":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = set_partition_new(True)
+    elif example == "set_partition_sum_cardinality_and_square":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = set_partition_sum_cardinality_and_square()
+    elif example == "user_defined":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = user_defined()
+    else:
+        print_error_and_exit("Example not found")
+    
+    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
