@@ -329,6 +329,62 @@ def sudoku():
     return background, positive_examples, negative_examples, language_bias_head, language_bias_body
 
 
+def euclid_example():
+    '''
+    Models Euclid's algorithm.
+    #const a=4.
+    #const b=2.
+    num(0..A) :- A = #max{a;b}.
+    zero(0).
+    one(1).
+    pairprime(A,B) :- num(A), num(B), one(One), A > One, B > One, eucl(A,B,1).
+    result(M) :- eucl(a,b,M).
+    
+    #show result/1.
+    #show pairprime/2.
+
+    # learn
+    eucl(A,B,M) :- num(A), num(B), A < B, eucl(B,A,M).
+    eucl(A,Z,A) :- zero(Z), num(A).
+    eucl(A,B,M) :- num(A),num(B), zero(Z), A > B, B > Z, D = A \ B, eucl(B,D,M).
+    '''
+    # background knowledge
+    bg : 'list[str]' = [
+        "#const a=4.",
+        "#const b=2.",
+        "num(0..A) :- A = #max{a;b}.",
+        "zero(0).",
+        "pairprime(A,B) :- num(A), num(B), A > 1, B > 1, eucl(A,B,1).",
+        "result(M) :- eucl(a,b,M)."
+    ]
+
+    # positive examples
+    pe : 'list[list[str]]' = [
+        ["pairprime(4,3) pairprime(3,2) pairprime(2,3) pairprime(3,4)",""]
+    ]
+
+    # negative examples
+    ne : 'list[list[str]]' = [
+        ["pairprime(4,2)", ""],
+        ["pairprime(2,4)", ""],
+        ["pairprime(1,2)", ""],
+        ["pairprime(2,1)", ""]
+    ]
+
+    # mode bias for the head
+    lbh : 'list[str]' = [
+        "modeh(1, eucl(+,+,+))"
+    ]
+
+    # mode bias for the body
+    lbb : 'list[str]' = [
+        "modeb(1, eucl(+,+,+))",
+        "modeb(1, zero(+))",
+        "modeb(2, num(+))",
+    ]
+
+    return bg, pe, ne, lbh, lbb
+
 def penguin_example():
     '''
     TODO: questo programma non ha soluzione perché imparo solamente
@@ -477,7 +533,9 @@ def subset_sum():
         ["s(6)", ""]
     ]
 
-    ne : 'list[list[str]]' = []
+    ne : 'list[list[str]]' = [
+        # ["s(5)", ""]
+    ]
 
     lbh : 'list[str]' = ['modeh(1, s(+))']
 
@@ -2085,6 +2143,9 @@ def run_example(example : str) -> 'tuple[list[str],list[list[str]],list[list[str
     elif example == "sudoku":
         background, positive_examples, negative_examples,\
         language_bias_head, language_bias_body = sudoku()
+    elif example == "euclid":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = euclid_example()
     # elif example == "dummy":
     #     background, positive_examples, negative_examples,\
     #     language_bias_head, language_bias_body = dummy()

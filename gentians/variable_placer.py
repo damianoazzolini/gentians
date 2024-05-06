@@ -77,7 +77,7 @@ class VariablePlacer:
         s += "\n% last index for the variable in the head\n"
         s += f"last_index_var_in_head({n_vars_in_head - 1}).\n"
 
-        # exactly one varible per position
+        # exactly one variable per position
         s += "\n% exactly one variable per position\n"
         s += "1{var_pos(Var,Pos) : var(Var)}1:- pos(Pos).\n"
         
