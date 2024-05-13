@@ -1112,7 +1112,8 @@ def clique():
         "e(9,6).",
         "3 {in(X) : v(X)} 3.",
         "v(X) :- e(X,Y).",
-        "v(Y) :- e(X,Y)."
+        "v(Y) :- e(X,Y).",
+        "ne(X,Y):- not e(X,Y), v(X), v(Y)."
     ]
 
     pe : 'list[list[str]]' = [
@@ -1132,7 +1133,7 @@ def clique():
     lbb : 'list[str]' = [
         'modeb(2, v(+))',
         # 'modeb(2, e(+,+))',
-        'modeb(2, not e(+,+))',
+        'modeb(2, ne(+,+))',
         'modeb(2, in(+))'
     ]
 
@@ -1869,14 +1870,14 @@ def set_partition_new(also_count : bool):
         
     
     lbh : 'list[str]' = [
-        "modeh(1, sum_partition(+,+)"
+        "modeh(1, sum_partition(+,+))"
     ]
     if also_count:
-        lbh.append("modeh(1, count_partition(+,+)")
+        lbh.append("modeh(1, count_partition(+,+))")
     
     lbb : 'list[str]' = [
-        "modeb(1, partition(+)",
-        "modeb(2, sum_partition(+,+)"
+        "modeb(1, partition(+))",
+        "modeb(2, sum_partition(+,+))"
     ]
     if also_count:
         lbb.append("modeb(2, count_partition(+,+)")

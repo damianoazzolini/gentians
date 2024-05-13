@@ -1,0 +1,11 @@
+sbatch run_latin_square_0.sh
+sbatch run_latin_square_1.sh
+sbatch run_latin_square_2.sh
+sbatch run_latin_square_3.sh
+sbatch run_latin_square_4.sh
+sbatch run_latin_square_5.sh
+sbatch run_latin_square_6.sh
+sbatch run_latin_square_7.sh
+sbatch run_latin_square_8.sh
+sbatch run_latin_square_9.sh
+sbatch run_latin_square_10.sh

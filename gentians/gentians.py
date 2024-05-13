@@ -12,7 +12,7 @@ from .strategies import Strategy, PlacedClause
 from .utils import read_popper_format, print_error_and_exit
 from .variable_placer import VariablePlacer
 
-
+# UNUSED?
 class Program:
     def __init__(self,
         # clauses : 'list[Clause]',

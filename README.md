@@ -35,8 +35,8 @@ Soon there will be the possibility to specify a scenario via files.
 ## Main Available Options
 
 You can check all the available options with the flag `--help`.
-Here we discuss only some of the most important:
-- --variables: maximum number of variables to consider in a rule. Default 3.
+Here we list only the main ones:
+- `--variables`: maximum number of variables to consider in a rule. Default 3.
 - `-d`: maximum number of literals in a rule (number of atoms in the head + number of literals in the body). Default 3
 - `-dh`: set the maximum number of atoms in disjunctive head. Default 0.
 - `-s`: number of clauses to sample. Default 1000
