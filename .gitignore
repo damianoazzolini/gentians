@@ -11,6 +11,7 @@ old_iterative.py
 datasets/
 extract_solutions_and_not.py
 gen.py
+results/
 
 test.lp
 lp_test_2.lp
