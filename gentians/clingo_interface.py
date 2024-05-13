@@ -126,7 +126,7 @@ class ClingoInterface:
         
         # key: rule_id (string containing the selected rules)
         # value: tuple(covered_pos, covered_neg)
-        # needes since I need to check that NO answer sets cover
+        # needed since I need to check that NO answer sets cover
         # negative examples.
         comb_rules : 'dict[str,Coverage]' = {}
 

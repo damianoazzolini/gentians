@@ -75,7 +75,7 @@ class Strategy:
         number_clauses : int, # number of clauses to consider for each program
         population_size : int, # number of programs to keep
         mutation_probability : float, # mutation probability
-        max_interations : int, # maximum number of iterations
+        max_iterations : int, # maximum number of iterations
         do_tournament : bool = True, # choose tournament to pick the elements
         tournament_size : int = 12, # number of elements considered for the tournament
         prob_replacing_oldest : float = 0.5, # the probability to replace the oldest instead of the one with the lowest fittness
@@ -447,9 +447,9 @@ class Strategy:
         population.sort(key = lambda x : x.score, reverse=True)
 
         # step 2: iterate trough programs
-        print(f"Running for {max_interations} iterations")
+        print(f"Running for {max_iterations} iterations")
         start_time = time.time()
-        for it in range(max_interations + 1):
+        for it in range(max_iterations + 1):
             # print(f"it: {it}")
             if it % 100 == 0:
                 print(f"Iteration {it} - taken for 100: {time.time() - start_time} - best: {population[0]}")
