@@ -90,7 +90,7 @@ class Strategy:
                 stub_indexes : 'list[int]',
                 prog_indexes : 'list[int]',
                 score : float,
-                is_best : bool = False, # does this covers everyting positive and no negative?
+                is_best : bool = False, # does this covers everything positive and no negative?
                 l_best_indexes : 'list[int]' = [] # best indexes, if it is the best
                 ) -> None:
                 self.program = program
@@ -233,7 +233,7 @@ class Strategy:
                     scores.append(math.exp((v_pos - v_neg)*10))
                     # consideration: here, [0,1] and [1,2] have the same score
                     # where the first element is the covered positive and the
-                    # scond is covered negative. However, is the first worst
+                    # second is covered negative. However, is the first worst
                     # than the second (the first only covers 1 negative example)
                     # while the second two but it has one positive covered
 
@@ -443,7 +443,7 @@ class Strategy:
         if best_found:
             return population[0].program, population[0].score, True, [-1]
 
-        # step 1: sort in terms of decreasing fittnes
+        # step 1: sort in terms of decreasing fitness
         population.sort(key = lambda x : x.score, reverse=True)
 
         # step 2: iterate trough programs
@@ -455,7 +455,7 @@ class Strategy:
                 print(f"Iteration {it} - taken for 100: {time.time() - start_time} - best: {population[0]}")
                 start_time = time.time()
             # 2.1: selection of the two fittest elements
-            # print('pre torunament')
+            # print('pre tournament')
             if do_tournament:
                 best_a = tournament(population, tournament_size)
                 best_b = tournament(population, tournament_size)

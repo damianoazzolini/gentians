@@ -12,6 +12,7 @@ datasets/
 extract_solutions_and_not.py
 gen.py
 results/
+tmp/
 
 test.lp
 lp_test_2.lp

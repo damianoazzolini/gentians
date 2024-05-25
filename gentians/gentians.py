@@ -9,7 +9,7 @@ from .arguments import parse_arguments, version
 from .example_programs import run_example
 from .program_sampler import ProgramSampler
 from .strategies import Strategy, PlacedClause
-from .utils import read_popper_format, print_error_and_exit
+from .utils import read_from_file, print_error_and_exit
 from .variable_placer import VariablePlacer
 
 
@@ -187,15 +187,10 @@ def main():
     language_bias_body = []
 
     if args.example is None:
-        if (os.path.isfile(args.directory + "bk.pl") and
-            os.path.isfile(args.directory + "exs.pl") and
-            os.path.isfile(args.directory + "bias.pl")):
-            background, positive_examples, negative_examples,\
-                language_bias_head, language_bias_body = read_popper_format(
-                    args.directory)
-            # print(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
+        if args.file is not None:
+            background, positive_examples, negative_examples, language_bias_head, language_bias_body = read_from_file(args.file)
         else:
-            print_error_and_exit("Specify a directory or an example")
+            print_error_and_exit("Specify a file with the task or an example")
     else:
         background, positive_examples, negative_examples, language_bias_head, language_bias_body = run_example(args.example)
 
