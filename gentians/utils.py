@@ -1,6 +1,9 @@
 import itertools
 import sys
 
+import re
+from collections import defaultdict
+
 from clingo import ast
 from clingo import Control
 
@@ -118,22 +121,6 @@ def print_warning(message : str):
     print(YELLOW + "Warning: " + message + END)
 ###
 
-def get_part_of_iter(p, size : int):
-    '''
-    Get the first size elements of the iterable p.
-    Used since it is fastest than list(p), since it avoids
-    unpacking all the elements.
-    '''
-    lp = []
-    while p and size > 0:
-        try:
-            lp.append(list(next(p)))
-        except:
-            break
-        size -= 1
-    return lp
-
-
 def find_symmetric_answer_sets(current_as : str) -> 'list[str]':
     '''
     Given an answer set current_as returns all the 
@@ -182,12 +169,7 @@ def from_list_to_as(current_list : 'list[list[int]]') -> str:
     to
     v0(0) v0(3) v1(1) v1(5) v2(2) v2(4)
     '''
-    s = ""
-    for i in range(0,len(current_list)):
-        for ii in range(0,len(current_list[i])):
-            s = s + f"v{i}({current_list[i][ii]}) "
-    s = s[:-1]
-    return s
+    return ' '.join([f"v{idx}({el})" for idx, l in enumerate(current_list) for el in l])
 
 
 def from_as_to_list(current_as : str) -> 'list[list[int]]':
@@ -197,32 +179,18 @@ def from_as_to_list(current_as : str) -> 'list[list[int]]':
     to
     [[0,3],[1,5],[2,4]]
     '''
-    i = 0
-    while True:
-        # count the used variables
-        if not f"v{i}" in current_as:
-            break
-        i += 1
-        
-    n_vars = i - 1
-
-    l_res : 'list[list[int]]' = []
-    for i in range(0,n_vars+1):
-        l_res.append([])
-    # print(l_res)
     
-    for atm in current_as.split(' '):
-        pos_s = atm.find('(')
-        pos_e = atm.find(')')
-        pos_var = int(atm[pos_s + 1 : pos_e])
-        var_id = int(atm[1 : pos_s])
-        # print(var_id,pos_var)
-        l_res[var_id].append(pos_var)
+    # Use regex to find all matches of the form vX(Y)
+    matches = re.findall(r'v(\d+)\((\d+)\)', current_as)
 
-    for i in range(0,len(l_res)):
-        l_res[i] = sorted(l_res[i])
-    
-    return sorted(l_res)
+    # Dictionary to hold lists for each vX
+    groups = defaultdict(list)
+
+    for prefix, number in matches:
+        groups[prefix].append(int(number))
+
+    # Convert the dictionary values to a list of lists and sort by prefix
+    return [sorted(groups[str(i)]) for i in range(len(groups))]
 
 
 def get_atoms(clause: str) -> 'list[str]':
@@ -232,73 +200,6 @@ def get_atoms(clause: str) -> 'list[str]':
     r = RuleCallback()
     ast.parse_string(clause, r.process)
     return r.head + r.body
-
-
-def get_v0_v1_v2_arithm(rule : str, p : int) -> 'tuple[str,str,str]':
-    '''
-    From V0+V1=V2 returns V0 V1 V2
-    IMPORTANT: I suppose that there cannot be more than 10 variables: in this
-    case, this does not work since every variable is no more of 2 chars (e.g., V10)
-    '''
-    v0 = rule[p-2:p]
-    v1 = rule[p+1:p+3]
-    v2 = rule[p+4:p+6]
-    return v0 ,v1, v2
-
-
-def get_v0_v1_comparison(rule : str, p : int, incr : int) -> 'tuple[str,str]':
-    '''
-    From V0>V1 returns V0 and V1
-    Incr is 1 if the operator has 2 elements (>=,<=,==,!=)
-    '''
-    v0 = rule[p-2:p]
-    v1 = rule[p+incr+1:p+incr+3]
-    return v0, v1
-
-
-def is_valid_arithm_rule(rule : str) -> bool:
-    '''
-    Hardcoded rules to remove arithm nonsense.
-    '''
-    arithm = ['+','-','*','/']
-    rule = rule.replace(' ','').replace(':-','_')
-    for ch in arithm:
-        pos = [pos for pos, char in enumerate(rule) if char == ch]
-        if len(pos) > 0:
-            for p in pos:
-                v0, v1, v2 = get_v0_v1_v2_arithm(rule,p)
-                # if v0 == v1 or v0 == v2 or v1 == v2:
-                if v0 == v2 or v1 == v2: # v0 and v1 can be the same, V0 + V0 = V1 is valid
-                    return False
-    return True
-
-
-def is_valid_comparison_rule(rule : str) -> bool:
-    '''
-    Hardcoded rules to remove comparison nonsense.
-    TODO: check this, since the ASP program should already prune this.
-    '''
-    comp_2 = ['<=','>=',"!=","=="]
-    rule = rule.replace(' ','')
-    for ch in comp_2:
-        pos = [i for i in range(len(rule)) if rule.startswith(ch, i)]
-        if len(pos) > 0:
-            for p in pos:
-                v0, v1 = get_v0_v1_comparison(rule, p, 1)
-                if v0 == v1:
-                    return False
-    
-    comp_1 = ['<','>']
-    for ch in comp_1:
-        pos = [pos for pos, char in enumerate(rule) if char == ch]
-        if len(pos) > 0:
-            for p in pos:
-                v0, v1 = get_v0_v1_comparison(rule, p, 0)
-                if v0 == v1:
-                    return False
-
-    return True
-
 
 def is_unsound(clause : str) -> bool:
     '''
@@ -315,18 +216,45 @@ def is_unsound(clause : str) -> bool:
     return l.unsound_rule
 
 
-def is_valid_rule(rule : str) -> bool:
-    '''
-    Returns true if the rule is valid, i.e., there are no
-    two equal atoms. For example: 
-    :- blue(V1),blue(V1),e(V0,V0),green(V0). is not valid (blue(V1) repeated), while
-    :- blue(V1),blue(V0),e(V0,V1),green(V0). it is
-    TODO: this should be done with an ASP constraint instead of generating
-    all the rules and then discard the not valid ones.
-    '''
-    atoms = get_atoms(rule)
-    # print(atoms)
-    return len(atoms) == len(list(set(atoms))) and is_valid_comparison_rule(rule) and is_valid_arithm_rule(rule) and (not is_unsound(rule))
+def is_valid_rule(clause : str) -> bool:
+    """
+    Checks whether a rule is valid:
+    - safe and sound rule
+    - no two or more equal atoms
+    - comparison operators applied to two different variables
+    - result of arithmetic operations different from input variables
+    TODO: can this be done with an ASP constraint to avoid generating 
+    invalid rules?
+    """
+
+    if is_unsound(clause):
+        return False
+
+    comparison_operators = ["<=",">=","!=","==",">","<"]
+    arithmetic_operators = ['+','-','*','/']
+
+    atoms_list : 'list[str]' = get_atoms(clause)
+
+    if len(atoms_list) != len(list(set(atoms_list))):
+        return False
+
+    for atom in atoms_list:
+        if any(op in atom for op in comparison_operators):
+            matches = re.findall(r'V\d', atom)
+            v0, v1 = matches
+            if v0 == v1:
+                return False
+        
+        elif any(op in atom for op in arithmetic_operators):
+            matches = re.findall(r'V\d', atom)
+            v0, v1, v2 = matches
+            # this is ok since the structure of arithmetic operators is
+            # fixed to be _ op _ = _
+            # v0 and v1 can be the same, V0 + V0 = V1 is valid
+            if v0 == v2 or v1 == v2:
+                return False
+    
+    return True
 
 
 def get_duplicated_positions(clause : str) -> 'list[list[list[str]]]':
@@ -415,74 +343,27 @@ def generate_clauses_for_coverage_interpretations(
     generated_str += '\n'
     
     return generated_str
-    
-
-def read_popper_format(folder : str):
-    # file: bias.pl, bk.pl, exs.pl
-    background : 'list[str]' = []
-    positive_examples : 'list[list[str]]' = []
-    negative_examples : 'list[list[str]]' = []
-    language_bias_head : 'list[str]' = []
-    language_bias_body : 'list[str]' = []
-    
-    # background
-    fp = open(folder + "bk.pl")
-    lines = fp.readlines()
-    fp.close()
-    
-    for l in lines:
-        background.append(l.replace('\n',''))
-        
-    # language bias
-    fp = open(folder + "bias.pl")
-    lines = fp.readlines()
-    fp.close()
-    
-    for line in lines:
-        if line.startswith('head_pred') or line.startswith('body_pred'):
-            t = ""
-            if line.startswith('head_pred'):
-                line = line.split('head_pred')[1][1:].replace(')','').replace('.','')
-                t = "head"
-            elif line.startswith('body_pred'):
-                line = line.split('body_pred')[1][1:].replace(')','').replace('.','')
-                t = "body"
-
-            arity = int(line.split(",")[1])
-            name = line.split(",")[0]
-            if arity > 0:
-                name += '('
-                for i in range(0,arity):
-                    name += '+,'
-                name = name[:-1] + ')'
-            
-            if t == "head":
-                name = "modeh(1," + name + ")."
-                language_bias_head.append(name)
-            elif t == "body":
-                name = "modeb(1," + name + ")."
-                language_bias_body.append(name)
-                
-    # examples
-    fp = open(folder + "exs.pl")
-    lines = fp.readlines()
-    fp.close()    
-    
-    for line in lines:
-        if line.startswith('pos'):
-            line = line.split('pos')[1][1:].replace('\n','')[:-2]
-            positive_examples.append([line, "", ""]) # three: included, excluded, context_dependent_example
-        elif line.startswith('neg'):
-            line = line.split('neg')[1][1:].replace('\n','')[:-2]
-            negative_examples.append([line, "", ""])
-    
-    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
-
 
 def read_from_file(filename : str):
     '''
-    Read all the information from file.
+    Read the inductive task from file.
     '''
+    def parse_example_declaration(current_declaration : str):
+        idx_start_included = 6
+        idx_end_included = current_declaration.find("},")
+        if idx_end_included == -1:
+            print_error_and_exit(f"Syntax error in {current_declaration}")
+        included = current_declaration[idx_start_included : idx_end_included]
+
+        short_current_declaration = current_declaration[idx_end_included : ]
+        
+        idx_start_excluded = short_current_declaration.find("{")
+        if idx_start_excluded == -1:
+            print_error_and_exit(f"Syntax error in {current_declaration}")
+        excluded = short_current_declaration[idx_start_excluded + 1 : -3]
+        
+        return [included, excluded]
+
     # background knowledge
     bg : 'list[str]' = []
 
@@ -499,40 +380,26 @@ def read_from_file(filename : str):
     lbb : 'list[str]' = []
     
     fp = open(filename, "r")
-    lines = fp.readlines()
+    lines = fp.read().splitlines()
     fp.close()
     
     for line in lines:
-        lc = line.replace('\n','').replace(' ','')
-        
+        lc = line.rstrip()
+
+        if len(lc) > 0 and not lc.endswith('.'):
+            print_error_and_exit(f"Syntax error in {lc}")
+
         if lc.startswith("#modeh"):
-            if lc.endswith("."):
-                lbh.append(line[1:-1])
-            else:
-                lbh.append(line[1:])
+            lbh.append(line[1:-1])
         elif lc.startswith("#modeb"):
-            if lc.endswith("."):
-                lbb.append(line[1:-1])
-            else:
-                lbb.append(line[1:])
+            lbb.append(line[1:-1])
         elif lc.startswith("#pos"):
-            # #pos({heads(c1), tails(c2), heads(c3)}, {tails(c1), heads(c2), tails(c3)}, {}).
-            elements = lc[6:].split('{')
-            inc = []
-            exc = []
-            own_bg = []
-            for el in elements:
-                atoms = el.split('),')
-                for a in atoms:
-                    if not ('(' in a):
-                        pass
-                
-            pass
+            pe.append(parse_example_declaration(lc))
         elif lc.startswith("#neg"):
-            pass
+            ne.append(parse_example_declaration(lc))
         else:
             bg.append(lc)
-        
+    
     return bg, pe, ne, lbh, lbb
         
 
