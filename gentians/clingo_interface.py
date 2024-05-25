@@ -107,8 +107,6 @@ class ClingoInterface:
         '''
         if not fixed:
             generated_program += "\n#show r/1."
-
-        # print("ASP PROGRAM\n"+ generated_program)
         
         wrp = WrapperStopIfWarn()
         ctl = clingo.Control(self.clingo_arguments, logger=wrp.wrapper_warn_undefined_callback)

@@ -263,15 +263,15 @@ def get_duplicated_positions(clause : str) -> 'list[list[list[str]]]':
     :- a(_____),q(_____,_____),q(_____,_____),a(_____),q(_____,_____) gets
     [[['0'], ['5']], [['1', '2'], ['3', '4'], ['6', '7']]]
     '''
-    atms = get_atoms(clause.replace('_' * 5,'_')) # replace otherwise error
-    uniques = list(set(atms))
+    atoms_list = get_atoms(clause.replace('_' * 5,'_')) # replace otherwise error
+    uniques = list(set(atoms_list))
     dup_pos : 'list[list[list[str]]]' = []
-    for index, el in enumerate(uniques):
+    for el in uniques:
         current_variable_position = 0
         ld : 'list[list[str]]' = []
-        for a in atms:
-            n_vars = a.count('_')
-            if a == el:
+        for atom in atoms_list:
+            n_vars = atom.count('_')
+            if atom == el:
                 # duplicated
                 lt : 'list[str]' = []
                 for nv in range(n_vars):
@@ -444,37 +444,26 @@ def get_aggregates(clause : str) -> 'list[AggregateElement]':
     
     return aggregates
 
-# def get_constraint_from_aggregates(agg_list : 'list[AggregateElement]', n_positions : int):
-#     # aggregate, add additional constraints on the variables
-#     # #aggr{ Xt1, Xt2, ... : a(X1, X2,...)}
-#     # i) all the Xti in the term must be different
-#     # ii) a term must appear in th atom
-#     # iii) no global variables, i.e., Xti cannot appear elsewhere
-#     for agg in agg_list:
-        
 
-#     pass
-
-
-def contains_arithm(stub : str) -> bool:
+def contains_arithmetic(stub : str) -> bool:
     return '+' in stub or '-' in stub or '*' in stub or '/' in stub
 
 def contains_comparison(stub : str) -> bool:
     return '>' in stub or '<' in stub or '==' in stub or '!=' in stub
 
-def get_arithm_or_comparison_position(stub : str) -> 'tuple[list[list[int]],list[list[int]]]':
+def get_arithmetic_or_comparison_position(stub : str) -> 'tuple[list[list[int]],list[list[int]]]':
     '''
     Extracts the positions of the variables involved in arithmetic or
     comparison operators.
     '''
     els = stub.replace(' ','').split("_____")
-    pos_arithm : 'list[list[int]]' = []
+    pos_arithmetic : 'list[list[int]]' = []
     pos_comparison : 'list[list[int]]' = []
     for index, el in enumerate(els):
         if el == '>' or el == '>=' or el == '<' or el == '<=' or el == '==' or el == '!=':
             pos_comparison.append([index - 1,index])
         
         if el == '+' or el == '-' or el == '*' or el == '/':
-            pos_arithm.append([index-1,index,index+1])
+            pos_arithmetic.append([index-1,index,index+1])
     
-    return pos_arithm, pos_comparison
+    return pos_arithmetic, pos_comparison

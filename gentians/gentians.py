@@ -42,7 +42,7 @@ class Solver:
 
         self.aggregates : 'list[str]' = arguments.aggregates
         self.comparison : 'list[str]' = arguments.comparison
-        self.arithm : 'list[str]' = arguments.arithm
+        self.arithmetic : 'list[str]' = arguments.arithm
         self.cr : bool = arguments.cr # for choice rules
         self.invention : bool = arguments.invention # predicate invention
 
@@ -68,7 +68,7 @@ class Solver:
             disjunctive_head_length=self.disjunctive_head_length,
             unbalanced_aggregates=self.unbalanced_aggregates,
             allowed_aggregates=self.aggregates,
-            arithmetic_operators=self.arithm,
+            arithmetic_operators=self.arithmetic,
             comparison_operators=self.comparison
         )
 
@@ -95,7 +95,7 @@ class Solver:
             # Step 1: remove duplicates
             sampled_clauses = sorted(list(set(cls)))
             print(f"Sampled {len(sampled_clauses)} different clauses in {sample_time} seconds")
-            # sys.exit()
+
             if self.verbose >= 1:
                 print("Sampled clauses:")
                 sampled_clauses.sort(key=lambda x : len(x))
@@ -107,15 +107,11 @@ class Solver:
             # possible locations, which are #n_vars^#n_pos in the 
             # worst case
             start_time = time.time()
-
             placed_list : 'list[list[str]]' = placer.place_variables_list_of_clauses(sampled_clauses)
             placing_time = time.time() - start_time
             print(f"Placed variables in {placing_time} seconds")
 
-            placed_list_improved : 'list[PlacedClause]' = []
-            for p in placed_list:
-                pl = PlacedClause(p)
-                placed_list_improved.append(pl)
+            placed_list_improved : 'list[PlacedClause]' = list(map(PlacedClause, placed_list))
 
             print(f"Total clauses stub: {len(placed_list)}")
             print(f"Total number of possible clauses: {sum(len(pl) for pl in placed_list)}")
@@ -146,16 +142,15 @@ class Solver:
 
             for i in best_index_stub_for_the_next_round:
                 best_stub_for_next_round.append(sampled_clauses[i]) 
-            # print(best_stub_for_next_round)
+
             print(f"Evolutionary cycle {it} - Time {genetic_time}")
             if best_found:
                 print("--- Found best program ---")
             else:
                 print(f"Current best with score: {score}")
-            for r in prg:
-                print(r)
+            print(*prg, sep="\n")
             print("--------------------------")
-            # print(f"Program: {prg}")
+
             if best_found:
                 break
 

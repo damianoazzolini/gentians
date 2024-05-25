@@ -34,7 +34,47 @@ class TestUnit:
     def test_get_atoms(self, rule, expected_list):
         assert gentians.utils.get_atoms(rule) == expected_list
 
+    @pytest.mark.skip("Skipped since the result may be in different order.")
+    def test_get_duplicated_positions(self):
+        clause = ":- a(_____),q(_____,_____),q(_____,_____),a(_____),q(_____,_____)."
+        expected = [[['0'], ['5']], [['1', '2'], ['3', '4'], ['6', '7']]]
+        res = gentians.utils.get_duplicated_positions(clause)
+        obt = sorted(list(map(sorted,res)))
 
+        assert  obt == expected
+    
+    @pytest.mark.skip("Skipped since the result may be in different order.")
+    def test_get_same_atoms(self):
+        clause = ":- a(_____),q(_____,_____),q(_____,_____),a(_____),q(_____,_____)."
+        expected = (['same1(1,0).', 'same1(1,1).', 'same2(0,2,3).', 'same2(0,4,5).', 'same2(0,6,7).'], 2)
+        res = gentians.utils.get_same_atoms(clause)
+        # obt_list = sorted(obt[0])
+        # res = (obt_list, obt[1])
+        assert res == expected
+    
+    @pytest.mark.parametrize("interpretations, positive, expected", [
+        ([['odd(1) odd(3) even(2)', 'odd(2)', 'cd(4)']], True, "cpi(0):-odd(1),odd(3),even(2).cpe(0):-odd(2).cd(4)."),
+        ([['odd(1) odd(3) even(2)', 'odd(2)', 'cd(4)']], False, "cni(0):-odd(1),odd(3),even(2).cne(0):-odd(2).cd(4).")
+    ])
+    def test_generate_clauses_for_coverage_interpretations(self, interpretations, positive, expected):
+        res = gentians.utils.generate_clauses_for_coverage_interpretations(interpretations=interpretations, positive=positive)
+        assert res.replace("\n","").replace(" ","") == expected
+
+    def test_get_aggregates(self):
+        # TODO: implement
+        assert True
+    
+    def test_contains_arithmetic(self):
+        # TODO: implement
+        assert True
+
+    def test_contains_comparison(self):
+        # TODO: implement
+        assert True
+    
+    def test_get_arithmetic_or_comparison_position(self):
+        # TODO: implement
+        assert True
 
 class TestIntegration:
     @pytest.mark.parametrize("rule, is_valid", [

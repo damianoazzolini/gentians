@@ -5,8 +5,8 @@ from .utils import UNDERSCORE_SIZE
 from .utils import AggregateElement
 from .utils import is_valid_rule
 from .utils import from_list_to_as, from_as_to_list
-from .utils import get_arithm_or_comparison_position, get_aggregates, get_same_atoms
-from .utils import contains_comparison, contains_arithm
+from .utils import get_arithmetic_or_comparison_position, get_aggregates, get_same_atoms
+from .utils import contains_comparison, contains_arithmetic
 
 from .clingo_interface import ClingoInterface
 
@@ -520,8 +520,8 @@ class VariablePlacer:
         if '#' in sampled_stub:
             aggregates = get_aggregates(sampled_stub)
 
-        if contains_arithm(sampled_stub) or contains_comparison(sampled_stub):
-            pos_arithm, pos_comparison = get_arithm_or_comparison_position(sampled_stub)
+        if contains_arithmetic(sampled_stub) or contains_comparison(sampled_stub):
+            pos_arithm, pos_comparison = get_arithmetic_or_comparison_position(sampled_stub)
 
         # Possible: improvements
         # 1) la variabile coinvolta in una ricorsione deve variare
@@ -581,6 +581,12 @@ class VariablePlacer:
         for rt in r:
             res.append(self.__reconstruct_clause(from_list_to_as(rt), sampled_stub))
         
+        # if len(answer_sets_in_list) > 0:
+        #     print(asp_p)
+        #     print(res)
+        #     import sys
+        #     sys.exit()
+
         return res
     
     
