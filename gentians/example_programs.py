@@ -715,14 +715,14 @@ def subset_sum_triple():
     pe : 'list[list[str]]' = [
         ["ok(0)", ""],
         # ["ok(8)", ""],
-        ["ok(9)", ""],
+        ["ok(9)", ""]
     ]
 
     ne : 'list[list[str]]' = [
         ["ok(1)", ""],
         ["ok(2)", ""],
         ["ok(10)", ""],
-        ["ok(15)", ""],
+        ["ok(15)", ""]
     ]
 
     lbh : 'list[str]' = [
@@ -734,6 +734,62 @@ def subset_sum_triple():
     lbb : 'list[str]' = [
         # 'modeb(1, s0(+))',
         # 'modeb(1, s1(+))'
+    ]
+
+    return bg, pe, ne, lbh, lbb
+
+
+def knapsack(opt : bool = False):
+    '''
+    # knapsack: learn only the weight constraint.
+    % e(value,weight).
+    e(1,3).
+    e(2,3).
+    e(3,5).
+    e(4,4).
+    e(5,9).
+
+    % at most 3 elements
+    0{el(X,Y) : e(X,Y)}3.
+
+    % max weight
+    max_weight(10).
+
+    % to learn
+    :- max_weight(WMax), W = #sum{Y, X : el(X,Y)}, W > WMax.
+
+    % if optimize, also learn
+    :~ el(Val,Weight). [Weight@1, Weight, Val] # both Weight and Val to count duplicates
+    :~ el(Val,Weight). [-Val@2, Val, Weight]
+    '''
+    bg : 'list[str]' = [
+        "e(1,3).",
+        "e(2,3).",
+        "e(3,5).",
+        "e(4,4).",
+        "e(5,9).",
+        "0{el(X,Y) : e(X,Y)}3.",
+        "max_weight(10)."
+    ]
+
+    pe : 'list[list[str]]' = [
+        ["el(2,3) el(3,5)", ""],
+        ["el(1,3) el(2,3) el(4,4)", ""]
+    ]
+
+    ne : 'list[list[str]]' = [
+        ["el(1,3) el(3,5) el(4,4)", ""],
+        ["el(1,3) el(5,9)", ""]
+    ]
+
+    lbh : 'list[str]' = [
+        # 'modeh(1, ok(+))'
+        # 'modeh(1, s0(+))',
+        # 'modeh(1, s1(+))'
+    ]
+
+    lbb : 'list[str]' = [
+        'modeb(1, max_weight(+))'
     ]
 
     return bg, pe, ne, lbh, lbb
@@ -2165,6 +2221,9 @@ def run_example(example : str) -> 'tuple[list[str],list[list[str]],list[list[str
     elif example == "subset_sum_triple":
         background, positive_examples, negative_examples,\
         language_bias_head, language_bias_body = subset_sum_triple()
+    elif example == "knapsack":
+        background, positive_examples, negative_examples,\
+        language_bias_head, language_bias_body = knapsack()
     elif example == "4queens":
         background, positive_examples, negative_examples,\
         language_bias_head, language_bias_body = n_4queens()

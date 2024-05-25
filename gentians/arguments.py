@@ -10,11 +10,11 @@ def parse_arguments() -> 'argparse.Namespace':
     '''
     command_parser = argparse.ArgumentParser(description=program_description)
     command_parser.add_argument(
-        "-dir",
-        "--directory",
-        help="Directory storing the bk.pl, exs.pl, and bias.pl files (Popper format).",
+        "-f",
+        "--file",
+        help="File containing the task.",
         type=str,
-        default="."
+        default=None
     )
     command_parser.add_argument(
         "-v",
@@ -128,6 +128,7 @@ def parse_arguments() -> 'argparse.Namespace':
             "subset_sum_double_and_sum",
             "subset_sum_double_and_prod",
             "subset_sum_triple",
+            "knapsack",
             "hamming_0", 
             "hamming_1", 
             # "harder_hamming_0",
