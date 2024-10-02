@@ -384,9 +384,9 @@ def read_from_file(filename : str):
     fp.close()
     
     for line in lines:
-        lc = line.rstrip()
+        lc = line.rstrip().lstrip()
 
-        if len(lc) > 0 and not lc.endswith('.'):
+        if len(lc) > 0 and not lc.endswith('.') and not lc.startswith("%"):
             print_error_and_exit(f"Syntax error in {lc}")
 
         if lc.startswith("#modeh"):

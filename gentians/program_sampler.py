@@ -3,7 +3,7 @@ import copy
 import sys
 import itertools # to generate unbalanced aggregates
 
-from .utils import UNDERSCORE_SIZE
+from .utils import UNDERSCORE_SIZE, print_error_and_exit
 
 # number of underscore for placeholders in atoms
 # UNDERSCORE_SIZE = 5
@@ -248,7 +248,11 @@ class ProgramSampler:
         The bool is True if the list if of all zeros.
         '''
         # print(body_atoms)
-        probs : 'list[float]' = [1/len(available_atoms)] * len(available_atoms)
+        try:
+            probs : 'list[float]' = [1/len(available_atoms)] * len(available_atoms)
+        except:
+            print_error_and_exit("No atoms available")
+        
         zeros : int = 0
         for i in range(len(available_atoms)):
             if available_atoms[i].recall <= 0 and available_atoms[i].recall != -9999:
@@ -259,6 +263,7 @@ class ProgramSampler:
             return [0] * len(available_atoms), True
         
         uniform_prob = 1 / (len(available_atoms) - zeros)
+            
         for i in range(len(available_atoms)):
             if probs[i] != 0:
                 probs[i] = uniform_prob

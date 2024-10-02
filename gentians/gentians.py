@@ -161,6 +161,7 @@ def main():
     """
     Main function.
     """
+    print(f"Running GENTIANS version {version}.")
     args = parse_arguments()
 
     if args.profile:
@@ -172,7 +173,6 @@ def main():
         pr.enable()
 
     if args.version:
-        print(f"GENTIANS version: {version}.")
         sys.exit()
 
     background = []
