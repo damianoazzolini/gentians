@@ -137,7 +137,8 @@ class Solver:
                 self.n_clauses_genetic,
                 self.pop_size_genetic,
                 self.mutation_probability,
-                self.iterations_genetic)
+                self.iterations_genetic
+            )
             genetic_time = time.time() - start_time
 
             for i in best_index_stub_for_the_next_round:
@@ -148,6 +149,7 @@ class Solver:
                 print("--- Found best program ---")
             else:
                 print(f"Current best with score: {score}")
+            print("--------------------------")
             print(*prg, sep="\n")
             print("--------------------------")
 

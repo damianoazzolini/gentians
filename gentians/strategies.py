@@ -90,7 +90,7 @@ class Strategy:
                 stub_indexes : 'list[int]',
                 prog_indexes : 'list[int]',
                 score : float,
-                is_best : bool = False, # does this covers everything positive and no negative?
+                is_best : bool = False, # does this cover everything positive and no negative?
                 l_best_indexes : 'list[int]' = [] # best indexes, if it is the best
                 ) -> None:
                 self.program = program
@@ -214,7 +214,10 @@ class Strategy:
                 self.background, [f'{self.max_as_to_generate_foreach_program}', '--project'])
 
             cov = asp_solver.extract_coverage_and_set_clauses(
-                program, self.positive_examples, self.negative_examples, False)
+                program, self.positive_examples, self.negative_examples, False
+            )
+
+            # print(cov)
             
             best_found = False
             l_index : 'list[int]' = []
@@ -237,6 +240,8 @@ class Strategy:
                     # than the second (the first only covers 1 negative example)
                     # while the second two but it has one positive covered
 
+                    # print(self.positive_examples,self.negative_examples)
+                    # print(cp,cn)
                     if cp == len(self.positive_examples):
                         if cn == 0:
                             print(f"Best found with indexes {res}")
@@ -252,6 +257,17 @@ class Strategy:
                 score = sum(scores)/len(scores)
             else:
                 score = -2000
+            
+            # if the best has not been found, still compute the current best
+            # which is the one with the lowest associated cost. If two programs
+            # have the same cost, pick the one with the lowest number of clauses.
+            if not best_found:
+                current_min_el : str = next(iter(cov.keys()))
+                for k, v in cov.items():
+                    if v.get_cost() < cov[current_min_el].get_cost() or (v.get_cost() == cov[current_min_el].get_cost() and len(k) < len(current_min_el)):
+                        current_min_el = k
+                if current_min_el != "Undefined":
+                    l_best_indexes = [current_min_el]
 
             # shortest one
             l_best_indexes.sort(key = lambda s : len(s))
@@ -378,9 +394,9 @@ class Strategy:
             # compute the new score if something has changed
             if something_changed:
                 new_element.generated_timestamp = time.time()
-                new_element.score, new_element.is_best, new_element.l_best_indexes =\
-                    evaluate_score(new_element.stub_indexes, new_element.prog_indexes, 
-                                   new_element.program)
+                new_element.score, new_element.is_best, new_element.l_best_indexes = evaluate_score(
+                    new_element.stub_indexes, new_element.prog_indexes, new_element.program
+                )
             
             return new_element
 
@@ -529,5 +545,7 @@ class Strategy:
         # k elements that occur the most
         s = {x:all_indexes_list.count(x) for x in set(all_indexes_list)}
         a = sorted(s.items(), key=lambda x: x[1], reverse=True)
-   
-        return population[0].program, population[0].score, False, [i[0] for i in a[:k_best_for_the_next_round]]
+
+        res = evaluate_score(population[0].stub_indexes,population[0].prog_indexes, population[0].program)
+
+        return [population[0].program[i] for i in population[0].l_best_indexes], el.score, False, [i[0] for i in a[:k_best_for_the_next_round]]

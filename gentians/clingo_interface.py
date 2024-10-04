@@ -9,8 +9,16 @@ class Coverage:
         self.l_pos = l_pos
         self.l_neg = l_neg
 
+    def get_cost(self) -> int:
+        # if the best solution is not found, I compare the different programs
+        # arising from one element. Here, I assume that the cost of covering
+        # a positive example is -1 while the one of covering a negative is 1.
+        # That is, the lowest is the score, the better is the program.
+        # Thus, the cost of a solution is len(self.l_neg) - len(self.l_pos)
+        return len(self.l_neg) - len(self.l_pos)
+
     def __str__(self) -> str:
-        return "Positive: " + ','.join([str(x) for x in self.l_pos]) + " - Negative: " + ','.join([str(x) for x in self.l_neg])
+        return "-> Positive: " + ','.join([str(x) for x in self.l_pos]) + " - Negative: " + ','.join([str(x) for x in self.l_neg]) + " <-"
         
     def __repr__(self) -> str:
         return self.__str__()
@@ -117,6 +125,7 @@ class ClingoInterface:
             # the program misses some atoms, so there is no need to
             # check for the coverage: ATTENTION: if the language bias is
             # not ok, this is a problem
+            # print("Warning: undefined coverage")
             return {"Undefined": Coverage([],[])}
                 
         # res = str(ctl.solve())
