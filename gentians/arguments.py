@@ -2,9 +2,34 @@ import argparse
 
 program_description = "GENTIANS: GENeTic algorithm for Inductive learning of ANswer Set programs."
 
-version = "1.0.1" 
+version = "1.0.1"
 
-def parse_arguments() -> 'argparse.Namespace':
+class Arguments:
+    def __init__(self, args : argparse.Namespace) -> None:
+        self.filename : str = args.file
+        self.verbosity : int = args.verbosity
+        self.max_variables : int = args.variables
+        self.max_depth : int = args.depth
+        self.prob_increase : float = args.prob_increase
+        self.disjunctive_head_length : int = args.disjunctive_head
+        self.clauses_to_sample : int = args.samples
+        self.unbalanced_aggregates : bool = args.unbalanced_agg
+        self.max_as : int = args.max_as
+        self.clauses_per_individual : int = args.clauses
+        self.iterations : int = args.iterations
+        self.population_size : int = args.pop_size
+        self.iterations_genetic : int = args.iterations_genetic
+        self.mutation_probability : float = args.mutation_probability
+        self.example : str = args.example
+        self.cr : bool = args.cr
+        self.aggregates : 'list[str]' = args.aggregates
+        self.comparison_operators : 'list[str]' = args.comparison
+        self.arithmetic_operators : 'list[str]' = args.arithm
+        self.invention : int = args.invention
+        self.profile : bool = args.profile
+        self.version : bool = args.version
+
+def parse_arguments() -> 'Arguments':
     '''
     Parses command line arguments.
     '''
@@ -18,7 +43,7 @@ def parse_arguments() -> 'argparse.Namespace':
     )
     command_parser.add_argument(
         "-v",
-        "--verbose",
+        "--verbosity",
         help="Verbosity",
         type=int,
         choices=range(0,3),
@@ -54,7 +79,7 @@ def parse_arguments() -> 'argparse.Namespace':
     )
     command_parser.add_argument(
         "-s",
-        "--sample",
+        "--samples",
         help="Number of clauses to sample",
         type=int,
         default=1000
@@ -194,4 +219,4 @@ def parse_arguments() -> 'argparse.Namespace':
         action="store_true"
     )
     
-    return command_parser.parse_args()
+    return Arguments(command_parser.parse_args())

@@ -3,9 +3,9 @@ import os.path
 import sys
 import time
 
-from argparse import Namespace
+# from argparse import Namespace
 
-from .arguments import parse_arguments, version
+from .arguments import parse_arguments, version, Arguments
 from .example_programs import run_example
 from .program_sampler import ProgramSampler
 from .strategies import Strategy, PlacedClause
@@ -20,32 +20,14 @@ class Solver:
         negative_examples : 'list[list[str]]',
         language_bias_head : 'list[str]',
         language_bias_body : 'list[str]',
-        arguments : Namespace
+        arguments : Arguments
         ) -> None:
         self.background : 'list[str]' = background
         self.positive_examples : 'list[list[str]]' = positive_examples
         self.negative_examples : 'list[list[str]]' = negative_examples
         self.language_bias_head : 'list[str]' = language_bias_head
         self.language_bias_body : 'list[str]' = language_bias_body
-        self.verbose : int = arguments.verbose
-        self.max_depth : int = arguments.depth
-        self.max_variables : int = arguments.variables
-        self.disjunctive_head_length : int = arguments.disjunctive_head
-        self.unbalanced_aggregates : bool = arguments.unbalanced_agg
-        self.sample_loops : int = arguments.iterations
-        self.n_clauses_genetic : int = arguments.clauses
-        self.pop_size_genetic : int = arguments.pop_size
-        self.mutation_probability : float = arguments.mutation_probability
-        self.iterations_genetic : int = arguments.iterations_genetic
-        self.arguments = arguments
-        self.max_as = arguments.max_as
-
-        self.aggregates : 'list[str]' = arguments.aggregates
-        self.comparison : 'list[str]' = arguments.comparison
-        self.arithmetic : 'list[str]' = arguments.arithm
-        self.cr : bool = arguments.cr # for choice rules
-        self.invention : bool = arguments.invention # predicate invention
-
+        self.arguments : Arguments = arguments
 
     def solve(self) -> None:
         '''
@@ -55,37 +37,18 @@ class Solver:
         best_found : bool = False
         best_stub_for_next_round : 'list[str]' = []
 
-        sampler = ProgramSampler(
-            self.language_bias_head,
-            self.language_bias_body,
-            max_depth = self.max_depth,
-            max_variables = self.max_variables,
-            prob_increase_level= self.arguments.prob_increase,
-            # max_clauses = max_clauses,
-            verbose = self.verbose,
-            enable_find_max_vars_stub=False,
-            find_all_possible_pos_for_vars_one_shot=True,
-            disjunctive_head_length=self.disjunctive_head_length,
-            unbalanced_aggregates=self.unbalanced_aggregates,
-            allowed_aggregates=self.aggregates,
-            arithmetic_operators=self.arithmetic,
-            comparison_operators=self.comparison
-        )
+        sampler = ProgramSampler(self.language_bias_head,self.language_bias_body,self.arguments)
 
-        placer = VariablePlacer(
-            max_variables=self.max_variables,
-            verbose=self.verbose,
-            unbalanced_aggregates=self.unbalanced_aggregates
-        )
+        placer = VariablePlacer(self.arguments)
 
         start_total_time = time.time()
 
-        for it in range(self.sample_loops):
+        for it in range(self.arguments.iterations):
             # Step 0: sample a list of clauses
             print(f"Sampling loop: {it}")
             start_time = time.time()
             print("Sampling clauses")
-            cls = sampler.sample_clause_stub(self.arguments.sample)
+            cls = sampler.sample_clause_stub(self.arguments.clauses_to_sample)
             sample_time = time.time() - start_time
 
             # add the best from the previous rounds
@@ -96,7 +59,7 @@ class Solver:
             sampled_clauses = sorted(list(set(cls)))
             print(f"Sampled {len(sampled_clauses)} different clauses in {sample_time} seconds")
 
-            if self.verbose >= 1:
+            if self.arguments.verbosity >= 1:
                 print("Sampled clauses:")
                 sampled_clauses.sort(key=lambda x : len(x))
                 for index, current_cl in enumerate(sampled_clauses):
@@ -120,7 +83,7 @@ class Solver:
                 print("No clauses found")
                 sys.exit()
 
-            if self.verbose >= 2:
+            if self.arguments.verbosity >= 2:
                 for el in placed_list:
                     print(f"{len(el)}: {el}")
 
@@ -130,15 +93,12 @@ class Solver:
                 placed_list_improved,
                 self.background,
                 self.positive_examples,
-                self.negative_examples
+                self.negative_examples,
+                self.arguments
             )
 
-            prg, score, best_found, best_index_stub_for_the_next_round = current_strategy.genetic_solver(
-                self.n_clauses_genetic,
-                self.pop_size_genetic,
-                self.mutation_probability,
-                self.iterations_genetic
-            )
+            prg, score, best_found, best_index_stub_for_the_next_round = current_strategy.genetic_solver()
+            
             genetic_time = time.time() - start_time
 
             for i in best_index_stub_for_the_next_round:
@@ -183,9 +143,13 @@ def main():
     language_bias_head = []
     language_bias_body = []
 
-    if args.example is None:
-        if args.file is not None:
-            background, positive_examples, negative_examples, language_bias_head, language_bias_body = read_from_file(args.file)
+    # print(args.example)
+
+    # sys.exit()
+
+    if not args.example:
+        if args.filename:
+            background, positive_examples, negative_examples, language_bias_head, language_bias_body = read_from_file(args.filename)
         else:
             print_error_and_exit("Specify a file with the task or an example")
     else:

@@ -9,25 +9,13 @@ from .utils import get_arithmetic_or_comparison_position, get_aggregates, get_sa
 from .utils import contains_comparison, contains_arithmetic
 
 from .clingo_interface import ClingoInterface
+from .arguments import Arguments
 
 
 
 class VariablePlacer:
-    def __init__(self,
-        max_variables : int = 2,
-        verbose : int = 0,
-        unbalanced_aggregates : bool = False, # to allow #count{X : a(X,Y)} = C, g(Y).
-        ) -> None:
-        self.max_variables : int = max_variables
-        self.verbose : int = verbose
-        
-        # a boolean, false by default, that allows unbalanced aggregates, 
-        # i.e., aggregates where some terms may appear in the body of the
-        # rule itself. For instance: #count{X : a(X,Y)} = C, g(Y).
-        # is allowed when the bool is set to true, but not allowed
-        # when false
-        self.unbalanced_aggregates : bool = unbalanced_aggregates
-        
+    def __init__(self, args : Arguments) -> None:
+        self.args : Arguments = args
         # dict: hash of the asp program to place vars -> result, to avoid the
         # same computation
         self.already_encountered_asp_programs : 'dict[int,list[list[list[int]]]]' = {}
@@ -236,7 +224,7 @@ class VariablePlacer:
             :- global_var_tuple(_).
             '''
 
-            if not self.unbalanced_aggregates:
+            if not self.args.unbalanced_aggregates:
                 # TODO: secondo me basta solo uno dei due vincoli ma singolarmente non funzionano
                 s += "\n% no global variables in tuple of aggregate elements\n"
                 # s += "not_in_aggregate_term(V):- aggregate(A), var(V), not var_in_term_agg(A,V).\n"
@@ -502,13 +490,13 @@ class VariablePlacer:
         res : 'list[str]' = []
         # number of positions to insert the variables
         n_positions : int = sampled_stub.count('_' * UNDERSCORE_SIZE)
-        rv = self.max_variables # deterministic is better
+        rv = self.args.max_variables # deterministic is better
         if n_positions <= 2:
             n_variables = 1
         else:
             n_variables = rv
         
-        if self.verbose > 1:
+        if self.args.verbosity > 1:
             print(f"Placing for the stub: {sampled_stub}")
         
         n_vars_in_head = sampled_stub.split(':-')[0].count('_' * UNDERSCORE_SIZE)
@@ -557,7 +545,7 @@ class VariablePlacer:
 
             # answer_sets : 'list[str]' = []
             answer_sets_in_list : 'list[list[list[int]]]' = []
-            if self.verbose > 1:
+            if self.args.verbosity > 1:
                 print("Generating variables placements")
             with ctl.solve(yield_=True) as handle:  # type: ignore
                 for m in handle:  # type: ignore
@@ -568,7 +556,7 @@ class VariablePlacer:
                     # answer_sets.append(a)
                     answer_sets_in_list.append(from_as_to_list(str(m)))
                     # res.append(self.__reconstruct_clause(str(m), sampled_stub))
-            if self.verbose > 1:
+            if self.args.verbosity > 1:
                 print("Removing symmetries")
 
             # sort the list
@@ -597,7 +585,7 @@ class VariablePlacer:
         placed_list : 'list[list[str]]' = []
         
         for index, clause in enumerate(sampled_clauses):
-            if self.verbose >= 1:
+            if self.args.verbosity >= 1:
                 print(f"({index}/{len(sampled_clauses) - 1}) Placing variables for {clause}")
 
             r = self._place_variables_clause(clause)
@@ -609,20 +597,20 @@ class VariablePlacer:
                 for rl in r:
                     if is_valid_rule(rl):
                         valid_rules.append(rl)
-                        if self.verbose > 1:
+                        if self.args.verbosity > 1:
                             print(f"Valid: {rl}")
                     else:
                         pruned_count += 1
-                        if self.verbose > 1:
+                        if self.args.verbosity > 1:
                             print(f"Pruned: {rl}")
-                if self.verbose > 1:
+                if self.args.verbosity > 1:
                     print(f"Valid / Total = {len(r) - pruned_count} / {len(r)} = {(len(r) - pruned_count) / len(r)}")
                 if len(valid_rules) > 0:
                     placed_list.append(valid_rules)
-                if self.verbose == 1:
+                if self.args.verbosity == 1:
                     print(f"Generated {len(valid_rules)} clauses")
             else:
-                if self.verbose >= 1:
+                if self.args.verbosity >= 1:
                     print("No possible placements.")
 
         return placed_list

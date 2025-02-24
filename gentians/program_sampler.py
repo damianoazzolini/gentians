@@ -3,6 +3,7 @@ import copy
 import sys
 import itertools # to generate unbalanced aggregates
 
+from .arguments import Arguments
 from .utils import UNDERSCORE_SIZE, print_error_and_exit
 
 # number of underscore for placeholders in atoms
@@ -63,22 +64,12 @@ class Literal:
 
 class ProgramSampler:
     def __init__(
-        self,
-        language_bias_head : 'list[str]',
-        language_bias_body : 'list[str]',
-        max_depth : int = 3,
-        max_variables : int = 2,
-        prob_increase_level : float = 0.5,
-        # max_clauses : int = 3,
-        verbose : int = 0,
-        enable_find_max_vars_stub : bool = False,
-        find_all_possible_pos_for_vars_one_shot : bool = True,
-        disjunctive_head_length : int = 1, # number of atoms allowed in the head
-        unbalanced_aggregates : bool = False, # to allow #count{X : a(X,Y)} = C, g(Y).
-        allowed_aggregates : 'list[str]' = [],
-        arithmetic_operators : 'list[str]' = [],
-        comparison_operators : 'list[str]' = []
+            self,
+            language_bias_head : 'list[str]',
+            language_bias_body : 'list[str]',
+            args : Arguments
         ) -> None:
+        self.args : Arguments = args
         self.head_atoms : 'list[Literal]' = []
         self.body_literals : 'list[Literal]' = []
         # print(language_bias_head)
@@ -89,34 +80,8 @@ class ProgramSampler:
         for el in language_bias_body:
             self.body_literals.append(Literal.parse_mode_from_string(el, "modeb"))
         
-        self.max_depth : int = max_depth
-        self.max_variables : int = max_variables
-        # self.max_clauses : int = max_clauses
-        self.verbose : int = verbose
-        self.enable_find_max_vars_stub : bool = enable_find_max_vars_stub
-        
-        # If true, generates all the answer sets and then deletes the symmetric
-        # ones. If false, iteratively generates one answer set, computes the
-        # symmetric and then add to the ASP program a constraint for each symmetric.
-        # The iterative version is way slower, so True is preferred.
-        self.find_all_possible_pos_for_vars_one_shot : bool = find_all_possible_pos_for_vars_one_shot
-        
         # True if we are sampling for a constraint, changed every iteration
         self.body_constraint : bool = False
-        
-        # max number of atoms in the head
-        self.disjunctive_head_length : int = disjunctive_head_length
-        
-        # a boolean, false by default, that allows unbalanced aggregates, 
-        # i.e., aggregates where some terms may appear in the body of the
-        # rule itself. For instance: #count{X : a(X,Y)} = C, g(Y).
-        # is allowed when the bool is set to true, but not allowed
-        # when false
-        self.unbalanced_aggregates : bool = unbalanced_aggregates
-        
-        # probability to add another literal in the current clause,
-        # i.e., of going down one more level
-        self.prob_increase_level : float = prob_increase_level
         
         # enable recursion: super carefully with aggregates since this may
         # cause loops: for instance, this program loops
@@ -127,23 +92,23 @@ class ProgramSampler:
         self.enable_recursion = False
 
         # store the already placed clauses to avoid recomputation
-        # removed since allhte clauses are different
+        # removed since all the clauses are different
         # self.stub_placed_dict : 'dict[str,list[str]]' = {}
         
-        if allowed_aggregates:
-            for el in allowed_aggregates:
-                # genero automaticamente il prodotto cartesiano tra aggregati e atomi body
-                # cioè se ho come modeb a/1 e b/1 e come aggregati #sum e #count ottengo
+        if self.args.aggregates:
+            for el in self.args.aggregates:
+                # compute the cartesian product between aggregates and body atoms
+                # ex: modeb a/1 and b/1 and aggregates #sum e #count i get
                 # #sum{X : a(X)} #count{X : a(X)} #sum{X : b(X)} #count{X : b(X)}
                 self.body_literals.append(Literal(f"__{el}",1,1,False))
         
         # sys.exit()
-        if arithmetic_operators:
-            for el in arithmetic_operators:
+        if self.args.arithmetic_operators:
+            for el in self.args.arithmetic_operators:
                 self.body_literals.append(Literal(f"__{el}__",3,1,False))
         
-        if comparison_operators:
-            for el in comparison_operators:
+        if self.args.comparison_operators:
+            for el in self.args.comparison_operators:
                 self.body_literals.append(Literal(f"__{el}__",2,1,False))
                 
 
@@ -203,7 +168,7 @@ class ProgramSampler:
 
                 # if self.unbalanced_aggregates
                 # sum/2 -> #sum{ _ : a(_,_)} e #sum{ _, _ : a(_,_)}
-                if self.unbalanced_aggregates:
+                if self.args.unbalanced_aggregates:
                     current : 'list[str]' = []
                     for current_arity in range(1, max_arity + 1):
                         ph = ','.join([UNDERSCORE_SIZE*'_'] * int(current_arity))
@@ -231,7 +196,6 @@ class ProgramSampler:
         for agg_comb in itertools.product(*all_aggr):
             cb = body_literals[:]
             for agg, index in zip(agg_comb,aggregates_indexes):
-                # print(f"agg: {agg}")
                 cb[index] = agg
             nb.append(cb)
 
@@ -247,18 +211,19 @@ class ProgramSampler:
         of selecting an atom for the clause (uniform probability).
         The bool is True if the list if of all zeros.
         '''
-        # print(body_atoms)
+        zeros : int = 0
+        probs : 'list[float]' = []
+
         try:
-            probs : 'list[float]' = [1/len(available_atoms)] * len(available_atoms)
+            probs = [1/len(available_atoms)] * len(available_atoms)
         except:
             print_error_and_exit("No atoms available")
         
-        zeros : int = 0
         for i in range(len(available_atoms)):
             if available_atoms[i].recall <= 0 and available_atoms[i].recall != -9999:
                 probs[i] = 0
                 zeros += 1
-        # print(probs)
+
         if len(available_atoms) == zeros:
             return [0] * len(available_atoms), True
         
@@ -311,10 +276,10 @@ class ProgramSampler:
         list_indexes_sampled_literals : 'list[int]' = [] # indexes
         sampled_list : 'list[str]' = []
         depth = 0
-        stop = (random.random() > self.prob_increase_level) if head else False
-        max_depth_head = self.disjunctive_head_length
+        stop = (random.random() > self.args.prob_increase) if head else False
+        max_depth_head = self.args.disjunctive_head_length
         
-        while (not stop) and (depth < self.max_depth) and (max_depth_head > 0):
+        while (not stop) and (depth < self.args.max_depth) and (max_depth_head > 0):
             lv, sampled_literal_index = self.__sample_level_distr_recall(literals_list)
             if sampled_literal_index == -1:
                 stop = True
@@ -329,7 +294,7 @@ class ProgramSampler:
                 if self.body_constraint and depth == 0:
                     stop = False
                 else:
-                    stop = (random.random() > self.prob_increase_level)
+                    stop = (random.random() > self.args.prob_increase)
                 depth += 1
             if head:
                 max_depth_head -= 1
@@ -340,7 +305,7 @@ class ProgramSampler:
         '''
         Samples a single clause.
         '''
-        original_depth : int = self.max_depth
+        original_depth : int = self.args.max_depth
         clauses : 'list[str]' = []
         # not_merged_clauses = []
         
@@ -358,7 +323,7 @@ class ProgramSampler:
                     self.body_constraint = False
             
             # decrease the depth since we already sampled atoms for the head
-            self.max_depth -= len(head)
+            self.args.max_depth -= len(head)
             
             # print(self.body_literals)
             body = self.__sample_literals_list(copy.deepcopy(self.body_literals))
@@ -376,9 +341,9 @@ class ProgramSampler:
                     if is_valid:
                         clauses.append(';'.join(sorted(head)) + ":- " + ','.join(sorted(b)) + '.')
                         # not_merged_clauses.append([sorted(head),sorted(b)])
-            # TODO: and what happens with enable resursion True?
+            # TODO: and what happens with enable recursion True?
             
-            self.max_depth = original_depth
+            self.args.max_depth = original_depth
 
         return clauses
     

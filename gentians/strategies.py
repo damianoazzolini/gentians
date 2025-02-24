@@ -4,7 +4,7 @@ import math
 import time
 
 from .clingo_interface import ClingoInterface
-
+from .arguments import Arguments
 
 def compute_n_vars(clause : str):
     i = 0
@@ -55,43 +55,39 @@ class PlacedClause:
 
 class Strategy:
     def __init__(self,
-        # placed_list : 'list[list[str]]',
-        placed_list : 'list[PlacedClause]',
-        background : 'list[str]',
-        positive_examples : 'list[list[str]]',
-        negative_examples : 'list[list[str]]',
-        max_as : int = 10000
+            placed_list : 'list[PlacedClause]',
+            background : 'list[str]',
+            positive_examples : 'list[list[str]]',
+            negative_examples : 'list[list[str]]',
+            args : Arguments,
         ) -> None:
         # self.placed_list : 'list[list[str]]' = placed_list
         self.placed_list : 'list[PlacedClause]' = placed_list
         self.background : 'list[str]' = background
         self.positive_examples : 'list[list[str]]' = positive_examples
         self.negative_examples : 'list[list[str]]' = negative_examples
+        self.args : Arguments = args
         # maximum number of AS to generate: this helps when the program has a generator
         # and there are too many options
-        self.max_as_to_generate_foreach_program : int = max_as
+        self.max_as_to_generate_foreach_program : int = 10000
 
     def genetic_solver(self,
-        number_clauses : int, # number of clauses to consider for each program
-        population_size : int, # number of programs to keep
-        mutation_probability : float, # mutation probability
-        max_iterations : int, # maximum number of iterations
-        do_tournament : bool = True, # choose tournament to pick the elements
-        tournament_size : int = 12, # number of elements considered for the tournament
-        prob_replacing_oldest : float = 0.5, # the probability to replace the oldest instead of the one with the lowest fittness
-        k_best_for_the_next_round : int = 5 # the top k individuals to keep for the next round
+            do_tournament : bool = True, # choose tournament to pick the elements
+            tournament_size : int = 12, # number of elements considered for the tournament
+            prob_replacing_oldest : float = 0.5, # the probability to replace the oldest instead of the one with the lowest fittness
+            k_best_for_the_next_round : int = 5 # the top k individuals to keep for the next round
         ) -> 'tuple[list[str], float, bool, list[int]]':
         '''
         Genetic algorithm to find the best program
         '''
         class Individual:
             def __init__(self,
-                program : 'list[str]',
-                stub_indexes : 'list[int]',
-                prog_indexes : 'list[int]',
-                score : float,
-                is_best : bool = False, # does this cover everything positive and no negative?
-                l_best_indexes : 'list[int]' = [] # best indexes, if it is the best
+                    program : 'list[str]',
+                    stub_indexes : 'list[int]',
+                    prog_indexes : 'list[int]',
+                    score : float,
+                    is_best : bool = False, # does this cover everything positive and no negative?
+                    l_best_indexes : 'list[int]' = [] # best indexes, if it is the best
                 ) -> None:
                 self.program = program
                 # stub_indexes is a list of int representing the index of the stub 
@@ -111,91 +107,6 @@ class Strategy:
             def __repr__(self) -> str:
                 return self.__str__()
 
-
-        def evaluate_score_old(
-                stub_indexes : 'list[int]',
-                prog_indexes : 'list[int]',
-                program : 'list[str]'
-            ) -> 'tuple[float, bool, list[int]]':
-            # returns covered positive, covered negative, score
-            # how to assign a score?
-            # Current: cp covered positive, cn covered negative
-            # if cp = 0 and cn > 0 -> score = - cn
-            # if cp > 0 -> score = cp / (cp + cn)
-            # if score = 1 -> optimum found
-            # print(self.background)
-            # TODO: better define a score. Also consider the number of variables?
-            asp_solver = ClingoInterface(
-                self.background, [f'{self.max_as_to_generate_foreach_program}', '--project'])
-
-            cov = asp_solver.extract_coverage_and_set_clauses(
-                program, self.positive_examples, self.negative_examples, False)
-            
-            best_found = False
-            best_cp = -1000
-            best_cn = 1000
-            l_index : 'list[int]' = []
-            l_best_indexes : 'list[str]' = []
-            # best_index : 'list[int]' = []
-            best_l_index = []
-
-            for res, element_coverage in cov.items():
-                if res != "Error" and res != "Undefined":
-                    # set to remove duplicates
-                    cp : int = len(list(set(element_coverage.l_pos)))
-                    cn : int = len(list(set(element_coverage.l_neg)))
-                    # print(cp,cn)
-                    l_index = [int(v) for v in list(res)]
-
-                    if cp >= best_cp and cn <= best_cn:
-                        best_cp = cp
-                        best_cn = cn
-                        best_l_index = l_index
-
-                    if cp == len(self.positive_examples):
-                        if cn == 0:
-                            print(f"Best found with indexes {res}")
-                            print(program)
-                            l_best_indexes.append(res)
-                            best_found = True
-                        # else:
-                        #     print("Coverage 100% of the positive with")
-                        # print([program[i] for i in l_index], cp, cn)
-
-            score = best_cp - best_cn
-
-            # if score != 0:
-            scores : 'list[float]' = []
-            # The score is now computed as the sum of exp(n_atoms + n_vars)
-            # for each clause
-            # print(f"best_l_index: {best_l_index}")
-            # print(f"score: {score}")
-            if len(best_l_index) == 0:
-                # for the empty list (no program) i assume that the
-                # score is simply the covered positive - covered negative
-                scores.append(score)
-            for i in best_l_index:
-                # gather the complexity from the list
-                si = stub_indexes[i]
-                pi = prog_indexes[i]
-                # print(placed_list[si].placed_clauses[pi])
-                # print(placed_list[si].n_atoms)
-                na = self.placed_list[si].n_atoms
-                nv = self.placed_list[si].n_vars_clauses[pi]
-                
-                scores.append(score*math.exp(-(na+nv)))
-            # print(program)
-            # print(scores)
-            score = sum(scores)
-            # print(score)
-            
-            # sys.exit()
-
-            # shortest one
-            l_best_indexes.sort(key = lambda s : len(s))
-            l_index = [int(v) for v in list(l_best_indexes[0])] if len(l_best_indexes) > 0 else []
-
-            return score, best_found, l_index
 
         def evaluate_score(
                 stub_indexes : 'list[int]',
@@ -372,7 +283,7 @@ class Strategy:
             something_changed = False
             
             for i, _ in enumerate(element.program):
-                if random.random() < mutation_probability:
+                if random.random() < self.args.mutation_probability:
                     something_changed = True
                     # versione 1: cambio solamente il posizionamento delle variabili
                     if not change_stub:
@@ -454,7 +365,11 @@ class Strategy:
         population : 'list[Individual]' = []
         best_found = False
 
-        population, best_found = initialize_population(number_clauses, self.placed_list, population_size)
+        population, best_found = initialize_population(
+            self.args.clauses_per_individual,
+            self.placed_list,
+            self.args.population_size
+        )
 
         if best_found:
             return population[0].program, population[0].score, True, [-1]
@@ -463,9 +378,9 @@ class Strategy:
         population.sort(key = lambda x : x.score, reverse=True)
 
         # step 2: iterate trough programs
-        print(f"Running for {max_iterations} iterations")
+        print(f"Running for {self.args.iterations_genetic} iterations")
         start_time = time.time()
-        for it in range(max_iterations + 1):
+        for it in range(self.args.iterations_genetic + 1):
             # print(f"it: {it}")
             if it % 100 == 0:
                 print(f"Iteration {it} - taken for 100: {time.time() - start_time} - best: {population[0]}")
