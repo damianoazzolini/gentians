@@ -548,4 +548,4 @@ class Strategy:
 
         res = evaluate_score(population[0].stub_indexes,population[0].prog_indexes, population[0].program)
 
-        return [population[0].program[i] for i in population[0].l_best_indexes], el.score, False, [i[0] for i in a[:k_best_for_the_next_round]]
+        return [population[0].program[i] for i in population[0].l_best_indexes], res[0], False, [i[0] for i in a[:k_best_for_the_next_round]]
