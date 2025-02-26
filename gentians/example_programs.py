@@ -1,11 +1,12 @@
 # Some examples
 # https://github.com/metagol/metagol/tree/master/examples
 # http://hakank.org/popper/
-# https://users.dimi.uniud.it/~agostino.dovier/AIGAMES/DISPENSA.pdf <-- molti interessanti
+# https://users.dimi.uniud.it/~agostino.dovier/AIGAMES/DISPENSA.pdf
 
 from .utils import print_error_and_exit
+from .parser import Program, Example, ModeDeclaration
 
-def coin_example():
+def coin_example() -> Program:
     '''
     # coin example
     # from https://doc.ilasp.com/specification/cdpis.html
@@ -28,37 +29,27 @@ def coin_example():
     # For positive examples, there should be at least
     # one answer set with all the Included and none of
     # the excluded
-    positive_examples : 'list[list[str]]' = [
-        ["heads(c1) tails(c2) heads(c3)", "tails(c1) heads(c2) tails(c3)", ""],
-        ["heads(c1) heads(c2) tails(c3)", "tails(c1) tails(c2) heads(c3)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("heads(c1), tails(c2), heads(c3)", "tails(c1), heads(c2), tails(c3)"), True),
+        Example(("heads(c1), heads(c2), tails(c3)", "tails(c1), tails(c2), heads(c3)"), True)
     ]
 
-    
-    # positive_examples : 'list[str]' = [
-    #     "heads(c1) tails(c2) heads(c3)",
-    #     "tails(c1) heads(c2) tails(c3)",
-    #     "heads(c1) heads(c2) tails(c3)",
-    #     "tails(c1) tails(c2) heads(c3)"
-    # ]
+    negative_examples : 'list[Example]' = []
 
-    negative_examples : 'list[list[str]]' = []
-
-    language_bias_head : 'list[str]' = [
-        'modeh(1, heads(+))',
-        'modeh(1, tails(+))'
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'heads', "1"), True),
+        ModeDeclaration(("1", 'tails', "1"), True)
     ]
-    # language_bias_body : 'list[str]' = ['modeb(1, bird(+))', 'modeb(1, ability(+))', 'modeb(*, not can(+,#))']
-    language_bias_body : 'list[str]' = [
-        'modeb(1, heads(+))', 
-        'modeb(1, not heads(+))', 
-        'modeb(1, tails(+))',
-        'modeb(1, not tails(+))',
-        'modeb(1, coin(+))'
-    ]
-    
-    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
 
-def even_odd_example():
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'coin', "1", "positive"), False),
+        ModeDeclaration(("1", 'heads', "1", "negative"), False),
+        ModeDeclaration(("1", 'tails', "1", "negative"), False)
+    ]
+
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
+
+def even_odd_example() -> Program:
     '''
     # Goal
     even(V0):- odd(V1),prev(V0,V1).
@@ -67,7 +58,7 @@ def even_odd_example():
     # even odd example from
     # https://github.com/stassa/louise/blob/master/data/examples/even_odd.pl
 
-    background = [
+    background : 'list[str]' = [
         'even(0).',
         "prev(1,0).",
         "prev(2,1).",
@@ -75,36 +66,31 @@ def even_odd_example():
         "prev(4,3)."
     ]
     
-    # IMPORTANT: non usare . alla fine senno fallisce tutto
-    
-    positive_examples = [
-        ["odd(1) odd(3) even(2)", "", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("odd(1), odd(3), even(2)", ""), True)
     ]
-    
-    negative_examples = [
-        ["even(3)", ""],
-        ["even(1)", ""],
-        ["odd(2)", ""]
-        # "odd(0)"
+
+    negative_examples : 'list[Example]' = [
+        Example(("even(3)", ""), True),
+        Example(("even(1)", ""), True),
+        Example(("odd(2)", ""), True)
     ]
-    
-    language_bias_head = [
-        'modeh(1, even(+))',
-        'modeh(1, odd(+))'
+
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'even', "1"), True),
+        ModeDeclaration(("1", 'odd', "1"), True)
     ]
-    
-    language_bias_body = [
-        'modeb(1, even(+))', 
-        'modeb(1, odd(+))', 
-        'modeb(1, prev(+,+))'
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'odd', "1", "positive"), False),
+        ModeDeclaration(("2", 'prev', "2", "positive"), False)
     ]
-    
-    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
+
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
     
 
-def animals_bird_example():
+def animals_bird_example() -> Program:
     # from https://github.com/logic-and-learning-lab/Popper/tree/main/examples/animals_bird
-    background = [
+    background : 'list[str]' = [
         "feathers(feathers).",
         "scales(scales).",
         "hair(hair).",
@@ -156,48 +142,46 @@ def animals_bird_example():
         "has_gills(eel)."
     ]
     
-    # questi devono essere veri tutti nello stesso AS o in AS diversi?
-    # direi diversi
-    positive_examples = [
-        ["bird(eagle)", ""],
-        ["bird(ostrich)", ""],
-        ["bird(penguin)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("bird(eagle)", ""), True),
+        Example(("bird(ostrich)", ""), True),
+        Example(("bird(penguin)", ""), True)
     ]
-    
-    negative_examples = [
-        ["bird(dog)", ""],
-        ["bird(dolphin)", ""],
-        ["bird(platypus)", ""],
-        ["bird(bat)", ""],
-        ["bird(trout)", ""],
-        ["bird(herring)", ""],
-        ["bird(shark)", ""],
-        ["bird(eel)", ""],
-        ["bird(lizard)", ""],
-        ["bird(crocodile)", ""],
-        ["bird(t_rex)", ""],
-        ["bird(snake)", ""],
-        ["bird(turtle)", ""]
-    ]
-    
-    language_bias_head = [
-        'modeh(1, bird(+))'
-    ]
-    
-    language_bias_body = [        
-        'modeb(1, feathers(+))',
-        'modeb(1, scales(+))',
-        'modeb(1, hair(+))',
-        'modeb(2, has_covering(+,+))',
-        'modeb(1, has_milk(+))',
-        'modeb(1, homeothermic(+))',
-        'modeb(1, has_eggs(+))',
-        'modeb(1, has_gills(+))'
-    ]
-    
-    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
 
-def coloring_example():
+    negative_examples : 'list[Example]' = [
+        Example(("bird(dog)", ""), False),
+        Example(("bird(dolphin)", ""), False),
+        Example(("bird(platypus)", ""), False),
+        Example(("bird(bat)", ""), False),
+        Example(("bird(trout)", ""), False),
+        Example(("bird(herring)", ""), False),
+        Example(("bird(shark)", ""), False),
+        Example(("bird(eel)", ""), False),
+        Example(("bird(lizard)", ""), False),
+        Example(("bird(crocodile)", ""), False),
+        Example(("bird(t_rex)", ""), False),
+        Example(("bird(snake)", ""), False),
+        Example(("bird(turtle)", ""), False)
+    ]
+    
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'bird', "1"), True)
+    ]
+
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'feathers', "1", "positive"), False),
+        ModeDeclaration(("1", 'scales', "1", "positive"), False),
+        ModeDeclaration(("1", 'hair', "1", "positive"), False),
+        ModeDeclaration(("2", 'has_covering', "2", "positive"), False),
+        ModeDeclaration(("1", 'has_milk', "1", "positive"), False),
+        ModeDeclaration(("1", 'homeothermic', "1", "positive"), False),
+        ModeDeclaration(("1", 'has_eggs', "1", "positive"), False),
+        ModeDeclaration(("1", 'has_gills', "1", "positive"), False)
+    ]
+    
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
+
+def coloring_example() -> Program:
     '''
     # Original program
     red(X) ; green(X) ; blue(X) :- node(X).
@@ -224,7 +208,7 @@ def coloring_example():
     :- e(X,Y), green(X), green(Y).
     :- e(X,Y), blue(X), blue(Y).
     '''
-    background = [
+    background : 'list[str]' = [
         "edge(1, 2).",
         "edge(1, 3).",
         "edge(2, 5).",
@@ -238,62 +222,52 @@ def coloring_example():
         "node(1..6)."
     ]
     
-    # IMPORTANT: non usare . alla fine senno fallisce tutto
-    # esempi positivi: lista di stringhe con atomi separati
-    # da spazi (stessa struttura di un AS output di clingo). 
-    # Ciascuna stringa identifica un insieme di atomi che 
-    # devono essere presenti nell'answer set. Per esempio
-    # ["odd(1) odd(3) even(2)"] significa che
-    # deve esistere almeno 1 answer set tale che tutti e tre
-    # gli atomi sopra siano veri nello stesso answer set.
-    # Se invece ho ["odd(1)","odd(3)"] ho 2 esempi positivi
-    # che impongono che cia sia almeno 1 answer set con odd(1)
-    # ed almeno 1 answer set con odd(3). In questo esempio sono
-    # equivalenti
-    
-    positive_examples = [
-        ["red(1) blue(2) blue(3) red(4) green(5) red(6)", ""],
-        ["red(1) blue(2) green(3) blue(4) green(5) red(6)", ""],
-        ["red(1) blue(2) green(3) red(4) green(5) red(6)", ""],
-        ["green(1) blue(2) red(3) blue(4) green(5) red(6)", ""],
-        ["green(1) blue(2) blue(3) red(4) green(5) red(6)", ""],
-        ["red(1) blue(2) green(3) blue(4) red(5) green(6)", ""]
+    # each string identifies a set of atoms that should be present in an AS.
+    # ["odd(1) odd(3) even(2)"] means that it should exist at least one AS
+    # where all the three are true..
+    # If I have N positive examples, there should be at least one AS including each
+    # example.
+
+    positive_examples : list[Example] = [
+        Example(("red(1), blue(2), blue(3), red(4), green(5), red(6)", ""), True),
+        Example(("red(1), blue(2), green(3), blue(4), green(5), red(6)", ""), True),
+        Example(("red(1), blue(2), green(3), red(4), green(5), red(6)", ""), True),
+        Example(("green(1), blue(2), red(3), blue(4), green(5), red(6)", ""), True),
+        Example(("green(1), blue(2), blue(3), red(4), green(5), red(6)", ""), True),
+        Example(("red(1), blue(2), green(3), blue(4), red(5), green(6)", ""), True)
     ]
 
-    # esempi negativi: stessa struttura di quelli positivi.
-    # Ciascun esempio negativo
-    # ci dice che cosa non deve contenere un AS. Per esempio
-    # [ "even(3) even(1) odd(2)" ] dice che non deve
-    # esistere un AS che abbia al suo interno tutti e 3 gli atomi.
-    negative_examples = [
-        ["red(1) red(2)", ""],
-        ["red(1) red(3)", ""],
-        ["blue(1) blue(2)", ""],
-        ["green(3) green(4)", ""]
+    # [ "even(3) even(1) odd(2)" ] states that there should not exist an AS
+    # where all the three are true.
+    negative_examples : list[Example] = [
+        Example(("red(1), red(2)", ""), False),
+        Example(("red(1), red(3)", ""), False),
+        Example(("blue(1), blue(2)", ""), False),
+        Example(("green(3), green(4)", ""), False)
     ]
 
-    language_bias_head = [
-        'modeh(1, red(+))',
-        'modeh(1, green(+))',
-        'modeh(1, blue(+))'
+    language_bias_head : list[ModeDeclaration] = [
+        ModeDeclaration(("1", 'red', "1"), True),
+        ModeDeclaration(("1", 'green', "1"), True),
+        ModeDeclaration(("1", 'blue', "1"), True)
     ]
 
-    language_bias_body = [
-        'modeb(1, e(+, +))', 
-        'modeb(2, red(+))', 
-        'modeb(2, green(+))',
-        'modeb(2, blue(+))',
-        'modeb(1, node(+))'
+    language_bias_body : list[ModeDeclaration] = [
+        ModeDeclaration(("1", 'node', "1", "positive"), False),
+        ModeDeclaration(("1", 'edge', "2", "positive"), False),
+        ModeDeclaration(("2", 'red', "1", "positive"), False),
+        ModeDeclaration(("2", 'green', "1", "positive"), False),
+        ModeDeclaration(("2", 'blue', "1", "positive"), False)
     ]
     
-    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
-def sudoku():
+def sudoku() -> Program:
     '''
-    Sudoku example from ILASP
+    Sudoku example from ILASP.
     '''
-    background = [
+    background : 'list[str]' = [
         "cell((1..4,1..4)).",
         "block((X, Y), tl) :- cell((X, Y)), X < 3, Y < 3.",
         "block((X, Y), tr) :- cell((X, Y)), X > 2, Y < 3.",
@@ -305,31 +279,29 @@ def sudoku():
         "1 {value(V1,1);value(V1,2);value(V1,3);value(V1,4) } 1 :- same_block(V2,V1)."
     ]
     
-    positive_examples = [
-        ["value((1,1),1) value((1,2),2) value((1,3),3) value((1,4),4) value((2,3),2)",
-         "value((1,1),2) value((1,1),3) value((1,1),4)"]
-    ]
-    
-    negative_examples = [
-        ["value((1,1),1) value((1,3),1)", ""],
-        ["value((1,1),1) value((3,1),1)", ""],
-        ["value((1,1),1) value((2,2),1)", ""]
-    ]
-    
-    language_bias_head : 'list[str]' = []
-    
-    language_bias_body = [
-        'modeb(2, value(+, +))', 
-        'modeb(1, same_row(+, +))', 
-        'modeb(1, same_block(+,+))',
-        'modeb(1, same_col(+,+))'
-        # 'modeb(1, cell(+))'
+    positive_examples : 'list[Example]' = [
+        Example(("value((1,1),1) value((1,2),2) value((1,3),3) value((1,4),4) value((2,3),2)", "value((1,1),2) value((1,1),3) value((1,1),4)"), True)
     ]
 
-    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
+    negative_examples : 'list[Example]' = [
+        Example(("value((1,1),1) value((1,3),1)", ""), False),
+        Example(("value((1,1),1) value((3,1),1)", ""), False),
+        Example(("value((1,1),1) value((2,2),1)", ""), False)
+    ]
+    
+    language_bias_head : 'list[ModeDeclaration]' = []
+
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("2", 'value', "2", "positive"), False),
+        ModeDeclaration(("1", 'same_row', "2", "positive"), False),
+        ModeDeclaration(("1", 'same_col', "2", "positive"), False),
+        ModeDeclaration(("1", 'same_block', "2", "positive"), False)
+    ]
+
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
-def euclid_example():
+def euclid_example() -> Program:
     '''
     Models Euclid's algorithm.
     #const a=4.
@@ -349,7 +321,7 @@ def euclid_example():
     eucl(A,B,M) :- num(A),num(B), zero(Z), A > B, B > Z, D = A \ B, eucl(B,D,M).
     '''
     # background knowledge
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "#const a=4.",
         "#const b=2.",
         "num(0..A) :- A = #max{a;b}.",
@@ -359,37 +331,31 @@ def euclid_example():
     ]
 
     # positive examples
-    pe : 'list[list[str]]' = [
-        ["pairprime(4,3) pairprime(3,2) pairprime(2,3) pairprime(3,4)",""]
+    positive_examples : 'list[Example]' = [
+        Example(("pairprime(4,3) pairprime(3,2) pairprime(2,3) pairprime(3,4)", ""), True)
     ]
-
-    # negative examples
-    ne : 'list[list[str]]' = [
-        ["pairprime(4,2)", ""],
-        ["pairprime(2,4)", ""],
-        ["pairprime(1,2)", ""],
-        ["pairprime(2,1)", ""]
+    negative_examples : 'list[Example]' = [
+        Example(("pairprime(4,2)", ""), False),
+        Example(("pairprime(2,4)", ""), False),
+        Example(("pairprime(1,2)", ""), False),
+        Example(("pairprime(2,1)", ""), False)
     ]
 
     # mode bias for the head
-    lbh : 'list[str]' = [
-        "modeh(1, eucl(+,+,+))"
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "eucl", "3"), True)
+    ]
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "euc", "3", "positive"), False),
+        ModeDeclaration(("1", "zero", "1", "positive"), False),
+        ModeDeclaration(("2", "num", "1", "positive"), False)
     ]
 
-    # mode bias for the body
-    lbb : 'list[str]' = [
-        "modeb(1, eucl(+,+,+))",
-        "modeb(1, zero(+))",
-        "modeb(2, num(+))",
-    ]
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
-    return bg, pe, ne, lbh, lbb
-
-def penguin_example():
+def penguin_example() -> Program:
     '''
-    TODO: questo programma non ha soluzione perché imparo solamente
-    regole con solo variabili. Questo richiede anche regole con una
-    costante.
+    % this requires constants so it cannot be currently solved.
     
     % Programma
     bird(a).
@@ -436,7 +402,7 @@ def penguin_example():
     return background, positive_examples, negative_examples, language_bias_head, language_bias_body
 
 
-def adjacent_to_red_example():
+def adjacent_to_red_example() -> Program:
     # from https://github.com/metagol/metagol/blob/master/examples/adjacent-to-red.pl
     # goal target(A) :- edge(A,B),colour(B,C),red(C).
     bg = [
@@ -478,7 +444,7 @@ def adjacent_to_red_example():
     return bg, pe, ne, lbh, lbb
 
 
-def grandparent_example():
+def grandparent_example() -> Program:
     # from metagol
     '''
     % solution
@@ -516,7 +482,7 @@ def grandparent_example():
     return bg, pe, ne, lbh, lbb
 
 
-def subset_sum():
+def subset_sum() -> Program:
     '''
     % Subset sum problem.
     {el(1)}.
@@ -527,24 +493,23 @@ def subset_sum():
     s(S):- S = #sum{X : el(X)}.
     :- s(S), S != 6.
     '''
-    bg : 'list[str]' = ["{el(1)}.", "{el(2)}.", "{el(3)}.", "{el(4)}.", "{el(5)}."]
+    background : 'list[str]' = ["{el(1)}.", "{el(2)}.", "{el(3)}.", "{el(4)}.", "{el(5)}."]
 
-    pe : 'list[list[str]]' = [
-        ["s(6)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("s(6)", ""), True)
+    ]
+    negative_examples : 'list[Example]' = []
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 's', "1"), True)
+    ]
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'el', "1"), False)
     ]
 
-    ne : 'list[list[str]]' = [
-        # ["s(5)", ""]
-    ]
-
-    lbh : 'list[str]' = ['modeh(1, s(+))']
-
-    lbb : 'list[str]' = ['modeb(1, s(+))']
-
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
-def subset_sum_double():
+def subset_sum_double() -> Program:
     '''
     % Double subset sum problem.
     {el(1,2)}.
@@ -594,7 +559,7 @@ def subset_sum_double():
     return bg, pe, ne, lbh, lbb
 
 
-def subset_sum_double_and_sum():
+def subset_sum_double_and_sum() -> Program:
     '''
     % Double subset sum problem.
     {el(1,2)}.
@@ -2171,108 +2136,73 @@ def user_defined():
 
     return bg, pe, ne, lbh, lbb
 
-def run_example(example : str) -> 'tuple[list[str],list[list[str]],list[list[str]],list[str],list[str]]':
+def run_example(example : str) -> Program:
     '''
     Runs the selected example
     '''
     if example == "coin":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = coin_example()
-        # print(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
+        return coin_example()
     elif example == "even_odd":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = even_odd_example()
+        return even_odd_example()
     elif example == "animals_bird":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = animals_bird_example()
+        return animals_bird_example()
     # elif example == "penguin":
-    #     background, positive_examples, negative_examples,\
-    #     language_bias_head, language_bias_body = penguin_example()
+    #     return penguin_example()
     elif example == "coloring":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = coloring_example()
+        return coloring_example()
     elif example == "adjacent_to_red":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = adjacent_to_red_example()
+        return adjacent_to_red_example()
     elif example == "grandparent":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = grandparent_example()
+        return grandparent_example()
     elif example == "sudoku":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = sudoku()
+        return sudoku()
     elif example == "euclid":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = euclid_example()
-    # elif example == "dummy":
-    #     background, positive_examples, negative_examples,\
-    #     language_bias_head, language_bias_body = dummy()
+        return euclid_example()
     elif example == "subset_sum":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = subset_sum()
+       return subset_sum()
     elif example == "subset_sum_double":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = subset_sum_double()
+        return subset_sum_double()
     elif example == "subset_sum_double_and_sum":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = subset_sum_double_and_sum()
+        return subset_sum_double_and_sum()
     elif example == "subset_sum_double_and_prod":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = subset_sum_double_and_prod()
+        return subset_sum_double_and_prod()
     elif example == "subset_sum_triple":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = subset_sum_triple()
+        return subset_sum_triple()
     elif example == "knapsack":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = knapsack()
+        return knapsack()
     elif example == "4queens":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = n_4queens()
+        return n_4queens()
     elif example == "5queens":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = n_5queens()
+        return n_5queens()
     elif example == "clique":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = clique()
+        return clique()
     elif example == "hamming_0":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = hamming(0, False)
+        return hamming(0, False)
     elif example == "hamming_1":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = hamming(1, False)
+        return hamming(1, False)
     # elif example == "harder_hamming_0":
-    #     background, positive_examples, negative_examples,\
-    #     language_bias_head, language_bias_body = hamming(0, True)
+    #     return hamming(0, True)
     # elif example == "harder_hamming_1":
-    #     background, positive_examples, negative_examples,\
-    #     language_bias_head, language_bias_body = hamming(1, True)
+    #     return hamming(1, True)
     # elif example == "partition":
-    #     background, positive_examples, negative_examples,\
-    #     language_bias_head, language_bias_body = partition()
+    #     rerurn partition()
     elif example == "magic_square_no_diag":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = magic_square_no_diag()
+        return magic_square_no_diag()
     elif example == "latin_square":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = latin_square()
+        return latin_square()
     elif example == "set_partition_sum":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = set_partition_sum()
+        return set_partition_sum()
     elif example == "set_partition_sum_and_cardinality":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = set_partition_sum_and_cardinality()
+        return set_partition_sum_and_cardinality()
     elif example == "set_partition_sum_new":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = set_partition_new(False)
+        return set_partition_new(False)
     elif example == "set_partition_sum_and_cardinality_new":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = set_partition_new(True)
+        return set_partition_new(True)
     elif example == "set_partition_sum_cardinality_and_square":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = set_partition_sum_cardinality_and_square()
+        return set_partition_sum_cardinality_and_square()
     elif example == "user_defined":
-        background, positive_examples, negative_examples,\
-        language_bias_head, language_bias_body = user_defined()
+        return user_defined()
     else:
         print_error_and_exit("Example not found")
     
-    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
+    return Program([],[],[],[],[])
