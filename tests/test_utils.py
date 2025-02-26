@@ -52,6 +52,7 @@ class TestUnit:
         # res = (obt_list, obt[1])
         assert res == expected
     
+    @pytest.mark.skip("Deprecated")
     @pytest.mark.parametrize("interpretations, positive, expected", [
         ([['odd(1) odd(3) even(2)', 'odd(2)', 'cd(4)']], True, "cpi(0):-odd(1),odd(3),even(2).cpe(0):-odd(2).cd(4)."),
         ([['odd(1) odd(3) even(2)', 'odd(2)', 'cd(4)']], False, "cni(0):-odd(1),odd(3),even(2).cne(0):-odd(2).cd(4).")
