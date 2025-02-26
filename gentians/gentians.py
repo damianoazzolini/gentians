@@ -141,16 +141,6 @@ def main():
     if args.version:
         sys.exit()
 
-    background = []
-    positive_examples = []
-    negative_examples = []
-    language_bias_head = []
-    language_bias_body = []
-
-    # print(args.example)
-
-    # sys.exit()
-
     if not args.example:
         if args.filename:
             p = Parser(args.filename)
@@ -161,15 +151,7 @@ def main():
         # background, positive_examples, negative_examples, language_bias_head, language_bias_body = run_example(args.example)
         program = run_example(args.example)
 
-    s = Solver(
-        # background, 
-        # positive_examples, 
-        # negative_examples, 
-        # language_bias_head, 
-        # language_bias_body,
-        program,
-        args
-    )
+    s = Solver(program, args)
 
     s.solve()
 

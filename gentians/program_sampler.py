@@ -10,58 +10,38 @@ from .parser import ModeDeclaration
 # number of underscore for placeholders in atoms
 # UNDERSCORE_SIZE = 5
 
-# class Literal:
-#     def __init__(self, name : str, arity : int, recall : int, can_be_negated : bool = False) -> None:
-#         self.name = name
-#         self.arity = arity
-#         self.recall = recall
-#         self.can_be_negated = can_be_negated
-        
-#     def __str__(self) -> str:
-#         return f"\n{self.name} - Arity {self.arity} - Recall {self.recall} - Negated {self.can_be_negated}"
 
-#     def __repr__(self) -> str:
-#         return self.__str__()
+class Literal:
+    def __init__(self,
+            mode_bias : ModeDeclaration,
+            negated : bool,
+            index_in_mode_bias_list : int
+        ) -> None:
+        self.mode_bias : ModeDeclaration = mode_bias
+        self.negated : bool = negated
+        self.index_in_mode_bias_list : int = index_in_mode_bias_list
 
-#     @staticmethod
-#     def parse_mode_from_string(modeb : str, head_or_body : str) -> 'Literal':
-#         # modeb/modeh(1, bird(+))
-#         # print(modeb)
-#         modeb = modeb.replace(f'{head_or_body}(','')[:-1]
-#         # first occurrence of , identifies the two fields
-#         pos = modeb.find(',')
-#         recall = modeb[0 : pos]
-        
-#         if recall == '*':
-#             recall = -9999
-#         else:
-#             recall = int(recall)
-        
-#         atom = modeb[pos + 1 : ]
-#         negated = False
-#         if atom.lstrip().startswith('not '):
-#             negated = True
-#         if negated:
-#             name = atom.lstrip()[4:].split('(')[0]
-#         else:
-#             name = atom.lstrip().split('(')[0]
-#         if '(' in atom and not(',' in atom):
-#             arity = 1
-#         else:
-#             arity = atom.count(',') + 1
+    def get_stub_representation(self) -> str:
+        """
+        Returns the string representation of the mode declaration.
+        """
+        s = self.mode_bias.name
+        if self.mode_bias.arity > 0:
+            s += '('
+            for i in range(0, self.mode_bias.arity):
+                s += ('_' * UNDERSCORE_SIZE) + ','
+            s = s[:-1] + ')'
+        return s if (not self.negated) else f"not {s}"
 
-#         return Literal(name, arity, recall, negated)
+    def __str__(self) -> str:
+        return f"{'negated' if self.negated else ''} {self.mode_bias}"
+    def __repr__(self) -> str:
+        return self.__str__()
 
-
-#     def get_str_representation(self, negated : bool = False) -> str:
-#         s = self.name
-#         if self.arity > 0:
-#             s += '('
-#             for i in range(0,self.arity):
-#                 s += ('_' * UNDERSCORE_SIZE) + ','
-#             s = s[:-1] + ')'
-#         return s if (not negated) else f"not {s}"
-
+class Clause:
+    def __init__(self, head : 'list[Literal]', body : 'list[Literal]') -> None:
+        self.head : 'list[Literal]' = head
+        self.body : 'list[Literal]' = body
 
 class ProgramSampler:
     def __init__(
@@ -73,14 +53,6 @@ class ProgramSampler:
         self.args : Arguments = args
         self.language_bias_head : 'list[ModeDeclaration]' = language_bias_head
         self.language_bias_body : 'list[ModeDeclaration]' = language_bias_body
-
-        # # print(language_bias_head)
-        # for el in language_bias_head:
-        #     self.head_atoms.append(Literal.parse_mode_from_string(el, "modeh"))
-
-        # # print(language_bias_body)
-        # for el in language_bias_body:
-        #     self.body_literals.append(Literal.parse_mode_from_string(el, "modeb"))
         
         # # True if we are sampling for a constraint, changed every iteration
         self.body_constraint : bool = False
@@ -102,111 +74,111 @@ class ProgramSampler:
                 # compute the cartesian product between aggregates and body atoms
                 # ex: modeb a/1 and b/1 and aggregates #sum e #count i get
                 # #sum{X : a(X)} #count{X : a(X)} #sum{X : b(X)} #count{X : b(X)}
-                # self.body_literals.append(Literal(f"__{el}",1,1,False))
-                self.language_bias_body.append(ModeDeclaration(("1",f"__{el}","1","positive"), False))
+                # self.language_bias_body.append(ModeDeclaration(("1",f"__{el}","1","positive"), False))
+                md = ModeDeclaration(("1","","1","positive"), False)
+                md.add_aggregate(el)
+                self.language_bias_body.append(md)
         
         # sys.exit()
         if self.args.arithmetic_operators:
             for el in self.args.arithmetic_operators:
                 # self.body_literals.append(Literal(f"__{el}__",3,1,False))
-                self.language_bias_body.append(ModeDeclaration(("1",f"__{el}__","3","positive"), False))
+                # self.language_bias_body.append(ModeDeclaration(("1",f"__{el}__","3","positive"), False))
+                md = ModeDeclaration(("1",f"__{el}__","3","positive"), False)
+                md.arithmetic_operator = el
+                self.language_bias_body.append(md)
         
         if self.args.comparison_operators:
             for el in self.args.comparison_operators:
                 # self.body_literals.append(Literal(f"__{el}__",2,1,False))
-                self.language_bias_body.append(ModeDeclaration(("1",f"__{el}__","2","positive"), False))
+                # self.language_bias_body.append(ModeDeclaration(("1",f"__{el}__","2","positive"), False))
+                md = ModeDeclaration(("1",f"__{el}__","2","positive"), False)
+                md.comparison_operator = el
+                self.language_bias_body.append(md)
                 
 
-    def __replace_operators(self, body : 'list[str]') -> 'list[list[str]]':
+    def __replace_operators(self, body : 'list[Literal]') -> 'list[list[str]]':
         '''
         Replaces the placeholder names with the comparison or arithmetic operator.
         The boolean is false if the number of operators is the same as the number
         of atoms in the body, i.e, the clause is not valid (removed).
         '''
-        # TODO: improve this, it is awful.
-        body_literals = body
-        # print(body_literals)
-        placeholder = 5*'_'
-        operators_count = 0
+        body_literals : 'list[str]' = []
         aggregates_indexes : list[int] = []
-        all_aggr : 'list[list[str]]' = []
+        all_aggregates : 'list[list[str]]' = []
+        placeholder = UNDERSCORE_SIZE*'_'
+        operators_count = 0
+        to_append : str = ""
+
         for i, el in enumerate(body):
             operators_count += 1
             # comparison
-            if el.startswith("__lt__"):
-                body_literals[i] = placeholder + "<" + placeholder
-            if el.startswith("__leq__"):
-                body_literals[i] = placeholder + "<=" + placeholder
-            elif el.startswith("__gt__"):
-                body_literals[i] = placeholder + ">" + placeholder
-            elif el.startswith("__geq__"):
-                body_literals[i] = placeholder + ">=" + placeholder
-            elif el.startswith("__eq__"):
-                body_literals[i] = placeholder + "==" + placeholder
-            elif el.startswith("__neq__"):
-                body_literals[i] = placeholder + "!=" + placeholder
+            if el.mode_bias.arithmetic_operator == "lt":
+                to_append = placeholder + "<" + placeholder
+            if el.mode_bias.arithmetic_operator == "leq":
+                to_append = placeholder + "<=" + placeholder
+            elif el.mode_bias.arithmetic_operator == "gt":
+                to_append = placeholder + ">" + placeholder
+            elif el.mode_bias.arithmetic_operator == "geq":
+                to_append = placeholder + ">=" + placeholder
+            elif el.mode_bias.arithmetic_operator == "eq":
+                to_append = placeholder + "==" + placeholder
+            elif el.mode_bias.arithmetic_operator == "neq":
+                to_append = placeholder + "!=" + placeholder
             # arithmetic
-            elif el.startswith("__add__"):
-                body_literals[i] = f"{placeholder}+{placeholder}={placeholder}"
-            elif el.startswith("__sub__"):
-                body_literals[i] = f"{placeholder}-{placeholder}={placeholder}"
-            elif el.startswith("__mul__"):
-                body_literals[i] = f"{placeholder}*{placeholder}={placeholder}"
-            elif el.startswith("__div__"):
-                body_literals[i] = f"{placeholder}/{placeholder}={placeholder}"
-            elif el.startswith("__abs__"):
-                body_literals[i] = f"|{placeholder}-{placeholder}|={placeholder}"
+            elif el.mode_bias.arithmetic_operator == "add":
+                to_append = placeholder + "+" + placeholder + "=" + placeholder
+            elif el.mode_bias.arithmetic_operator == "sub":
+                to_append = placeholder + "-" + placeholder + "=" + placeholder
+            elif el.mode_bias.arithmetic_operator == "mul":
+                to_append = placeholder + "*" + placeholder + "=" + placeholder
+            elif el.mode_bias.arithmetic_operator == "div":
+                to_append = placeholder + "/" + placeholder + "=" + placeholder
+            elif el.mode_bias.arithmetic_operator == "abs":
+                to_append = "|" + placeholder + "-" + placeholder + "|=" + placeholder
             # aggregates
-            elif el.startswith("__sum(") or el.startswith("__count(") or el.startswith("__min(") or el.startswith("__max("):
-                inc = 0
-                if el.startswith("__count("):
-                    inc = 2
-                agg = el[2:5 + inc]
-                pos = el[6 + inc : ].find(')')
-                atom_to_aggregate = el[6 + inc : pos + 6 + inc]
-                max_arity = 0
-                names : 'list[str]' = []
-                arities : 'list[int]' = []
-                for atom_in_agg in atom_to_aggregate.split(','):
-                    names.append(atom_in_agg.split('/')[0])
-                    arities.append(int(atom_in_agg.split('/')[1]))
-                    max_arity = max_arity + int(atom_in_agg.split('/')[1])
-
-                # if self.unbalanced_aggregates
-                # sum/2 -> #sum{ _ : a(_,_)} e #sum{ _, _ : a(_,_)}
-                if self.args.unbalanced_aggregates:
-                    current : 'list[str]' = []
-                    for current_arity in range(1, max_arity + 1):
-                        ph = ','.join([UNDERSCORE_SIZE*'_'] * int(current_arity))
-                        atoms_in_agg = ":"
-                        for name, arity in zip(names,arities):
-                            ph_atom = ','.join([UNDERSCORE_SIZE*'_'] * int(arity))
-                            atoms_in_agg += f"{name}({ph_atom}),"
-                        current.append("#" + agg + "{" + ph + atoms_in_agg[:-1] + "}=" + UNDERSCORE_SIZE*'_')
-                    all_aggr.append(current)
-                else:
-                    atoms_in_agg = ":"
-                    for name, arity in zip(names,arities):
+            elif el.mode_bias.aggregation_function != "":
+                total_number_of_variables : int = sum([int(x[1]) for x in el.mode_bias.aggregation_atoms])
+                if not self.args.unbalanced_aggregates:
+                    # atoms_in_agg = ":"
+                    atoms_in_agg : 'list[str]' = []
+                    ph = ','.join([UNDERSCORE_SIZE*'_'] * total_number_of_variables)
+                    for name, arity in el.mode_bias.aggregation_atoms:
                         ph_atom = ','.join([UNDERSCORE_SIZE*'_'] * int(arity))
-                        atoms_in_agg += f"{name}({ph_atom}),"
-                    ph = ','.join([UNDERSCORE_SIZE*'_'] * sum(arities))
-                    body_literals[i] = "#" + agg + "{" + ph + atoms_in_agg[:-1] + "}=" + UNDERSCORE_SIZE*'_'
+                        atoms_in_agg.append(f"{name}({ph_atom})")
+                    to_append = "#" + el.mode_bias.aggregation_function + "{" + ph + ":" + ','.join(atoms_in_agg) + "}=" + UNDERSCORE_SIZE*'_'
+                else:
+                    # if self.unbalanced_aggregates
+                    # sum/2 -> #sum{ _ : a(_,_)} e #sum{ _, _ : a(_,_)}
+                    current : 'list[str]' = []
+                    for current_arity in range(1, total_number_of_variables + 1):
+                        ph = ','.join([UNDERSCORE_SIZE*'_'] * int(current_arity))
+                        atoms_in_agg : 'list[str]' = []
+                        for name, arity in el.mode_bias.aggregation_atoms:
+                            ph_atom = ','.join([UNDERSCORE_SIZE*'_'] * int(arity))
+                            atoms_in_agg.append(f"{name}({ph_atom})")
+                        s = "#" + el.mode_bias.aggregation_function + "{" + ph + ":" + ','.join(atoms_in_agg) + "}=" + UNDERSCORE_SIZE*'_'
+                        current.append(s)
+                    all_aggregates.append(current)
 
                 operators_count -= 1
                 aggregates_indexes.append(i)
             else:
+                to_append = el.get_stub_representation()
                 operators_count -= 1
-
+            
+            # append the literal to the body
+            if to_append != "":
+                body_literals.append(to_append)
         
         nb : 'list[list[str]]' = []
-        for agg_comb in itertools.product(*all_aggr):
+        for agg_comb in itertools.product(*all_aggregates):
             cb = body_literals[:]
-            for agg, index in zip(agg_comb,aggregates_indexes):
+            for agg, index in zip(agg_comb, aggregates_indexes):
                 cb[index] = agg
             nb.append(cb)
 
         return nb
-    
 
     def __define_distribution_atoms(
             self,
@@ -242,7 +214,8 @@ class ProgramSampler:
         return probs, False
 
 
-    def __sample_level_distr_recall(self, available_atoms : 'list[ModeDeclaration]') -> 'tuple[str,int]':
+    # def __sample_level_distr_recall(self, available_atoms : 'list[ModeDeclaration]') -> 'tuple[str,int]':
+    def __sample_level_distr_recall(self, available_atoms : 'list[ModeDeclaration]') -> 'Literal|None':
         '''
         Randomly samples an element if the recall is not 0
         '''
@@ -260,15 +233,15 @@ class ProgramSampler:
                 pos += 1
             
             negated = random.random() < 0.5 and (not available_atoms[pos].positive)
-            return available_atoms[pos].get_str_representation(negated), pos
-        else:
-            return "", -1
+            return Literal(copy.deepcopy(available_atoms[pos]), negated, pos)
+
+        return None
 
 
     def __sample_literals_list(self,
             literals_list : 'list[ModeDeclaration]',
             head : bool = False
-        ) -> 'list[str]':
+        ) -> 'list[Literal]':
         '''
         Samples a list of literals to be used in either in the head
         or in the body.
@@ -277,24 +250,21 @@ class ProgramSampler:
             discard the possibility to sample constraints with a single
             atom, i.e., :- a(_).)
         '''
-        list_indexes_sampled_literals : 'list[int]' = [] # indexes
-        sampled_list : 'list[str]' = []
+        # list_indexes_sampled_literals : 'list[Literal]' = [] # indexes
+        sampled_list : 'list[Literal]' = []
         depth = 0
         stop = (random.random() > self.args.prob_increase) if head else False
         max_depth_head = self.args.disjunctive_head_length
         
         while (not stop) and (depth < self.args.max_depth) and (max_depth_head > 0):
-            lv, sampled_literal_index = self.__sample_level_distr_recall(literals_list)
-            if sampled_literal_index == -1:
+            sampled_literal = self.__sample_level_distr_recall(literals_list)
+            if sampled_literal is None:
                 stop = True
             else:
-                list_indexes_sampled_literals.append(sampled_literal_index)
-                literals_list[sampled_literal_index].recall -= 1 # decrease the recall
-                if lv == '_stop_':
-                    stop = True
-                else:
-                    sampled_list.append(lv)
-                    # here we are in the body of a constraint: we need at least 2 atoms
+                # list_indexes_sampled_literals.append(sampled_literal_index)
+                literals_list[sampled_literal.index_in_mode_bias_list].recall -= 1 # decrease the recall
+                sampled_list.append(sampled_literal)
+                # here we are in the body of a constraint: we need at least 2 atoms
                 if self.body_constraint and depth == 0:
                     stop = False
                 else:
@@ -311,40 +281,40 @@ class ProgramSampler:
         '''
         original_depth : int = self.args.max_depth
         clauses : 'list[str]' = []
-        # not_merged_clauses = []
         
         for _ in range(0, how_many):
-            body : 'list[str]' = []
-            head : 'list[str]' = []
+            body : 'list[Literal]' = []
+            head : 'list[Literal]' = []
             
             if len(self.language_bias_head) > 0:
                 head = self.__sample_literals_list(copy.deepcopy(self.language_bias_head), True) # true allows constraints
                 self.body_constraint = (len(head) == 0)
-                # if len(head) == 0:
-                #     self.body_constraint = True
-                # else:
-                #     self.body_constraint = False
             
+        
             # decrease the depth since we already sampled atoms for the head
             self.args.max_depth -= len(head)
             
             # print(self.body_literals)
             body = self.__sample_literals_list(copy.deepcopy(self.language_bias_body))
-            
+
             # replace __lt__, __gt__, __eq__, __neq__, __add__, __sub__, __mul__
             # body, is_valid = self.__replace_operators(body)
-            body = self.__replace_operators(body) # TODO: fix this
+            body_list = self.__replace_operators(body) # TODO: fix this
             
             is_valid = True
             if is_valid and self.enable_recursion is False:
-                for b in body:
+                for b in body_list:
                     subs_h = set(head).issubset(set(b)) and len(set(head)) > 0
                     subs_b = set(b).issubset(set(head)) and len(set(b)) > 0
                     is_valid = not (subs_h or subs_b)
                     if is_valid:
-                        clauses.append(';'.join(sorted(head)) + ":- " + ','.join(sorted(b)) + '.')
+                        head_as_str : str = ';'.join(sorted([x.get_stub_representation() for x in head]))
+                        body_as_str : str = ','.join(sorted(b))
+                        cl = f"{head_as_str} :- {body_as_str}."
+                        clauses.append(cl)
                         # not_merged_clauses.append([sorted(head),sorted(b)])
-            # TODO: and what happens with enable recursion True?
+            else:
+                print("Still not implemented.")
             
             self.args.max_depth = original_depth
 

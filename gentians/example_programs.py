@@ -356,8 +356,7 @@ def euclid_example() -> Program:
 def penguin_example() -> Program:
     '''
     % this requires constants so it cannot be currently solved.
-    
-    % Programma
+    % Program.
     bird(a).
     bird(b).
     can(a, fly).
@@ -380,26 +379,25 @@ def penguin_example() -> Program:
         "ability(swim)."
     ]
 
-    positive_examples : 'list[str]' = [
-        "penguin(b)"
+    positive_examples : 'list[Example]' = [
+        Example(("penguin(b)", ""), True)
     ]
 
-    negative_examples : 'list[str]' = [
-        "penguin(a)"
+    negative_examples : 'list[Example]' = [
+        Example(("penguin(a)", ""), False)
     ]
 
-    language_bias_head : 'list[str]' = [
-        'modeh(1, penguin(+))'
-    ]
-    
-    # twice by now
-    language_bias_body : 'list[str]' = [
-        'modeb(2, not can(+,+))',
-        'modeb(1, bird(+))',
-        'modeb(1, ability(+))'
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'penguin', "1"), True)
     ]
 
-    return background, positive_examples, negative_examples, language_bias_head, language_bias_body
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'bird', "1", "positive"), False),
+        ModeDeclaration(("2", 'can', "2", "negative"), False),
+        ModeDeclaration(("1", 'ability', "1", "positive"), False)
+    ]
+
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def adjacent_to_red_example() -> Program:
