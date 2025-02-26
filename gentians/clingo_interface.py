@@ -1,8 +1,8 @@
 import clingo
 import sys
 
-from .utils import wrapper_exit_callback, generate_clauses_for_coverage_interpretations, WrapperStopIfWarn
-
+from .utils import wrapper_exit_callback, WrapperStopIfWarn
+from .parser import Example
 
 class Coverage:
     def __init__(self, l_pos : 'list[int]' = [], l_neg : 'list[int]' = []):
@@ -44,13 +44,52 @@ class ClingoInterface:
             print('Syntax error, parsing failed.')
 
         return ctl
+    
+    def _generate_clauses_for_coverage_interpretations(
+            self,
+            interpretations : 'list[Example]',
+            positive : bool
+        ) -> str:
+        '''
+        Generates the clauses for the ASP solver to check the coverage.
+        TODO: alternative ({a,b},{c,d}) <=> a,b,not c, not d instead
+        of two different rules.
+        '''
+        generated_str : str = ""
+        suffix : str = "cp" if positive else "cn"
+        cl_index = 0
+        # print(interpretations)
+        for example in interpretations:
+            # inclusion
+            if len(example.included) > 0:
+                r = f"{suffix}i({cl_index}):- {example.included}.\n"
+                generated_str += r
+            
+                # if len(example.excluded) > 1:
+                # exclusion
+            if len(example.excluded) > 0:
+                    # for atom in atoms[1].split(' '):
+                r = f"{suffix}e({cl_index}):- {example.excluded}.\n"
+                generated_str += r
+        
+                # if len(example.) > 2:
+                # context dependent examples
+                if len(example.context) > 0:
+                    # for atom in atoms[2].split(' '):
+                        # generated_str += atom + '.\n'
+                    generated_str += example.context + '.\n'
+            
+            cl_index += 1
+        generated_str += '\n'
+        
+        return generated_str
 
         
     def extract_coverage_and_set_clauses(self,
-        program : 'list[str]', 
-        interpretation_pos : 'list[list[str]]', 
-        interpretation_neg : 'list[list[str]]',
-        fixed : bool = True
+            program : 'list[str]', 
+            interpretation_pos : 'list[Example]', # positive examples
+            interpretation_neg : 'list[Example]', # negative examples
+            fixed : bool
         ) -> 'dict[str,Coverage]':
         '''
         Extracts the coverage for every subset of clauses.
@@ -76,13 +115,12 @@ class ClingoInterface:
             generated_program += f"{clause}\n"
 
         # add the sampled program
-        cl_index = 0
+        # cl_index = 0
         
-        for clause in program:
+        for cl_index, clause in enumerate(program):
             if not fixed:
                 r = f"r({cl_index})"
                 nc = clause[:-1] + f", {r}.\n"
-                # print(nc)
                 generated_program += nc
                 generated_program += "{" + r + "}.\n"
                 cl_index += 1
@@ -92,12 +130,12 @@ class ClingoInterface:
 
         if len(interpretation_pos) > 0:
             generated_program += f"pos_exs(0..{len(interpretation_pos)}).\n"
-            generated_program += generate_clauses_for_coverage_interpretations(
+            generated_program += self._generate_clauses_for_coverage_interpretations(
                 interpretation_pos, True)
         
         if len(interpretation_neg) > 0:
             generated_program += f"neg_exs(0..{len(interpretation_neg)}).\n"
-            generated_program += generate_clauses_for_coverage_interpretations(
+            generated_program += self._generate_clauses_for_coverage_interpretations(
                 interpretation_neg, False)
 
         generated_program += '''
@@ -117,7 +155,7 @@ class ClingoInterface:
             generated_program += "\n#show r/1."
         
         wrp = WrapperStopIfWarn()
-        ctl = clingo.Control(self.clingo_arguments, logger=wrp.wrapper_warn_undefined_callback)
+        ctl = clingo.Control(self.clingo_arguments, logger=wrp.wrapper_warn_undefined_callback) # type: ignore
         ctl.add('base', [], generated_program)
         ctl.ground([("base", [])])
         

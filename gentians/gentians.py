@@ -9,24 +9,27 @@ from .arguments import parse_arguments, version, Arguments
 from .example_programs import run_example
 from .program_sampler import ProgramSampler
 from .strategies import Strategy, PlacedClause
-from .utils import read_from_file, print_error_and_exit
+from .utils import print_error_and_exit
+from .parser import Parser, Program
 from .variable_placer import VariablePlacer
 
 
 class Solver:
     def __init__(self,
-        background : 'list[str]',
-        positive_examples : 'list[list[str]]',
-        negative_examples : 'list[list[str]]',
-        language_bias_head : 'list[str]',
-        language_bias_body : 'list[str]',
+        # background : 'list[str]',
+        # positive_examples : 'list[list[str]]',
+        # negative_examples : 'list[list[str]]',
+        # language_bias_head : 'list[str]',
+        # language_bias_body : 'list[str]',
+        program : Program,
         arguments : Arguments
         ) -> None:
-        self.background : 'list[str]' = background
-        self.positive_examples : 'list[list[str]]' = positive_examples
-        self.negative_examples : 'list[list[str]]' = negative_examples
-        self.language_bias_head : 'list[str]' = language_bias_head
-        self.language_bias_body : 'list[str]' = language_bias_body
+        # self.background : 'list[str]' = background
+        # self.positive_examples : 'list[list[str]]' = positive_examples
+        # self.negative_examples : 'list[list[str]]' = negative_examples
+        # self.language_bias_head : 'list[str]' = language_bias_head
+        # self.language_bias_body : 'list[str]' = language_bias_body
+        self.program : Program = program
         self.arguments : Arguments = arguments
 
     def solve(self) -> None:
@@ -37,7 +40,7 @@ class Solver:
         best_found : bool = False
         best_stub_for_next_round : 'list[str]' = []
 
-        sampler = ProgramSampler(self.language_bias_head,self.language_bias_body,self.arguments)
+        sampler = ProgramSampler(self.program.language_bias_head, self.program.language_bias_body, self.arguments)
 
         placer = VariablePlacer(self.arguments)
 
@@ -91,9 +94,10 @@ class Solver:
             start_time = time.time()
             current_strategy = Strategy(
                 placed_list_improved,
-                self.background,
-                self.positive_examples,
-                self.negative_examples,
+                self.program,
+                # self.background,
+                # self.positive_examples,
+                # self.negative_examples,
                 self.arguments
             )
 
@@ -149,18 +153,21 @@ def main():
 
     if not args.example:
         if args.filename:
-            background, positive_examples, negative_examples, language_bias_head, language_bias_body = read_from_file(args.filename)
+            p = Parser(args.filename)
+            program = p.read_from_file()
         else:
             print_error_and_exit("Specify a file with the task or an example")
     else:
-        background, positive_examples, negative_examples, language_bias_head, language_bias_body = run_example(args.example)
+        # background, positive_examples, negative_examples, language_bias_head, language_bias_body = run_example(args.example)
+        program = run_example(args.example)
 
     s = Solver(
-        background, 
-        positive_examples, 
-        negative_examples, 
-        language_bias_head, 
-        language_bias_body,
+        # background, 
+        # positive_examples, 
+        # negative_examples, 
+        # language_bias_head, 
+        # language_bias_body,
+        program,
         args
     )
 

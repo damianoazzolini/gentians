@@ -5,82 +5,84 @@ import itertools # to generate unbalanced aggregates
 
 from .arguments import Arguments
 from .utils import UNDERSCORE_SIZE, print_error_and_exit
+from .parser import ModeDeclaration
 
 # number of underscore for placeholders in atoms
 # UNDERSCORE_SIZE = 5
 
-class Literal:
-    def __init__(self, name : str, arity : int, recall : int, can_be_negated : bool = False) -> None:
-        self.name = name
-        self.arity = arity
-        self.recall = recall
-        self.can_be_negated = can_be_negated
+# class Literal:
+#     def __init__(self, name : str, arity : int, recall : int, can_be_negated : bool = False) -> None:
+#         self.name = name
+#         self.arity = arity
+#         self.recall = recall
+#         self.can_be_negated = can_be_negated
         
-    def __str__(self) -> str:
-        return f"\n{self.name} - Arity {self.arity} - Recall {self.recall} - Negated {self.can_be_negated}"
+#     def __str__(self) -> str:
+#         return f"\n{self.name} - Arity {self.arity} - Recall {self.recall} - Negated {self.can_be_negated}"
 
-    def __repr__(self) -> str:
-        return self.__str__()
+#     def __repr__(self) -> str:
+#         return self.__str__()
 
-    @staticmethod
-    def parse_mode_from_string(modeb : str, head_or_body : str) -> 'Literal':
-        # modeb/modeh(1, bird(+))
-        # print(modeb)
-        modeb = modeb.replace(f'{head_or_body}(','')[:-1]
-        # first occurrence of , identifies the two fields
-        pos = modeb.find(',')
-        recall = modeb[0 : pos]
+#     @staticmethod
+#     def parse_mode_from_string(modeb : str, head_or_body : str) -> 'Literal':
+#         # modeb/modeh(1, bird(+))
+#         # print(modeb)
+#         modeb = modeb.replace(f'{head_or_body}(','')[:-1]
+#         # first occurrence of , identifies the two fields
+#         pos = modeb.find(',')
+#         recall = modeb[0 : pos]
         
-        if recall == '*':
-            recall = -9999
-        else:
-            recall = int(recall)
+#         if recall == '*':
+#             recall = -9999
+#         else:
+#             recall = int(recall)
         
-        atom = modeb[pos + 1 : ]
-        negated = False
-        if atom.lstrip().startswith('not '):
-            negated = True
-        if negated:
-            name = atom.lstrip()[4:].split('(')[0]
-        else:
-            name = atom.lstrip().split('(')[0]
-        if '(' in atom and not(',' in atom):
-            arity = 1
-        else:
-            arity = atom.count(',') + 1
+#         atom = modeb[pos + 1 : ]
+#         negated = False
+#         if atom.lstrip().startswith('not '):
+#             negated = True
+#         if negated:
+#             name = atom.lstrip()[4:].split('(')[0]
+#         else:
+#             name = atom.lstrip().split('(')[0]
+#         if '(' in atom and not(',' in atom):
+#             arity = 1
+#         else:
+#             arity = atom.count(',') + 1
 
-        return Literal(name, arity, recall, negated)
+#         return Literal(name, arity, recall, negated)
 
 
-    def get_str_representation(self, negated : bool = False) -> str:
-        s = self.name
-        if self.arity > 0:
-            s += '('
-            for i in range(0,self.arity):
-                s += ('_' * UNDERSCORE_SIZE) + ','
-            s = s[:-1] + ')'
-        return s if (not negated) else f"not {s}"
+#     def get_str_representation(self, negated : bool = False) -> str:
+#         s = self.name
+#         if self.arity > 0:
+#             s += '('
+#             for i in range(0,self.arity):
+#                 s += ('_' * UNDERSCORE_SIZE) + ','
+#             s = s[:-1] + ')'
+#         return s if (not negated) else f"not {s}"
 
 
 class ProgramSampler:
     def __init__(
             self,
-            language_bias_head : 'list[str]',
-            language_bias_body : 'list[str]',
+            language_bias_head : 'list[ModeDeclaration]',
+            language_bias_body : 'list[ModeDeclaration]',
             args : Arguments
         ) -> None:
         self.args : Arguments = args
-        self.head_atoms : 'list[Literal]' = []
-        self.body_literals : 'list[Literal]' = []
-        # print(language_bias_head)
-        for el in language_bias_head:
-            self.head_atoms.append(Literal.parse_mode_from_string(el, "modeh"))
+        self.language_bias_head : 'list[ModeDeclaration]' = language_bias_head
+        self.language_bias_body : 'list[ModeDeclaration]' = language_bias_body
 
-        # print(language_bias_body)
-        for el in language_bias_body:
-            self.body_literals.append(Literal.parse_mode_from_string(el, "modeb"))
+        # # print(language_bias_head)
+        # for el in language_bias_head:
+        #     self.head_atoms.append(Literal.parse_mode_from_string(el, "modeh"))
+
+        # # print(language_bias_body)
+        # for el in language_bias_body:
+        #     self.body_literals.append(Literal.parse_mode_from_string(el, "modeb"))
         
-        # True if we are sampling for a constraint, changed every iteration
+        # # True if we are sampling for a constraint, changed every iteration
         self.body_constraint : bool = False
         
         # enable recursion: super carefully with aggregates since this may
@@ -100,16 +102,19 @@ class ProgramSampler:
                 # compute the cartesian product between aggregates and body atoms
                 # ex: modeb a/1 and b/1 and aggregates #sum e #count i get
                 # #sum{X : a(X)} #count{X : a(X)} #sum{X : b(X)} #count{X : b(X)}
-                self.body_literals.append(Literal(f"__{el}",1,1,False))
+                # self.body_literals.append(Literal(f"__{el}",1,1,False))
+                self.language_bias_body.append(ModeDeclaration(("1",f"__{el}","1","positive"), False))
         
         # sys.exit()
         if self.args.arithmetic_operators:
             for el in self.args.arithmetic_operators:
-                self.body_literals.append(Literal(f"__{el}__",3,1,False))
+                # self.body_literals.append(Literal(f"__{el}__",3,1,False))
+                self.language_bias_body.append(ModeDeclaration(("1",f"__{el}__","3","positive"), False))
         
         if self.args.comparison_operators:
             for el in self.args.comparison_operators:
-                self.body_literals.append(Literal(f"__{el}__",2,1,False))
+                # self.body_literals.append(Literal(f"__{el}__",2,1,False))
+                self.language_bias_body.append(ModeDeclaration(("1",f"__{el}__","2","positive"), False))
                 
 
     def __replace_operators(self, body : 'list[str]') -> 'list[list[str]]':
@@ -118,6 +123,7 @@ class ProgramSampler:
         The boolean is false if the number of operators is the same as the number
         of atoms in the body, i.e, the clause is not valid (removed).
         '''
+        # TODO: improve this, it is awful.
         body_literals = body
         # print(body_literals)
         placeholder = 5*'_'
@@ -203,8 +209,8 @@ class ProgramSampler:
     
 
     def __define_distribution_atoms(
-        self,
-        available_atoms : 'list[Literal]'
+            self,
+            available_atoms : 'list[ModeDeclaration]'
         ) -> 'tuple[list[float],bool]':
         '''
         Returns a list of float representing the probability
@@ -217,7 +223,7 @@ class ProgramSampler:
         try:
             probs = [1/len(available_atoms)] * len(available_atoms)
         except:
-            print_error_and_exit("No atoms available")
+            print_error_and_exit("No atoms available.")
         
         for i in range(len(available_atoms)):
             if available_atoms[i].recall <= 0 and available_atoms[i].recall != -9999:
@@ -236,7 +242,7 @@ class ProgramSampler:
         return probs, False
 
 
-    def __sample_level_distr_recall(self, available_atoms : 'list[Literal]') -> 'tuple[str,int]':
+    def __sample_level_distr_recall(self, available_atoms : 'list[ModeDeclaration]') -> 'tuple[str,int]':
         '''
         Randomly samples an element if the recall is not 0
         '''
@@ -253,17 +259,15 @@ class ProgramSampler:
                 v -= probs[pos]
                 pos += 1
             
-            return (
-                "not " if (random.random() < 0.5 and available_atoms[pos].can_be_negated) 
-                else ""
-                ) + available_atoms[pos].get_str_representation(), pos
+            negated = random.random() < 0.5 and (not available_atoms[pos].positive)
+            return available_atoms[pos].get_str_representation(negated), pos
         else:
             return "", -1
 
 
     def __sample_literals_list(self,
-        literals_list : 'list[Literal]',
-        head : bool = False
+            literals_list : 'list[ModeDeclaration]',
+            head : bool = False
         ) -> 'list[str]':
         '''
         Samples a list of literals to be used in either in the head
@@ -313,24 +317,23 @@ class ProgramSampler:
             body : 'list[str]' = []
             head : 'list[str]' = []
             
-            if len(self.head_atoms) > 0:
-                # if self.verbose:
-                #     print("No modeh specified")
-                head = self.__sample_literals_list(copy.deepcopy(self.head_atoms), True) # true allows constraints
-                if len(head) == 0:
-                    self.body_constraint = True
-                else:
-                    self.body_constraint = False
+            if len(self.language_bias_head) > 0:
+                head = self.__sample_literals_list(copy.deepcopy(self.language_bias_head), True) # true allows constraints
+                self.body_constraint = (len(head) == 0)
+                # if len(head) == 0:
+                #     self.body_constraint = True
+                # else:
+                #     self.body_constraint = False
             
             # decrease the depth since we already sampled atoms for the head
             self.args.max_depth -= len(head)
             
             # print(self.body_literals)
-            body = self.__sample_literals_list(copy.deepcopy(self.body_literals))
+            body = self.__sample_literals_list(copy.deepcopy(self.language_bias_body))
             
             # replace __lt__, __gt__, __eq__, __neq__, __add__, __sub__, __mul__
             # body, is_valid = self.__replace_operators(body)
-            body = self.__replace_operators(body)
+            body = self.__replace_operators(body) # TODO: fix this
             
             is_valid = True
             if is_valid and self.enable_recursion is False:

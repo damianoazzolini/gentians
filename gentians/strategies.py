@@ -5,6 +5,7 @@ import time
 
 from .clingo_interface import ClingoInterface
 from .arguments import Arguments
+from .parser import Program
 
 def compute_n_vars(clause : str):
     i = 0
@@ -56,16 +57,18 @@ class PlacedClause:
 class Strategy:
     def __init__(self,
             placed_list : 'list[PlacedClause]',
-            background : 'list[str]',
-            positive_examples : 'list[list[str]]',
-            negative_examples : 'list[list[str]]',
+            # background : 'list[str]',
+            # positive_examples : 'list[list[str]]',
+            # negative_examples : 'list[list[str]]',
+            program : Program,
             args : Arguments,
         ) -> None:
         # self.placed_list : 'list[list[str]]' = placed_list
         self.placed_list : 'list[PlacedClause]' = placed_list
-        self.background : 'list[str]' = background
-        self.positive_examples : 'list[list[str]]' = positive_examples
-        self.negative_examples : 'list[list[str]]' = negative_examples
+        self.program : Program = program
+        # self.background : 'list[str]' = background
+        # self.positive_examples : 'list[list[str]]' = positive_examples
+        # self.negative_examples : 'list[list[str]]' = negative_examples
         self.args : Arguments = args
         # maximum number of AS to generate: this helps when the program has a generator
         # and there are too many options
@@ -122,10 +125,10 @@ class Strategy:
             The score of an individual is the average of the scores.
             '''
             asp_solver = ClingoInterface(
-                self.background, [f'{self.max_as_to_generate_foreach_program}', '--project'])
+                self.program.background, [f'{self.max_as_to_generate_foreach_program}', '--project'])
 
             cov = asp_solver.extract_coverage_and_set_clauses(
-                program, self.positive_examples, self.negative_examples, False
+                program, self.program.positive_examples, self.program.negative_examples, False
             )
 
             # print(cov)
@@ -142,8 +145,8 @@ class Strategy:
                     cn : int = len(list(set(element_coverage.l_neg)))
 
                     # scores.append(math.exp((cp - cn)))
-                    v_pos = (cp/len(self.positive_examples)) if len(self.positive_examples) > 0 else 0
-                    v_neg = (cn/len(self.negative_examples)) if len(self.negative_examples) > 0 else 0
+                    v_pos = (cp/len(self.program.positive_examples)) if len(self.program.positive_examples) > 0 else 0
+                    v_neg = (cn/len(self.program.negative_examples)) if len(self.program.negative_examples) > 0 else 0
                     scores.append(math.exp((v_pos - v_neg)*10))
                     # consideration: here, [0,1] and [1,2] have the same score
                     # where the first element is the covered positive and the
@@ -153,7 +156,7 @@ class Strategy:
 
                     # print(self.positive_examples,self.negative_examples)
                     # print(cp,cn)
-                    if cp == len(self.positive_examples):
+                    if cp == len(self.program.positive_examples):
                         if cn == 0:
                             print(f"Best found with indexes {res}")
                             print(program)
