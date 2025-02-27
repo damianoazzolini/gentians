@@ -8,8 +8,10 @@ def extract_name_arity(atom : str) -> 'tuple[str,int]':
     """
     Extracts name and arity from an atom.
     """
-    pattern = r"(\w+)(?:\((.*?)\))?"
+    pattern = r"\{?(\w+)(?:\((.*?)\))?\}?"
     match = re.match(pattern, atom)
+    print(f"Match: {match}")
+    print(f"Atom: ->{atom}<-")
     if match:
         function_name = match.group(1)  # Extract function name
         args = match.group(2)  # Extract arguments (if any)
@@ -163,6 +165,17 @@ class Program:
             md = ModeDeclaration((str(recall), str(na[0]), str(na[1]), positive_or_negative), False)
             if md not in self.language_bias_body:
                 self.language_bias_body.append(md)
+
+    def invent_predicates(self, n_predicates : int) -> None:
+        """
+        Enables predicate invention: it adds n predicates in the 
+        modeh and modeb declarations.
+        """
+        for i in range(n_predicates):
+            self.language_bias_head.append(ModeDeclaration(("1", f"__inv_{i}__", "1"), True))
+            self.language_bias_head.append(ModeDeclaration(("1", f"__inv_{i}__", "2"), True))
+            self.language_bias_body.append(ModeDeclaration(("1", f"__inv_{i}__", "1", "positive"), False))
+            self.language_bias_body.append(ModeDeclaration(("1", f"__inv_{i}__", "2", "positive"), False))
 
 
     def __str__(self) -> str:

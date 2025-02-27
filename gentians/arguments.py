@@ -26,7 +26,7 @@ class Arguments:
         self.aggregates : 'list[str]' = args.aggregates
         self.comparison_operators : 'list[str]' = args.comparison
         self.arithmetic_operators : 'list[str]' = args.arithm
-        self.invention : int = args.invention
+        self.predicate_invention : int = args.invention
         self.automatic_language_bias : int = args.alb
         self.profile : bool = args.profile
         self.version : bool = args.version
@@ -193,6 +193,13 @@ def parse_arguments() -> 'Arguments':
         choices=["add","sub","mul","div","abs"]
     )
     command_parser.add_argument(
+        "--aggregates",
+        help="Enable aggregates. Example:\
+        --aggregates sum(a/1) count (a/1). Specify the atom to aggregate.", 
+        nargs='+',
+        required=False
+    )
+    command_parser.add_argument(
         "--cr",
         help="Enables the generation of choice rules.",
         action="store_true"
@@ -202,13 +209,6 @@ def parse_arguments() -> 'Arguments':
         help="Enables predicate invention with n predicates. Example --invention=1",
         type=int,
         default=0
-    )
-    command_parser.add_argument(
-        "--aggregates",
-        help="Enable aggregates. Example:\
-        --aggregates sum(a/1) count (a/1). Specify the atom to aggregate.", 
-        nargs='+',
-        required=False
     )
     command_parser.add_argument(
         "-alb",

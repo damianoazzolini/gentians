@@ -95,9 +95,6 @@ class Solver:
             current_strategy = Strategy(
                 placed_list_improved,
                 self.program,
-                # self.background,
-                # self.positive_examples,
-                # self.negative_examples,
                 self.arguments
             )
 
@@ -155,6 +152,10 @@ def main():
     if args.automatic_language_bias != 0:
         print("Generating automatic language bias")
         program.auto_generate_language_bias(args.automatic_language_bias)
+    
+    if args.predicate_invention != 0:
+        print("Invention mode")
+        program.invent_predicates(args.predicate_invention)
 
     s = Solver(program, args)
 
