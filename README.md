@@ -132,6 +132,17 @@ The flag -alb=1 translates into:
 ```
 If `-alb=-1` is used, the `#modeb` above will have `negative` instead of `positive` as fourth argument.
 
+Currently, pay attention when using this together with aggregates, since you may encounter an infinite loop whle grounding the program.
+
+## Predicate Invention
+You can enable predicate invention with the option `--invention=N` where `N` is the number of predicates to invent.
+For each `i` in `{1, ..., N}` it generates a predicate `__inv_i__` with arity 1 and 2 to consider in the head and body of clauses.
+
+Example:
+```
+--invention=1
+```
+
 ## Main Available Options
 
 You can check all the available options with the flag `--help`.
