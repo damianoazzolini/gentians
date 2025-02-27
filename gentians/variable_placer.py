@@ -554,12 +554,11 @@ class VariablePlacer:
                     a.sort()
                     a = ' '.join(a)
                     # answer_sets.append(a)
-                    answer_sets_in_list.append(from_as_to_list(str(m)))
+                    answer_sets_in_list.append(from_as_to_list(str(a)))
                     # res.append(self.__reconstruct_clause(str(m), sampled_stub))
             if self.args.verbosity > 1:
                 print("Removing symmetries")
 
-            # sort the list
             answer_sets_in_list.sort()
             # remove duplicates
             r = list(k for k,_ in itertools.groupby(answer_sets_in_list))
@@ -568,12 +567,6 @@ class VariablePlacer:
         # reconstruct the clause
         for rt in r:
             res.append(self.__reconstruct_clause(from_list_to_as(rt), sampled_stub))
-        
-        # if len(answer_sets_in_list) > 0:
-        #     print(asp_p)
-        #     print(res)
-        #     import sys
-        #     sys.exit()
 
         return res
     
