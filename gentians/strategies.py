@@ -1,4 +1,5 @@
 import random
+import re
 import sys
 import math
 import time
@@ -6,17 +7,8 @@ import time
 from .clingo_interface import ClingoInterface
 from .arguments import Arguments
 from .parser import Program
+from .utils import get_atoms
 
-def compute_n_vars(clause : str):
-    i = 0
-    found = True
-    while found:
-        if f'V{i}' not in clause:
-            found = False
-        i +=1
-    
-    return i - 1
-    
 
 class PlacedClause:
     '''
@@ -29,19 +21,15 @@ class PlacedClause:
         self.n_vars_clauses : 'list[int]' = []
         self.n_atoms = 0
 
+        regex = r"V\d+"
+        r = re.compile(regex)
+
         for cl in self.placed_clauses:
-            self.n_vars_clauses.append(compute_n_vars(cl))
+            v = len(set(r.findall(cl)))
+            self.n_vars_clauses.append(v)
 
-        cl = placed_clauses[0]
-        cl = cl.split(':-')
-        head = cl[0]
-        body = cl[1]
+        self.n_atoms += len(get_atoms(placed_clauses[0]))
 
-        # print(len(head))
-        if len(head) != 0:
-            self.n_atoms += len(head.split(';'))
-            
-        self.n_atoms += len(body.split('),'))
 
     def __str__(self) -> str:
         s = ""
