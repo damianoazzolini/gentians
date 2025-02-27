@@ -10,8 +10,6 @@ def extract_name_arity(atom : str) -> 'tuple[str,int]':
     """
     pattern = r"\{?(\w+)(?:\((.*?)\))?\}?"
     match = re.match(pattern, atom)
-    print(f"Match: {match}")
-    print(f"Atom: ->{atom}<-")
     if match:
         function_name = match.group(1)  # Extract function name
         args = match.group(2)  # Extract arguments (if any)
