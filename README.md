@@ -106,6 +106,32 @@ Examples:
 --arithm add mul sub
 ```
 
+## Automatic Language Bias
+You can leave the solver discovering the language bias automatically.
+This scans positive and negative examples and background knowledge and extracts the signature for each atom in the examples and each head and body literal in background knowledge.
+Then, adds each signature as mode bias for the head and for the body.
+You can activate this with the flag `-alb=n` where `n` is a number: if it is positive, indicates the recall for each literal (i.e., all literals will have the same recall); if it is negative, its absolute value indicates the recall for each literal and also states that these can be negated literals.
+Note that `-alb` ignores the language bias defined in the program file (i.e., `#modeb` and `#modeh`).
+If you also use `--aggregates`, `--comparison`, or `--arithm` options, these will be kept.
+
+Example: suppose we have in the program
+```
+a:- b.
+#pos({f(1)},{f(1,a)}).
+```
+The flag -alb=1 translates into:
+```
+#modeh(1, a, 0).
+#modeh(1, f, 1).
+#modeh(1, f, 2).
+#modeh(1, b, 0).
+#modeb(1, a, 0, positive).
+#modeb(1, f, 1, positive).
+#modeb(1, f, 2, positive).
+#modeb(1, b, 0, positive).
+```
+If `-alb=-1` is used, the `#modeb` above will have `negative` instead of `positive` as fourth argument.
+
 ## Main Available Options
 
 You can check all the available options with the flag `--help`.

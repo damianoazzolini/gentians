@@ -150,6 +150,11 @@ def main():
     else:
         # background, positive_examples, negative_examples, language_bias_head, language_bias_body = run_example(args.example)
         program = run_example(args.example)
+    
+    # generate auto language bias
+    if args.automatic_language_bias != 0:
+        print("Generating automatic language bias")
+        program.auto_generate_language_bias(args.automatic_language_bias)
 
     s = Solver(program, args)
 

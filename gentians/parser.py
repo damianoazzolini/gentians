@@ -1,6 +1,30 @@
 import re
+import sys
 
-from .utils import print_error_and_exit
+from .utils import print_error_and_exit, RuleCallback
+from clingo import ast
+
+def extract_name_arity(atom : str) -> 'tuple[str,int]':
+    """
+    Extracts name and arity from an atom.
+    """
+    pattern = r"(\w+)(?:\((.*?)\))?"
+    match = re.match(pattern, atom)
+    if match:
+        function_name = match.group(1)  # Extract function name
+        args = match.group(2)  # Extract arguments (if any)
+        if args:
+            # Split arguments while keeping nested parentheses intact
+            arguments = re.findall(r"\w+\(.*?\)|\w+", args)
+        else:
+            arguments = []
+        
+        if function_name.startswith("not"): # to support literal, space after not is removed
+            function_name = function_name[3:]
+        return (function_name, len(arguments))
+
+    print_error_and_exit(f"Error in extract_name_arity: {atom}")
+    return (atom, -1)
 
 class Example:
     """
@@ -66,8 +90,19 @@ class ModeDeclaration:
         else:
             print_error_and_exit(f"Error: Invalid aggregate function syntax: {aggregate_str}")
     
+    def special_mode_declaration(self) -> bool:
+        return any([self.aggregation_function != "", self.arithmetic_operator != "", self.comparison_operator != ""])
+
     def __str__(self) -> str:
-        return f"ModeDeclaration: {self.recall} - {self.name} - {self.arity} - {self.positive} - {self.head} - {self.aggregation_function} - {self.aggregation_atoms} - {self.arithmetic_operator} - {self.comparison_operator}"
+        s = f"ModeDeclaration: recall: {self.recall} - name: {self.name} - arity: {self.arity} - positive: {self.positive} - head: {self.head}"
+        if self.aggregation_function != "":
+            s += f" - aggregate: {self.aggregation_function} - atoms: {self.aggregation_atoms}"
+        if self.arithmetic_operator != "":
+            s += f" - arithmetic: {self.arithmetic_operator}"
+        if self.comparison_operator != "":
+            s += f" - comparison: {self.comparison_operator}"
+        return s
+    
     def __repr__(self) -> str:
         return self.__str__()
 
@@ -87,6 +122,49 @@ class Program:
         self.negative_examples : 'list[Example]' = neg
         self.language_bias_head : 'list[ModeDeclaration]' = mode_head
         self.language_bias_body : 'list[ModeDeclaration]' = mode_body
+    
+    def auto_generate_language_bias(self, recall : int) -> None:
+        """
+        Automatically generate the language bias.
+        """
+        # cleanup the existing language bias: so I can run the examples with language bias
+        # and just add a flag to ignore it and generating it automatically
+        self.language_bias_head = [m for m in self.language_bias_head if m.special_mode_declaration()]
+        self.language_bias_body = [m for m in self.language_bias_body if m.special_mode_declaration()]
+        
+        name_arity_list : 'list[tuple[str,int]]' = []
+
+        r = RuleCallback()
+        for rule in self.background:
+            ast.parse_string(rule, r.process)
+            for h in r.head + r.body: # head and body
+                na = extract_name_arity(h)
+                if na not in name_arity_list:
+                    name_arity_list.append(na)
+
+        for e in self.positive_examples + self.negative_examples:
+            to_consider = [e.included, e.excluded]
+            for s in to_consider:
+                if len(s) > 0:
+                    s = ":- " + s + "."
+                    ast.parse_string(s, r.process)
+                    for atom in r.body:
+                        na = extract_name_arity(atom)
+                        if na not in name_arity_list:
+                            name_arity_list.append(na)
+
+        positive_or_negative = "positive" if recall > 0 else "negative"
+        recall = abs(recall)
+        
+        for na in name_arity_list:
+            md = ModeDeclaration((str(recall), str(na[0]), str(na[1])), True)
+            if md not in self.language_bias_head:
+                self.language_bias_head.append(md)
+            md = ModeDeclaration((str(recall), str(na[0]), str(na[1]), positive_or_negative), False)
+            if md not in self.language_bias_body:
+                self.language_bias_body.append(md)
+
+
     def __str__(self) -> str:
         return f"Program: {self.background} - {self.positive_examples} - {self.negative_examples} - {self.language_bias_head} - {self.language_bias_body}"
     def __repr__(self) -> str:

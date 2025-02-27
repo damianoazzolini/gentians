@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 program_description = "GENTIANS: GENeTic algorithm for Inductive learning of ANswer Set programs."
 
@@ -26,8 +27,10 @@ class Arguments:
         self.comparison_operators : 'list[str]' = args.comparison
         self.arithmetic_operators : 'list[str]' = args.arithm
         self.invention : int = args.invention
+        self.automatic_language_bias : int = args.alb
         self.profile : bool = args.profile
         self.version : bool = args.version
+        print(args)
 
 def parse_arguments() -> 'Arguments':
     '''
@@ -206,6 +209,12 @@ def parse_arguments() -> 'Arguments':
         --aggregates sum(a/1) count (a/1). Specify the atom to aggregate.", 
         nargs='+',
         required=False
+    )
+    command_parser.add_argument(
+        "-alb",
+        help="Automatic language bias discovery with the specified recall.",
+        type=int,
+        default=0
     )
     command_parser.add_argument(
         "--profile",
