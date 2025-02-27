@@ -70,15 +70,41 @@ Some examples are:
 #neg({even(3)}, {}).
 ```
 
-## Aggregates in the Language Bias
-You can define aggregates in the language bias not directly in the source file, by now, but via the `--aggregates` option on the CLI.
+## Aggregates in Language Bias
+You can define aggregates in the language bias via the `--aggregates` option on the CLI (not directly in the source file, by now).
 
 For one aggregation atom you can use:
 `--aggregates "aggregation_function(aggregation_atom)"`
 where `aggregation_function` is the aggregation function (`sum` or `count`, for example) and `aggregation_atom` is a term of the form `name/arity`, representing the atom aggregating on.
-For example, `--aggregates "sum(x/3)"` defines a `#sum` aggregate over the atom `x/3`.
-If you want to aggregate over multiple atoms, you can use multiple aggregation atoms separated by commas, for example
-`--aggregates "sum(x/3,size/1)"`.
+If you want to aggregate over multiple atoms, you can use multiple aggregation atoms separated by commas.
+You can pass multiple aggregates.
+
+Examples:
+```bash
+# defines a `#sum` aggregate over `x/3`
+--aggregates "sum(x/3)"
+# defines a `#sum` aggregate over `x/3` and `size/1`
+--aggregates "sum(x/3,size/1)"
+# defines a `#sum` aggregate over `p/2` and a `#count` aggregate also over `p/2`
+--aggregates "sum(p/2)" "count(p/2)"
+# defines a `#sum` aggregate over `p/2` and a #count aggregate over `q/2`
+--aggregates "sum(p/2)" "count(q/2)"
+```
+
+## Comparison and Arithmetic Operators in Language Bias
+You can define comparison operators and arithmetic operators in the language bias via the `--comparison` and `--arithm` option, respectively, on the CLI (not directly in the source file, by now).
+
+The following comparison operators are considered: `lt` (<), `leq` (=<), `gt` (>), `geq` (>=), `eq` (=), and `neq` (!=).
+The following arithmetic operators are considered: `add` (+), `sub` (-), `mul` (*), `div` (/), and `abs` (absolute value).
+You can pass multiple comparison and arithmetic.
+
+Examples:
+```
+--comparison neq
+--comparison neq geq
+--arithm add
+--arithm add mul sub
+```
 
 ## Main Available Options
 
