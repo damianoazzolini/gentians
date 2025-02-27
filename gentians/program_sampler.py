@@ -77,7 +77,7 @@ class ProgramSampler:
                 # self.language_bias_body.append(ModeDeclaration(("1",f"__{el}","1","positive"), False))
                 md = ModeDeclaration(("1","","1","positive"), False)
                 md.add_aggregate(el)
-                self.language_bias_body.append(md)
+                self.language_bias_body.append(copy.deepcopy(md))
         
         # sys.exit()
         if self.args.arithmetic_operators:
@@ -86,7 +86,7 @@ class ProgramSampler:
                 # self.language_bias_body.append(ModeDeclaration(("1",f"__{el}__","3","positive"), False))
                 md = ModeDeclaration(("1",f"__{el}__","3","positive"), False)
                 md.arithmetic_operator = el
-                self.language_bias_body.append(md)
+                self.language_bias_body.append(copy.deepcopy(md))
         
         if self.args.comparison_operators:
             for el in self.args.comparison_operators:
@@ -94,7 +94,7 @@ class ProgramSampler:
                 # self.language_bias_body.append(ModeDeclaration(("1",f"__{el}__","2","positive"), False))
                 md = ModeDeclaration(("1",f"__{el}__","2","positive"), False)
                 md.comparison_operator = el
-                self.language_bias_body.append(md)
+                self.language_bias_body.append(copy.deepcopy(md))
                 
 
     def __replace_operators(self, body : 'list[Literal]') -> 'list[list[str]]':
@@ -113,17 +113,17 @@ class ProgramSampler:
         for i, el in enumerate(body):
             operators_count += 1
             # comparison
-            if el.mode_bias.arithmetic_operator == "lt":
+            if el.mode_bias.comparison_operator == "lt":
                 to_append = placeholder + "<" + placeholder
-            if el.mode_bias.arithmetic_operator == "leq":
+            if el.mode_bias.comparison_operator == "leq":
                 to_append = placeholder + "<=" + placeholder
-            elif el.mode_bias.arithmetic_operator == "gt":
+            elif el.mode_bias.comparison_operator == "gt":
                 to_append = placeholder + ">" + placeholder
-            elif el.mode_bias.arithmetic_operator == "geq":
+            elif el.mode_bias.comparison_operator == "geq":
                 to_append = placeholder + ">=" + placeholder
-            elif el.mode_bias.arithmetic_operator == "eq":
+            elif el.mode_bias.comparison_operator == "eq":
                 to_append = placeholder + "==" + placeholder
-            elif el.mode_bias.arithmetic_operator == "neq":
+            elif el.mode_bias.comparison_operator == "neq":
                 to_append = placeholder + "!=" + placeholder
             # arithmetic
             elif el.mode_bias.arithmetic_operator == "add":
