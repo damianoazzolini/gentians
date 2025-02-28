@@ -7,7 +7,7 @@ import time
 
 from .arguments import parse_arguments, version, Arguments
 from .example_programs import run_example
-from .program_sampler import ProgramSampler
+from .program_sampler import ProgramSampler, Clause
 from .strategies import Strategy, PlacedClause
 from .utils import print_error_and_exit
 from .parser import Parser, Program
@@ -38,7 +38,7 @@ class Solver:
         '''
 
         best_found : bool = False
-        best_stub_for_next_round : 'list[str]' = []
+        best_stub_for_next_round : 'list[Clause]' = []
 
         sampler = ProgramSampler(self.program.language_bias_head, self.program.language_bias_body, self.arguments)
 
@@ -51,7 +51,7 @@ class Solver:
             print(f"Sampling loop: {it}")
             start_time = time.time()
             print("Sampling clauses")
-            cls = sampler.sample_clause_stub(self.arguments.clauses_to_sample)
+            cls = sampler.sample_clauses_stub(self.arguments.clauses_to_sample)
             sample_time = time.time() - start_time
 
             # add the best from the previous rounds
@@ -59,7 +59,9 @@ class Solver:
             # clean up the best stub
             best_stub_for_next_round = []
             # Step 1: remove duplicates
-            sampled_clauses = sorted(list(set(cls)))
+            instantiated_clauses = [c.instantiated for c in cls]
+            flat_instantiated_clauses = [item for sublist in instantiated_clauses for item in sublist]
+            sampled_clauses = sorted(list(set(flat_instantiated_clauses)))
             print(f"Sampled {len(sampled_clauses)} different clauses in {sample_time} seconds")
 
             if self.arguments.verbosity >= 1:

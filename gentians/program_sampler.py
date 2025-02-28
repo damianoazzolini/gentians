@@ -40,9 +40,10 @@ class Literal:
         return self.__str__()
 
 class Clause:
-    def __init__(self, head : 'list[Literal]', body : 'list[Literal]') -> None:
+    def __init__(self, head : 'list[Literal]', body : 'list[Literal]', instantiated : 'list[str]') -> None:
         self.head : 'list[Literal]' = head
         self.body : 'list[Literal]' = body
+        self.instantiated : 'list[str]' = instantiated
     
     def __str__(self) -> str:
         return f"head:{self.head} - body:{self.body}"
@@ -106,8 +107,6 @@ class ProgramSampler:
     def __replace_operators(self, body : 'list[Literal]') -> 'list[list[str]]':
         '''
         Replaces the placeholder names with the comparison or arithmetic operator.
-        The boolean is false if the number of operators is the same as the number
-        of atoms in the body, i.e, the clause is not valid (removed).
         '''
         body_literals : 'list[str]' = []
         aggregates_indexes : list[int] = []
@@ -191,9 +190,6 @@ class ProgramSampler:
         '''
         Randomly samples an element if the recall is not 0
         '''
-        # probs : 'list[float]'
-        # probs, all_zeros = self.__define_distribution_atoms(available_atoms)
-        # print(probs)
         weights = [1 if idx > 0 else 0 for idx in recalls]
         if not any(weights):
             # all zeros
@@ -201,7 +197,7 @@ class ProgramSampler:
         sampled_literal_pos = random.choices(range(len(available_atoms)), weights, k=1)[0]
         negated = random.random() < 0.5 and (not available_atoms[sampled_literal_pos].positive)
 
-        return Literal(copy.deepcopy(available_atoms[sampled_literal_pos]), negated, sampled_literal_pos)
+        return copy.deepcopy(Literal(copy.deepcopy(available_atoms[sampled_literal_pos]), negated, sampled_literal_pos))
     
 
     def __sample_literals_list(self,
@@ -241,46 +237,48 @@ class ProgramSampler:
         return sampled_list
 
     
-    def sample_clauses_stub(self, how_many : int = 0) -> 'list[str]':
+    def sample_clauses_stub(self, how_many : int = 0) -> 'list[Clause]':
         '''
         Samples how_many clauses.
         '''
         original_depth : int = self.args.max_depth
-        clauses : 'list[str]' = []
+        # clauses : 'list[str]' = []
+        clauses : 'list[Clause]' = []
+
         
         for _ in range(0, how_many):
             body : 'list[Literal]' = []
             head : 'list[Literal]' = []
             
             if len(self.language_bias_head) > 0:
-                head = self.__sample_literals_list(copy.deepcopy(self.language_bias_head), True) # true allows constraints
+                head = self.__sample_literals_list(self.language_bias_head, True) # true allows constraints
                 self.body_constraint = (len(head) == 0)
         
             # decrease the depth since we already sampled atoms for the head
             self.args.max_depth -= len(head)
             
             # print(self.body_literals)
-            body = self.__sample_literals_list(copy.deepcopy(self.language_bias_body))
+            body = self.__sample_literals_list(self.language_bias_body)
 
             # replace __lt__, __gt__, __eq__, __neq__, __add__, __sub__, __mul__
-            # body, is_valid = self.__replace_operators(body)
             body_list = self.__replace_operators(body)
             
-            is_valid = True
-            if is_valid and self.enable_recursion is False:
-                for b in body_list:
-                    subs_h = set(head).issubset(set(b)) and len(set(head)) > 0
-                    subs_b = set(b).issubset(set(head)) and len(set(b)) > 0
-                    is_valid = not (subs_h or subs_b)
-                    if is_valid:
-                        head_as_str : str = ';'.join(sorted([x.get_stub_representation() for x in head]))
-                        body_as_str : str = ','.join(sorted(b))
-                        cl = f"{head_as_str} :- {body_as_str}."
-                        clauses.append(cl)
-                        # not_merged_clauses.append([sorted(head),sorted(b)])
-            else:
-                print("Still not implemented.")
-            
+            if self.enable_recursion:
+                print_error_and_exit("self.enable_recursion not yet implemented.")
+
+            current_clause : 'Clause' = Clause(head, body, [])
+            for b in body_list:
+                subs_h = set(head).issubset(set(b)) and len(set(head)) > 0
+                subs_b = set(b).issubset(set(head)) and len(set(b)) > 0
+                is_valid = not (subs_h or subs_b)
+                if is_valid:
+                    head_as_str : str = ';'.join(sorted([x.get_stub_representation() for x in head]))
+                    body_as_str : str = ','.join(sorted(b))
+                    cl = f"{head_as_str} :- {body_as_str}."
+                    current_clause.instantiated.append(cl)
+
+            clauses.append(copy.deepcopy(current_clause))
+
             self.args.max_depth = original_depth
 
         return clauses
