@@ -1,5 +1,6 @@
 import random
 import copy
+import random
 import sys
 import itertools # to generate unbalanced aggregates
 
@@ -42,6 +43,11 @@ class Clause:
     def __init__(self, head : 'list[Literal]', body : 'list[Literal]') -> None:
         self.head : 'list[Literal]' = head
         self.body : 'list[Literal]' = body
+    
+    def __str__(self) -> str:
+        return f"head:{self.head} - body:{self.body}"
+    def __repr__(self) -> str:
+        return self.__str__()
 
 class ProgramSampler:
     def __init__(
@@ -180,63 +186,23 @@ class ProgramSampler:
 
         return nb
 
-    def __define_distribution_atoms(
-            self,
-            available_atoms : 'list[ModeDeclaration]'
-        ) -> 'tuple[list[float],bool]':
-        '''
-        Returns a list of float representing the probability
-        of selecting an atom for the clause (uniform probability).
-        The bool is True if the list if of all zeros.
-        '''
-        zeros : int = 0
-        probs : 'list[float]' = []
-
-        try:
-            probs = [1/len(available_atoms)] * len(available_atoms)
-        except:
-            print_error_and_exit("No atoms available.")
-        
-        for i in range(len(available_atoms)):
-            if available_atoms[i].recall <= 0 and available_atoms[i].recall != -9999:
-                probs[i] = 0
-                zeros += 1
-
-        if len(available_atoms) == zeros:
-            return [0] * len(available_atoms), True
-        
-        uniform_prob = 1 / (len(available_atoms) - zeros)
-            
-        for i in range(len(available_atoms)):
-            if probs[i] != 0:
-                probs[i] = uniform_prob
-            
-        return probs, False
-
-
-    # def __sample_level_distr_recall(self, available_atoms : 'list[ModeDeclaration]') -> 'tuple[str,int]':
-    def __sample_level_distr_recall(self, available_atoms : 'list[ModeDeclaration]') -> 'Literal|None':
+    
+    def __sample_level_distr_recall(self, available_atoms : 'list[ModeDeclaration]', recalls : 'list[int]') -> 'Literal|None':
         '''
         Randomly samples an element if the recall is not 0
         '''
-        probs : 'list[float]'
-        probs, all_zeros = self.__define_distribution_atoms(available_atoms)
+        # probs : 'list[float]'
+        # probs, all_zeros = self.__define_distribution_atoms(available_atoms)
         # print(probs)
-        if not all_zeros:
-            v : float = random.random()
-            # to avoid floating point errors
-            epsilon : float = 10e-5
-            
-            pos = 0
-            while (pos < len(probs)) and (v - epsilon - probs[pos] > 0):
-                v -= probs[pos]
-                pos += 1
-            
-            negated = random.random() < 0.5 and (not available_atoms[pos].positive)
-            return Literal(copy.deepcopy(available_atoms[pos]), negated, pos)
+        weights = [1 if idx > 0 else 0 for idx in recalls]
+        if not any(weights):
+            # all zeros
+            return None
+        sampled_literal_pos = random.choices(range(len(available_atoms)), weights, k=1)[0]
+        negated = random.random() < 0.5 and (not available_atoms[sampled_literal_pos].positive)
 
-        return None
-
+        return Literal(copy.deepcopy(available_atoms[sampled_literal_pos]), negated, sampled_literal_pos)
+    
 
     def __sample_literals_list(self,
             literals_list : 'list[ModeDeclaration]',
@@ -255,14 +221,14 @@ class ProgramSampler:
         depth = 0
         stop = (random.random() > self.args.prob_increase) if head else False
         max_depth_head = self.args.disjunctive_head_length
-        
+        recalls : 'list[int]' = [x.recall for x in literals_list]
+
         while (not stop) and (depth < self.args.max_depth) and (max_depth_head > 0):
-            sampled_literal = self.__sample_level_distr_recall(literals_list)
+            sampled_literal = self.__sample_level_distr_recall(literals_list, recalls)
             if sampled_literal is None:
                 stop = True
             else:
-                # list_indexes_sampled_literals.append(sampled_literal_index)
-                literals_list[sampled_literal.index_in_mode_bias_list].recall -= 1 # decrease the recall
+                recalls[sampled_literal.index_in_mode_bias_list] -= 1
                 sampled_list.append(sampled_literal)
                 # here we are in the body of a constraint: we need at least 2 atoms
                 if self.body_constraint and depth == 0:
@@ -275,9 +241,9 @@ class ProgramSampler:
         return sampled_list
 
     
-    def sample_clause_stub(self, how_many : int = 0) -> 'list[str]':
+    def sample_clauses_stub(self, how_many : int = 0) -> 'list[str]':
         '''
-        Samples a single clause.
+        Samples how_many clauses.
         '''
         original_depth : int = self.args.max_depth
         clauses : 'list[str]' = []
@@ -289,7 +255,6 @@ class ProgramSampler:
             if len(self.language_bias_head) > 0:
                 head = self.__sample_literals_list(copy.deepcopy(self.language_bias_head), True) # true allows constraints
                 self.body_constraint = (len(head) == 0)
-            
         
             # decrease the depth since we already sampled atoms for the head
             self.args.max_depth -= len(head)
@@ -299,7 +264,7 @@ class ProgramSampler:
 
             # replace __lt__, __gt__, __eq__, __neq__, __add__, __sub__, __mul__
             # body, is_valid = self.__replace_operators(body)
-            body_list = self.__replace_operators(body) # TODO: fix this
+            body_list = self.__replace_operators(body)
             
             is_valid = True
             if is_valid and self.enable_recursion is False:
