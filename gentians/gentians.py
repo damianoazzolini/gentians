@@ -15,20 +15,7 @@ from .variable_placer import VariablePlacer
 
 
 class Solver:
-    def __init__(self,
-        # background : 'list[str]',
-        # positive_examples : 'list[list[str]]',
-        # negative_examples : 'list[list[str]]',
-        # language_bias_head : 'list[str]',
-        # language_bias_body : 'list[str]',
-        program : Program,
-        arguments : Arguments
-        ) -> None:
-        # self.background : 'list[str]' = background
-        # self.positive_examples : 'list[list[str]]' = positive_examples
-        # self.negative_examples : 'list[list[str]]' = negative_examples
-        # self.language_bias_head : 'list[str]' = language_bias_head
-        # self.language_bias_body : 'list[str]' = language_bias_body
+    def __init__(self, program : Program, arguments : Arguments) -> None:
         self.program : Program = program
         self.arguments : Arguments = arguments
 
@@ -84,8 +71,7 @@ class Solver:
             print(f"Total number of possible clauses: {sum(len(pl) for pl in placed_list)}")
 
             if len(placed_list) == 0:
-                print("No clauses found")
-                sys.exit()
+                print_error_and_exit("No clauses found")
 
             if self.arguments.verbosity >= 2:
                 for el in placed_list:

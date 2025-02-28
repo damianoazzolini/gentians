@@ -8,9 +8,6 @@ from .arguments import Arguments
 from .utils import UNDERSCORE_SIZE, print_error_and_exit
 from .parser import ModeDeclaration
 
-# number of underscore for placeholders in atoms
-# UNDERSCORE_SIZE = 5
-
 
 class Literal:
     def __init__(self,
