@@ -45,6 +45,8 @@ class Clause:
         self.body : 'list[Literal]' = body
         self.instantiated : 'list[str]' = instantiated
     
+    def __eq__(self, value: object) -> bool:
+        return sorted(self.instantiated) == sorted(value.instantiated)
     def __str__(self) -> str:
         return f"head:{self.head} - body:{self.body}"
     def __repr__(self) -> str:
@@ -277,7 +279,9 @@ class ProgramSampler:
                     cl = f"{head_as_str} :- {body_as_str}."
                     current_clause.instantiated.append(cl)
 
-            clauses.append(copy.deepcopy(current_clause))
+            if current_clause not in clauses:
+                # avoid duplicates
+                clauses.append(copy.deepcopy(current_clause))
 
             self.args.max_depth = original_depth
 

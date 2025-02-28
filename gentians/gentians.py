@@ -60,8 +60,7 @@ class Solver:
             best_stub_for_next_round = []
             # Step 1: remove duplicates
             instantiated_clauses = [c.instantiated for c in cls]
-            flat_instantiated_clauses = [item for sublist in instantiated_clauses for item in sublist]
-            sampled_clauses = sorted(list(set(flat_instantiated_clauses)))
+            sampled_clauses = [item for sublist in instantiated_clauses for item in sublist]
             print(f"Sampled {len(sampled_clauses)} different clauses in {sample_time} seconds")
 
             if self.arguments.verbosity >= 1:
@@ -105,7 +104,7 @@ class Solver:
             genetic_time = time.time() - start_time
 
             for i in best_index_stub_for_the_next_round:
-                best_stub_for_next_round.append(sampled_clauses[i]) 
+                best_stub_for_next_round.append(cls[i]) 
 
             print(f"Evolutionary cycle {it} - Time {genetic_time}")
             if best_found:
