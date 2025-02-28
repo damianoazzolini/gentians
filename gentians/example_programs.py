@@ -71,9 +71,9 @@ def even_odd_example() -> Program:
     ]
 
     negative_examples : 'list[Example]' = [
-        Example(("even(3)", ""), True),
-        Example(("even(1)", ""), True),
-        Example(("odd(2)", ""), True)
+        Example(("even(3)", ""), False),
+        Example(("even(1)", ""), False),
+        Example(("odd(2)", ""), False)
     ]
 
     language_bias_head : 'list[ModeDeclaration]' = [
@@ -401,9 +401,11 @@ def penguin_example() -> Program:
 
 
 def adjacent_to_red_example() -> Program:
-    # from https://github.com/metagol/metagol/blob/master/examples/adjacent-to-red.pl
-    # goal target(A) :- edge(A,B),colour(B,C),red(C).
-    bg = [
+    """
+    from https://github.com/metagol/metagol/blob/master/examples/adjacent-to-red.pl
+    goal target(A) :- edge(A,B),colour(B,C),red(C).
+    """
+    background : 'list[str]' = [
         "edge(a,b).",
         "edge(b,a).",
         "edge(c,d).",
@@ -418,28 +420,30 @@ def adjacent_to_red_example() -> Program:
         "green(green)."
     ]
     
-    pe = [
-        ["target(b)", ""], 
-        ["target(c)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("target(b)", ""), True), 
+        Example(("target(c)", ""), True)
     ]
     
-    ne = [
-        ["target(a)", ""], 
-        ["target(d)", ""], 
-        ["target(e)", ""]
+    negative_examples : 'list[Example]' = [
+        Example(("target(a)", ""), False), 
+        Example(("target(d)", ""), False), 
+        Example(("target(e)", ""), False),
     ]
     
-    lbh = ['modeh(1, target(+))']
-    
-    lbb = [
-        'modeb(1, target(+))', 
-        'modeb(1, edge(+,+))', 
-        'modeb(1, colour(+,+))',
-        'modeb(1, red(+))',
-        'modeb(1, green(+))'
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'target', "1"), True)
+    ]
+
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'edge', "2", "positive"), False),
+        ModeDeclaration(("1", 'colour', "2", "positive"), False),
+        ModeDeclaration(("1", 'red', "1", "positive"), False),
+        ModeDeclaration(("1", 'green', "1", "positive"), False),
+        ModeDeclaration(("1", 'target', "1", "positive"), False)
     ]
     
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def grandparent_example() -> Program:
@@ -451,33 +455,36 @@ def grandparent_example() -> Program:
     target_1(A,B):-father(A,B).
     '''
     
-    bg = ["mother(i,a).", "mother(c,f).", "mother(c,g).", "mother(f,h).", "father(a,b).", "father(a,c).", "father(b,d).", "father(b,e)."]
+    background : 'list[str]' = ["mother(i,a).", "mother(c,f).", "mother(c,g).", "mother(f,h).", "father(a,b).", "father(a,c).", "father(b,d).", "father(b,e)."]
     
-    pe = [
-        ["target(i,b) target(i,c) target(a,d) target(a,e) target(a,f) target(a,g) target(c,h)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("target(i,b) target(i,c) target(a,d) target(a,e) target(a,f) target(a,g) target(c,h)", ""), True)
     ]
     
-    ne = [
-        ["target(a,b)", ""], 
-        ["target(b,c)", ""], 
-        ["target(c,d)", ""], 
-        ["target(d,e)", ""], 
-        ["target(e,f)", ""], 
-        ["target(f,g)", ""], 
-        ["target(g,h)", ""], 
-        ["target(h,i)", ""]
+    negative_examples : 'list[Example]' = [
+        Example(("target(a,b)", ""), False), 
+        Example(("target(b,c)", ""), False), 
+        Example(("target(c,d)", ""), False), 
+        Example(("target(d,e)", ""), False), 
+        Example(("target(e,f)", ""), False), 
+        Example(("target(f,g)", ""), False), 
+        Example(("target(g,h)", ""), False), 
+        Example(("target(h,i)", ""), False),
     ]
     
-    lbh = ['modeh(1, target(+, +))', 'modeh(1, target_1(+, +))']
-    
-    lbb = [
-        'modeb(1, father(+, +))', 
-        'modeb(1, mother(+,+))',
-        'modeb(1, target_1(+, +))',
-        'modeb(1, target_1(+, +))'
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'target', "2"), True),
+        ModeDeclaration(("1", 'target_1', "2"), True)
     ]
     
-    return bg, pe, ne, lbh, lbb
+    
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'father', "2", "positive"), False),
+        ModeDeclaration(("1", 'mother', "2", "positive"), False),
+        ModeDeclaration(("2", 'target_1', "2", "positive"), False)
+    ]
+    
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def subset_sum() -> Program:
@@ -523,7 +530,7 @@ def subset_sum_double() -> Program:
     #show ok/1.
     % results: ok(8). ok(9).
     '''
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "{el(1,2)}.",
         "{el(2,3)}.",
         "{el(3,5)}.",
@@ -531,30 +538,30 @@ def subset_sum_double() -> Program:
         "{el(5,9)}."
     ]
 
-    pe : 'list[list[str]]' = [
-        ["ok(0)", ""],
-        ["ok(8)", ""],
-        ["ok(9)", ""],
+    positive_examples : 'list[Example]' = [
+        Example(("ok(0)", ""), True),
+        Example(("ok(8)", ""), True),
+        Example(("ok(9)", ""), True)
     ]
 
-    ne : 'list[list[str]]' = [
-        ["ok(1)", ""],
-        ["ok(2)", ""],
-        ["ok(10)", ""],
+    negative_examples : 'list[Example]' = [
+        Example(("ok(1)", ""), False),
+        Example(("ok(2)", ""), False),
+        Example(("ok(10)", ""), False)
     ]
 
-    lbh : 'list[str]' = [
-        'modeh(1, ok(+))',
-        'modeh(1, s0(+))',
-        'modeh(1, s1(+))'
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'ok', "1"), True),
+        ModeDeclaration(("1", 's0', "1"), True),
+        ModeDeclaration(("1", 's1', "1"), True)
     ]
 
-    lbb : 'list[str]' = [
-        'modeb(1, s0(+))',
-        'modeb(1, s1(+))'
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 's0', "1"), False),
+        ModeDeclaration(("1", 's1', "1"), False)
     ]
 
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def subset_sum_double_and_sum() -> Program:
@@ -571,7 +578,7 @@ def subset_sum_double_and_sum() -> Program:
     #show ok/1.
     % results: ok(8). ok(9).
     '''
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "{el(1,2)}.",
         "{el(2,3)}.",
         "{el(3,5)}.",
@@ -579,30 +586,30 @@ def subset_sum_double_and_sum() -> Program:
         "{el(5,9)}."
     ]
 
-    pe : 'list[list[str]]' = [
-        ["ok(0)", ""],
-        ["ok(16)", ""],
-        ["ok(18)", ""],
+    positive_examples : 'list[Example]' = [
+        Example(("ok(0)", ""), True),
+        Example(("ok(16)", ""), True),
+        Example(("ok(18)", ""), True)
     ]
 
-    ne : 'list[list[str]]' = [
-        ["ok(1)", ""],
-        ["ok(2)", ""],
-        ["ok(10)", ""],
+    negative_examples : 'list[Example]' = [
+        Example(("ok(1)", ""), False),
+        Example(("ok(2)", ""), False),
+        Example(("ok(10)", ""), False)
     ]
 
-    lbh : 'list[str]' = [
-        'modeh(1, ok(+))',
-        'modeh(1, s0(+))',
-        'modeh(1, s1(+))'
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'ok', "1"), True),
+        ModeDeclaration(("1", 's0', "1"), True),
+        ModeDeclaration(("1", 's1', "1"), True)
     ]
 
-    lbb : 'list[str]' = [
-        'modeb(1, s0(+))',
-        'modeb(1, s1(+))'
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 's0', "1"), False),
+        ModeDeclaration(("1", 's1', "1"), False)
     ]
 
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def subset_sum_double_and_prod():
@@ -619,7 +626,7 @@ def subset_sum_double_and_prod():
     s1(S1):- S1 = #sum{Y,X : el(X,Y)}.
     ok(P):- s0(S0), s1(S1), P = S0 * S1.
     '''
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "{el(1,2)}.",
         "{el(2,3)}.",
         "{el(3,5)}.",
@@ -627,34 +634,30 @@ def subset_sum_double_and_prod():
         "{el(5,9)}."
     ]
 
-    pe : 'list[list[str]]' = [
-        ["ok(209)", ""],
-        ["ok(144)", ""],
-        ["ok(170)", ""],
-        ["ok(252)", ""],
-        ["ok(221)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("ok(209)", ""), True),
+        Example(("ok(144)", ""), True),
+        Example(("ok(170)", ""), True),
+        Example(("ok(252)", ""), True),
+        Example(("ok(221)", ""), True)
     ]
 
-    ne : 'list[list[str]]' = [
-        ["ok(3)", ""], # this cuts both + and -
-        ["ok(5)", ""],
-        ["ok(17)", ""],
-        ["ok(19)", ""],
-        ["ok(13)", ""]
+    negative_examples : 'list[Example]' = [
+        Example(("ok(3)", ""), False), # this cuts both + and -
+        Example(("ok(5)", ""), False),
+        Example(("ok(17)", ""), False),
+        Example(("ok(19)", ""), False),
+        Example(("ok(13)", ""), False),
     ]
 
-    lbh : 'list[str]' = [
-        'modeh(1, ok(+))',
-        # 'modeh(1, s0(+))',
-        # 'modeh(1, s1(+))'
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'ok', "1"), True)
+
     ]
 
-    lbb : 'list[str]' = [
-        # 'modeb(1, s0(+))',
-        # 'modeb(1, s1(+))'
-    ]
+    language_bias_body : 'list[ModeDeclaration]' = []
 
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def subset_sum_triple():
@@ -667,7 +670,7 @@ def subset_sum_triple():
     {el(5,9,4)}.
     ok(V0):- #sum{V1,V2,V3:el(V1,V2,V3)}=V0,#sum{V2,V1,V3:el(V1,V2,V3)}=V0,#sum{V3,V1,V2:el(V1,V2,V3)}=V0.
     '''
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "{el(1,2,3)}.",
         "{el(2,3,5)}.",
         "{el(3,5,1)}.",
@@ -675,31 +678,26 @@ def subset_sum_triple():
         "{el(5,9,4)}."
     ]
 
-    pe : 'list[list[str]]' = [
-        ["ok(0)", ""],
-        # ["ok(8)", ""],
-        ["ok(9)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("ok(0)", ""), True),
+        # Example(("ok(8)", ""), True),
+        Example(("ok(9)", ""), True)
     ]
 
-    ne : 'list[list[str]]' = [
-        ["ok(1)", ""],
-        ["ok(2)", ""],
-        ["ok(10)", ""],
-        ["ok(15)", ""]
+    negative_examples : 'list[Example]' = [
+        Example(("ok(1)", ""), False),
+        Example(("ok(2)", ""), False),
+        Example(("ok(10)", ""), False),
+        Example(("ok(15)", ""), False)
     ]
 
-    lbh : 'list[str]' = [
-        'modeh(1, ok(+))'
-        # 'modeh(1, s0(+))',
-        # 'modeh(1, s1(+))'
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", 'ok', "1"), True)
     ]
 
-    lbb : 'list[str]' = [
-        # 'modeb(1, s0(+))',
-        # 'modeb(1, s1(+))'
-    ]
+    language_bias_body : 'list[ModeDeclaration]' = []
 
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def knapsack(opt : bool = False):
@@ -725,7 +723,7 @@ def knapsack(opt : bool = False):
     :~ el(Val,Weight). [Weight@1, Weight, Val] # both Weight and Val to count duplicates
     :~ el(Val,Weight). [-Val@2, Val, Weight]
     '''
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "e(1,3).",
         "e(2,3).",
         "e(3,5).",
@@ -735,27 +733,27 @@ def knapsack(opt : bool = False):
         "max_weight(10)."
     ]
 
-    pe : 'list[list[str]]' = [
-        ["el(2,3) el(3,5)", ""],
-        ["el(1,3) el(2,3) el(4,4)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("el(2,3) el(3,5)", ""), True),
+        Example(("el(1,3) el(2,3) el(4,4)", ""), True)
     ]
 
-    ne : 'list[list[str]]' = [
-        ["el(1,3) el(3,5) el(4,4)", ""],
-        ["el(1,3) el(5,9)", ""]
+    negative_examples : 'list[Example]' = [
+        Example(("el(1,3) el(3,5) el(4,4)", ""), False),
+        Example(("el(1,3) el(5,9)", ""), False)
     ]
 
-    lbh : 'list[str]' = [
-        # 'modeh(1, ok(+))'
-        # 'modeh(1, s0(+))',
-        # 'modeh(1, s1(+))'
+    language_bias_head : 'list[ModeDeclaration]' = [
+        # ModeDeclaration(("1", "ok", "1"), True),
+        # ModeDeclaration(("1", "s0", "1"), True),
+        # ModeDeclaration(("1", "s1", "1"), True)
     ]
 
-    lbb : 'list[str]' = [
-        'modeb(1, max_weight(+))'
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "max_weight", "1", "positive"), False),
     ]
 
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def hamming(target_distance : int, harder : bool):
@@ -780,7 +778,7 @@ def hamming(target_distance : int, harder : bool):
         import sys
         sys.exit('Hamming requires distance 0 or 1')
     
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "pos(0..2).",
         "num(0..1).",
         f"hd({target_distance}). % target distance",
@@ -789,167 +787,167 @@ def hamming(target_distance : int, harder : bool):
     ]
     
     if not harder:
-        bg.append("d(Pos,X):- v0(V0,Pos), v1(V1,Pos), X = |V0 - V1|.")
+        background.append("d(Pos,X):- v0(V0,Pos), v1(V1,Pos), X = |V0 - V1|.")
 
     if target_distance == 1:
         # all the 24 solutions for hd(1)
-        pe : 'list[list[str]]' = [
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,2) v1(1,1)",""]
+        positive_examples : 'list[Example]' = [
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""), True),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,1) v1(1,0) v1(1,2)",""), True),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""), True),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,1) v1(0,2) v1(1,0)",""), True),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""), True),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""), True),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(1,0) v1(1,1) v1(1,2)",""), True),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,2) v1(1,0) v1(1,1)",""), True),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""), True),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""), True),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,2) v1(1,0) v1(1,1)",""), True),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,1) v1(0,2) v1(1,0)",""), True),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,2) v1(1,1)",""), True),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,1) v1(0,2)",""), True),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(1,1) v1(1,2)",""), True),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""), True),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""), True),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""), True),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""), True),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,1) v1(0,2)",""), True),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""), True),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""), True),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,1) v1(1,2)",""), True),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,2) v1(1,1)",""), True)
         ]
         # all the 64 - 24 = 40 solutions for hd(1)
-        ne : 'list[list[str]]' = [
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,1) v1(0,2)",""]
+        negative_examples : 'list[Example]' = [
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,1) v1(0,2)",""), False)
         ]
     else:
         # all the 8 solutions for hd(0)
-        pe : 'list[list[str]]' = [
-            ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v0(1,2) v1(1,2)",""],
-            ["v0(1,0) v1(1,0) v1(0,1) v0(0,1) v1(0,2) v0(0,2)",""],
-            ["v0(1,0) v1(1,0) v0(1,1) v1(1,1) v0(1,2) v1(1,2)",""],
-            ["v0(1,0) v1(1,0) v0(1,1) v1(1,1) v1(0,2) v0(0,2)",""],
-            ["v1(0,0) v0(0,0) v1(0,1) v0(0,1) v0(1,2) v1(1,2)",""],
-            ["v1(0,0) v0(0,0) v0(1,1) v1(1,1) v0(1,2) v1(1,2)",""],
-            ["v1(0,0) v0(0,0) v1(0,1) v0(0,1) v1(0,2) v0(0,2)",""],
-            ["v1(0,0) v0(0,0) v0(1,1) v1(1,1) v1(0,2) v0(0,2)",""]
+        positive_examples : 'list[Example]' = [
+            Example(("v0(1,0) v1(1,0) v1(0,1) v0(0,1) v0(1,2) v1(1,2)",""), True),
+            Example(("v0(1,0) v1(1,0) v1(0,1) v0(0,1) v1(0,2) v0(0,2)",""), True),
+            Example(("v0(1,0) v1(1,0) v0(1,1) v1(1,1) v0(1,2) v1(1,2)",""), True),
+            Example(("v0(1,0) v1(1,0) v0(1,1) v1(1,1) v1(0,2) v0(0,2)",""), True),
+            Example(("v1(0,0) v0(0,0) v1(0,1) v0(0,1) v0(1,2) v1(1,2)",""), True),
+            Example(("v1(0,0) v0(0,0) v0(1,1) v1(1,1) v0(1,2) v1(1,2)",""), True),
+            Example(("v1(0,0) v0(0,0) v1(0,1) v0(0,1) v1(0,2) v0(0,2)",""), True),
+            Example(("v1(0,0) v0(0,0) v0(1,1) v1(1,1) v1(0,2) v0(0,2)",""), True)
         ]
         # all the 64 - 8 = 56 solutions for hd(0)
-        ne : 'list[list[str]]' = [
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,2) v1(1,0) v1(1,1)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,1) v1(0,2) v1(1,0)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(1,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,1) v1(1,0) v1(1,2)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,2) v1(1,1)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(1,1) v1(1,2)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,1) v1(0,2)",""],
-            ["v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,1) v1(1,2)",""],
-            ["v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,1) v1(1,2)",""]
+        negative_examples : 'list[Example]' = [
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,2) v1(1,0) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,1) v1(0,2) v1(1,0)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(1,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,1) v1(1,0) v1(1,2)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,2) v1(1,1)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(1,1) v1(1,2)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(1,2) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(1,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,1) v0(1,0) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(1,1) v0(1,2) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(0,2) v0(1,0) v0(1,1) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,2) v0(1,1) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,1) v1(0,2)",""), False),
+            Example(("v0(0,1) v0(0,2) v0(1,0) v1(0,0) v1(0,1) v1(1,2)",""), False),
+            Example(("v0(0,0) v0(0,1) v0(0,2) v1(0,0) v1(0,1) v1(1,2)",""), False)
         ]
 
     # d(Pos,X):- v0(V0,Pos), v1(V1,Pos), X = |V0 - V1|.
     # :- Distance = #sum{X,P : d(P,X)}, hd(D), Distance != D.
 
-    lbh : 'list[str]' = [
+    language_bias_head : 'list[ModeDeclaration]' = [
     ]
     if harder:
-        lbh.append('modeh(1, d(+,+))')
+        language_bias_head.append(ModeDeclaration(("1", "d", "2"), True))
 
-    lbb : 'list[str]' = [
-        'modeb(1, hd(+))'
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "hd", "1", "positive"), False)
     ]
     if harder:
-        lbb.append('modeb(1, v0(+,+))')
-        lbb.append('modeb(1, v1(+,+))')
+        language_bias_body.append(ModeDeclaration(("1", "v0", "2", "positive"), False))
+        language_bias_body.append(ModeDeclaration(("1", "v1", "2", "positive"), False))
 
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 def n_4queens():
     '''
@@ -967,7 +965,7 @@ def n_4queens():
     :- q(V0,V1),q(V1,V0).
     :- V0+V2=V1,q(V2,V1),q(V1,V0).
     '''
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "#const n = 4.", 
         "number(1..n).", 
         "1 { q(X,Y) : number(Y) } 1 :- number(X).", 
@@ -975,44 +973,44 @@ def n_4queens():
     ]
     
     # all the existing solutions
-    pe : 'list[list[str]]' = [
-        ["q(1,3) q(2,1) q(3,4) q(4,2)", ""],
-        ["q(1,2) q(2,4) q(3,1) q(4,3)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("q(1,3) q(2,1) q(3,4) q(4,2)", ""), True),
+        Example(("q(1,2) q(2,4) q(3,1) q(4,3)", ""), True)
     ]
     
     # all the possible placements - all existing solutions
-    ne : 'list[list[str]]' = [
-        ["q(4,1) q(3,2) q(2,3) q(1,4)",""],
-        ["q(3,1) q(4,2) q(2,3) q(1,4)",""],
-        ["q(4,1) q(2,2) q(3,3) q(1,4)",""],
-        ["q(2,1) q(4,2) q(3,3) q(1,4)",""],
-        ["q(3,1) q(2,2) q(4,3) q(1,4)",""],
-        ["q(2,1) q(3,2) q(4,3) q(1,4)",""],
-        # ["q(3,1) q(1,2) q(4,3) q(2,4)",""],
-        ["q(4,1) q(1,2) q(3,3) q(2,4)",""],
-        ["q(3,1) q(4,2) q(1,3) q(2,4)",""],
-        ["q(4,1) q(3,2) q(1,3) q(2,4)",""],
-        ["q(4,1) q(2,2) q(1,3) q(3,4)",""],
-        ["q(2,1) q(1,2) q(4,3) q(3,4)",""],
-        ["q(4,1) q(1,2) q(2,3) q(3,4)",""],
-        # ["q(2,1) q(4,2) q(1,3) q(3,4)",""],
-        ["q(3,1) q(2,2) q(1,3) q(4,4)",""],
-        ["q(3,1) q(1,2) q(2,3) q(4,4)",""],
-        ["q(2,1) q(3,2) q(1,3) q(4,4)",""],
-        ["q(2,1) q(1,2) q(3,3) q(4,4)",""],
-        ["q(1,1) q(2,2) q(4,3) q(3,4)",""],
-        ["q(1,1) q(3,2) q(4,3) q(2,4)",""],
-        ["q(1,1) q(2,2) q(3,3) q(4,4)",""],
-        ["q(1,1) q(4,2) q(3,3) q(2,4)",""],
-        ["q(1,1) q(4,2) q(2,3) q(3,4)",""],
-        ["q(1,1) q(3,2) q(2,3) q(4,4)",""]
+    negative_examples : 'list[Example]' = [
+        Example(("q(4,1) q(3,2) q(2,3) q(1,4)",""), False),
+        Example(("q(3,1) q(4,2) q(2,3) q(1,4)",""), False),
+        Example(("q(4,1) q(2,2) q(3,3) q(1,4)",""), False),
+        Example(("q(2,1) q(4,2) q(3,3) q(1,4)",""), False),
+        Example(("q(3,1) q(2,2) q(4,3) q(1,4)",""), False),
+        Example(("q(2,1) q(3,2) q(4,3) q(1,4)",""), False),
+        Example(("q(4,1) q(1,2) q(3,3) q(2,4)",""), False),
+        Example(("q(3,1) q(4,2) q(1,3) q(2,4)",""), False),
+        Example(("q(4,1) q(3,2) q(1,3) q(2,4)",""), False),
+        Example(("q(4,1) q(2,2) q(1,3) q(3,4)",""), False),
+        Example(("q(2,1) q(1,2) q(4,3) q(3,4)",""), False),
+        Example(("q(4,1) q(1,2) q(2,3) q(3,4)",""), False),
+        Example(("q(3,1) q(2,2) q(1,3) q(4,4)",""), False),
+        Example(("q(3,1) q(1,2) q(2,3) q(4,4)",""), False),
+        Example(("q(2,1) q(3,2) q(1,3) q(4,4)",""), False),
+        Example(("q(2,1) q(1,2) q(3,3) q(4,4)",""), False),
+        Example(("q(1,1) q(2,2) q(4,3) q(3,4)",""), False),
+        Example(("q(1,1) q(3,2) q(4,3) q(2,4)",""), False),
+        Example(("q(1,1) q(2,2) q(3,3) q(4,4)",""), False),
+        Example(("q(1,1) q(4,2) q(3,3) q(2,4)",""), False),
+        Example(("q(1,1) q(4,2) q(2,3) q(3,4)",""), False),
+        Example(("q(1,1) q(3,2) q(2,3) q(4,4)",""), False)
     ]
     
-    lbh : 'list[str]' = []
+    language_bias_head : 'list[ModeDeclaration]' = []
     
-    lbb : 'list[str]' = ['modeb(2, q(+,+))']
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "q", "2", "positive"), False)
+    ]
     
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def n_5queens():
@@ -1032,7 +1030,7 @@ def n_5queens():
     :- q(X1,Y1), q(X2,Y2), X1 < X2, Y1 + X1 = Z, Z = Y2 + X2.
     :- q(X1,Y1), q(X2,Y2), X1 < X2, Y1 - X1 = Z, Z = Y2 - X2.
     '''
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "#const n = 5.", 
         "number(1..n).", 
         "1 { q(X,Y) : number(Y) } 1 :- number(X).", 
@@ -1040,66 +1038,68 @@ def n_5queens():
     ]
     
     # all existing solutions (10)
-    pe : 'list[list[str]]' = [
-        ["q(1,3) q(2,1) q(3,4) q(4,2) q(5,5)",""],
-        ["q(1,1) q(2,3) q(3,5) q(4,2) q(5,4)",""],
-        ["q(2,3) q(3,1) q(4,4) q(5,2) q(1,5)",""],
-        ["q(1,2) q(2,4) q(3,1) q(4,3) q(5,5)",""],
-        ["q(1,1) q(2,4) q(3,2) q(4,5) q(5,3)",""],
-        ["q(1,3) q(2,5) q(3,2) q(4,4) q(5,1)",""],
-        ["q(2,2) q(1,4) q(3,5) q(4,3) q(5,1)",""],
-        ["q(2,2) q(3,4) q(4,1) q(5,3) q(1,5)",""],
-        ["q(1,4) q(2,1) q(3,3) q(4,5) q(5,2)",""],
-        ["q(1,2) q(2,5) q(3,3) q(4,1) q(5,4)",""]
+    positive_examples : 'list[Example]' = [
+        Example(("q(1,3) q(2,1) q(3,4) q(4,2) q(5,5)",""), True),
+        Example(("q(1,1) q(2,3) q(3,5) q(4,2) q(5,4)",""), True),
+        Example(("q(2,3) q(3,1) q(4,4) q(5,2) q(1,5)",""), True),
+        Example(("q(1,2) q(2,4) q(3,1) q(4,3) q(5,5)",""), True),
+        Example(("q(1,1) q(2,4) q(3,2) q(4,5) q(5,3)",""), True),
+        Example(("q(1,3) q(2,5) q(3,2) q(4,4) q(5,1)",""), True),
+        Example(("q(2,2) q(1,4) q(3,5) q(4,3) q(5,1)",""), True),
+        Example(("q(2,2) q(3,4) q(4,1) q(5,3) q(1,5)",""), True),
+        Example(("q(1,4) q(2,1) q(3,3) q(4,5) q(5,2)",""), True),
+        Example(("q(1,2) q(2,5) q(3,3) q(4,1) q(5,4)",""), True)
     ]
     
     # some random examples (35) among all the solutions - valid
-    ne : 'list[list[str]]' = [
-        ["q(1,1) q(2,5) q(3,4) q(4,3) q(5,2)",""],
-        ["q(1,1) q(2,2) q(3,5) q(4,4) q(5,3)",""],
-        ["q(1,1) q(2,4) q(3,5) q(4,2) q(5,3)",""],
-        ["q(1,1) q(2,3) q(3,5) q(4,4) q(5,2)",""],
-        ["q(1,1) q(2,3) q(3,4) q(4,5) q(5,2)",""],
-        ["q(1,1) q(2,4) q(3,3) q(4,2) q(5,5)",""],
-        ["q(1,1) q(2,3) q(3,4) q(4,2) q(5,5)",""],
-        ["q(1,1) q(2,4) q(3,2) q(4,3) q(5,5)",""],
-        ["q(1,1) q(2,2) q(3,4) q(4,3) q(5,5)",""],
-        ["q(1,1) q(2,3) q(3,2) q(4,4) q(5,5)",""],
-        ["q(1,1) q(2,2) q(3,3) q(4,4) q(5,5)",""],
-        ["q(1,3) q(2,4) q(3,1) q(4,5) q(5,2)",""],
-        ["q(1,3) q(2,4) q(3,2) q(4,5) q(5,1)",""],
-        ["q(1,2) q(2,3) q(3,1) q(4,5) q(5,4)",""],
-        ["q(1,4) q(2,3) q(3,1) q(4,5) q(5,2)",""],
-        ["q(1,4) q(2,3) q(3,2) q(4,5) q(5,1)",""],
-        ["q(1,2) q(2,3) q(3,4) q(4,5) q(5,1)",""],
-        ["q(1,3) q(2,2) q(3,4) q(4,1) q(5,5)",""],
-        ["q(1,3) q(2,4) q(3,5) q(4,1) q(5,2)",""],
-        ["q(1,2) q(2,1) q(3,5) q(4,3) q(5,4)",""],
-        ["q(1,2) q(2,4) q(3,5) q(4,3) q(5,1)",""],
-        ["q(1,2) q(2,4) q(3,5) q(4,1) q(5,3)",""],
-        ["q(1,3) q(2,1) q(3,5) q(4,2) q(5,4)",""],
-        ["q(1,3) q(2,4) q(3,5) q(4,2) q(5,1)",""],
-        ["q(1,3) q(2,2) q(3,5) q(4,4) q(5,1)",""],
-        ["q(1,5) q(2,3) q(3,2) q(4,4) q(5,1)",""],
-        ["q(1,5) q(2,2) q(3,3) q(4,4) q(5,1)",""],
-        ["q(1,5) q(2,1) q(3,3) q(4,4) q(5,2)",""],
-        ["q(1,5) q(2,2) q(3,1) q(4,4) q(5,3)",""],
-        ["q(1,5) q(2,1) q(3,2) q(4,4) q(5,3)",""],
-        ["q(1,5) q(2,2) q(3,1) q(4,3) q(5,4)",""],
-        ["q(1,5) q(2,3) q(3,1) q(4,2) q(5,4)",""],
-        ["q(1,5) q(2,4) q(3,3) q(4,2) q(5,1)",""],
-        ["q(1,5) q(2,4) q(3,3) q(4,1) q(5,2)",""],
-        ["q(1,5) q(2,4) q(3,2) q(4,3) q(5,1)",""]
+    negative_examples : 'list[Example]' = [
+        Example(("q(1,1) q(2,5) q(3,4) q(4,3) q(5,2)",""), False),
+        Example(("q(1,1) q(2,2) q(3,5) q(4,4) q(5,3)",""), False),
+        Example(("q(1,1) q(2,4) q(3,5) q(4,2) q(5,3)",""), False),
+        Example(("q(1,1) q(2,3) q(3,5) q(4,4) q(5,2)",""), False),
+        Example(("q(1,1) q(2,3) q(3,4) q(4,5) q(5,2)",""), False),
+        Example(("q(1,1) q(2,4) q(3,3) q(4,2) q(5,5)",""), False),
+        Example(("q(1,1) q(2,3) q(3,4) q(4,2) q(5,5)",""), False),
+        Example(("q(1,1) q(2,4) q(3,2) q(4,3) q(5,5)",""), False),
+        Example(("q(1,1) q(2,2) q(3,4) q(4,3) q(5,5)",""), False),
+        Example(("q(1,1) q(2,3) q(3,2) q(4,4) q(5,5)",""), False),
+        Example(("q(1,1) q(2,2) q(3,3) q(4,4) q(5,5)",""), False),
+        Example(("q(1,3) q(2,4) q(3,1) q(4,5) q(5,2)",""), False),
+        Example(("q(1,3) q(2,4) q(3,2) q(4,5) q(5,1)",""), False),
+        Example(("q(1,2) q(2,3) q(3,1) q(4,5) q(5,4)",""), False),
+        Example(("q(1,4) q(2,3) q(3,1) q(4,5) q(5,2)",""), False),
+        Example(("q(1,4) q(2,3) q(3,2) q(4,5) q(5,1)",""), False),
+        Example(("q(1,2) q(2,3) q(3,4) q(4,5) q(5,1)",""), False),
+        Example(("q(1,3) q(2,2) q(3,4) q(4,1) q(5,5)",""), False),
+        Example(("q(1,3) q(2,4) q(3,5) q(4,1) q(5,2)",""), False),
+        Example(("q(1,2) q(2,1) q(3,5) q(4,3) q(5,4)",""), False),
+        Example(("q(1,2) q(2,4) q(3,5) q(4,3) q(5,1)",""), False),
+        Example(("q(1,2) q(2,4) q(3,5) q(4,1) q(5,3)",""), False),
+        Example(("q(1,3) q(2,1) q(3,5) q(4,2) q(5,4)",""), False),
+        Example(("q(1,3) q(2,4) q(3,5) q(4,2) q(5,1)",""), False),
+        Example(("q(1,3) q(2,2) q(3,5) q(4,4) q(5,1)",""), False),
+        Example(("q(1,5) q(2,3) q(3,2) q(4,4) q(5,1)",""), False),
+        Example(("q(1,5) q(2,2) q(3,3) q(4,4) q(5,1)",""), False),
+        Example(("q(1,5) q(2,1) q(3,3) q(4,4) q(5,2)",""), False),
+        Example(("q(1,5) q(2,2) q(3,1) q(4,4) q(5,3)",""), False),
+        Example(("q(1,5) q(2,1) q(3,2) q(4,4) q(5,3)",""), False),
+        Example(("q(1,5) q(2,2) q(3,1) q(4,3) q(5,4)",""), False),
+        Example(("q(1,5) q(2,3) q(3,1) q(4,2) q(5,4)",""), False),
+        Example(("q(1,5) q(2,4) q(3,3) q(4,2) q(5,1)",""), False),
+        Example(("q(1,5) q(2,4) q(3,3) q(4,1) q(5,2)",""), False),
+        Example(("q(1,5) q(2,4) q(3,2) q(4,3) q(5,1)",""), False)
     ]
     
-    lbh : 'list[str]' = []
+    language_bias_head : 'list[ModeDeclaration]' = []
     
-    lbb : 'list[str]' = ['modeb(2, q(+,+))']
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("2", "q", "2", "positive"), False)
+    ]
     
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
-def clique():
+def clique() -> Program:
     '''
     Clique ok size 3.
     Given:
@@ -1112,7 +1112,7 @@ def clique():
     in(1) in(2) in(5)
     in(1) in(9) in(5)
     '''
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "v(1..9).",
         "e(1,2).",
         "e(1,5).",
@@ -1135,28 +1135,25 @@ def clique():
         "ne(X,Y):- not e(X,Y), v(X), v(Y)."
     ]
 
-    pe : 'list[list[str]]' = [
-        ["in(1) in(2) in(5)", ""],
-        ["in(1) in(9) in(5)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("in(1), in(2), in(5)", ""), True),
+        Example(("in(1), in(9), in(5)", ""), True)
     ]
 
-    ne : 'list[list[str]]' = [
-        ["in(3)", ""],
-        ["in(4)", ""]
+    negative_examples : 'list[Example]' = [
+        Example(("in(3)", ""), False),
+        Example(("in(4)", ""), False)
     ]
 
-    lbh : 'list[str]' = [
-        # 'modeh(1, v(+))'
+    language_bias_head : 'list[ModeDeclaration]' = []
+
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("2", "v", "1", "positive"), False),
+        ModeDeclaration(("2", "ne", "2", "positive"), False),
+        ModeDeclaration(("2", "in", "1", "positive"), False)
     ]
 
-    lbb : 'list[str]' = [
-        'modeb(2, v(+))',
-        # 'modeb(2, e(+,+))',
-        'modeb(2, ne(+,+))',
-        'modeb(2, in(+))'
-    ]
-
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def magic_square_no_diag():
@@ -1178,7 +1175,7 @@ def magic_square_no_diag():
     :- sum_row(R0,SR0), sum_row(R1,SR1), R0 != R1, SR0 != SR1.
     '''
     # https://en.wikipedia.org/wiki/Magic_square
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "#const n = 3.",
         "#const s = n*(n*n + 1) / 2.",
         "size(1..n).",
@@ -1188,297 +1185,297 @@ def magic_square_no_diag():
     ]
     
     # all the 72 solutions
-    pe : 'list[list[str]]' = [
-        ["x(1,1,4) x(1,2,2) x(1,3,9) x(2,1,8) x(2,2,6) x(2,3,1) x(3,1,3) x(3,2,7) x(3,3,5)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,5) x(2,1,8) x(2,2,6) x(2,3,1) x(3,1,4) x(3,2,2) x(3,3,9)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,5) x(2,1,6) x(2,2,8) x(2,3,1) x(3,1,2) x(3,2,4) x(3,3,9)",""],
-        ["x(1,1,2) x(1,2,4) x(1,3,9) x(2,1,6) x(2,2,8) x(2,3,1) x(3,1,7) x(3,2,3) x(3,3,5)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,9) x(2,2,5) x(2,3,1) x(3,1,2) x(3,2,7) x(3,3,6)",""],
-        ["x(1,1,2) x(1,2,7) x(1,3,6) x(2,1,9) x(2,2,5) x(2,3,1) x(3,1,4) x(3,2,3) x(3,3,8)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,9) x(2,3,1) x(3,1,7) x(3,2,2) x(3,3,6)",""],
-        ["x(1,1,7) x(1,2,2) x(1,3,6) x(2,1,5) x(2,2,9) x(2,3,1) x(3,1,3) x(3,2,4) x(3,3,8)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,3) x(2,1,6) x(2,2,1) x(2,3,8) x(3,1,2) x(3,2,9) x(3,3,4)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,2) x(2,1,5) x(2,2,1) x(2,3,9) x(3,1,3) x(3,2,8) x(3,3,4)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,7) x(2,1,8) x(2,2,1) x(2,3,6) x(3,1,4) x(3,2,9) x(3,3,2)",""],
-        ["x(1,1,2) x(1,2,6) x(1,3,7) x(2,1,9) x(2,2,1) x(2,3,5) x(3,1,4) x(3,2,8) x(3,3,3)",""],
-        ["x(1,1,2) x(1,2,9) x(1,3,4) x(2,1,6) x(2,2,1) x(2,3,8) x(3,1,7) x(3,2,5) x(3,3,3)",""],
-        ["x(1,1,4) x(1,2,9) x(1,3,2) x(2,1,8) x(2,2,1) x(2,3,6) x(3,1,3) x(3,2,5) x(3,3,7)",""],
-        ["x(1,1,3) x(1,2,8) x(1,3,4) x(2,1,5) x(2,2,1) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,2)",""],
-        ["x(1,1,4) x(1,2,8) x(1,3,3) x(2,1,9) x(2,2,1) x(2,3,5) x(3,1,2) x(3,2,6) x(3,3,7)",""],
-        ["x(1,1,5) x(1,2,1) x(1,3,9) x(2,1,3) x(2,2,8) x(2,3,4) x(3,1,7) x(3,2,6) x(3,3,2)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,2) x(2,1,3) x(2,2,8) x(2,3,4) x(3,1,5) x(3,2,1) x(3,3,9)",""],
-        ["x(1,1,3) x(1,2,8) x(1,3,4) x(2,1,7) x(2,2,6) x(2,3,2) x(3,1,5) x(3,2,1) x(3,3,9)",""],
-        ["x(1,1,5) x(1,2,1) x(1,3,9) x(2,1,7) x(2,2,6) x(2,3,2) x(3,1,3) x(3,2,8) x(3,3,4)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,5) x(2,1,2) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,8) x(3,3,1)",""],
-        ["x(1,1,2) x(1,2,4) x(1,3,9) x(2,1,7) x(2,2,3) x(2,3,5) x(3,1,6) x(3,2,8) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,8) x(1,3,1) x(2,1,7) x(2,2,3) x(2,3,5) x(3,1,2) x(3,2,4) x(3,3,9)",""],
-        ["x(1,1,6) x(1,2,8) x(1,3,1) x(2,1,2) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,5)",""],
-        ["x(1,1,9) x(1,2,1) x(1,3,5) x(2,1,2) x(2,2,6) x(2,3,7) x(3,1,4) x(3,2,8) x(3,3,3)",""],
-        ["x(1,1,4) x(1,2,8) x(1,3,3) x(2,1,2) x(2,2,6) x(2,3,7) x(3,1,9) x(3,2,1) x(3,3,5)",""],
-        ["x(1,1,2) x(1,2,6) x(1,3,7) x(2,1,4) x(2,2,8) x(2,3,3) x(3,1,9) x(3,2,1) x(3,3,5)",""],
-        ["x(1,1,9) x(1,2,1) x(1,3,5) x(2,1,4) x(2,2,8) x(2,3,3) x(3,1,2) x(3,2,6) x(3,3,7)",""],
-        ["x(1,1,9) x(1,2,4) x(1,3,2) x(2,1,5) x(2,2,3) x(2,3,7) x(3,1,1) x(3,2,8) x(3,3,6)",""],
-        ["x(1,1,1) x(1,2,8) x(1,3,6) x(2,1,5) x(2,2,3) x(2,3,7) x(3,1,9) x(3,2,4) x(3,3,2)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,7) x(2,1,9) x(2,2,4) x(2,3,2) x(3,1,1) x(3,2,8) x(3,3,6)",""],
-        ["x(1,1,1) x(1,2,8) x(1,3,6) x(2,1,9) x(2,2,4) x(2,3,2) x(3,1,5) x(3,2,3) x(3,3,7)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,7) x(2,1,1) x(2,2,8) x(2,3,6) x(3,1,9) x(3,2,4) x(3,3,2)",""],
-        ["x(1,1,9) x(1,2,4) x(1,3,2) x(2,1,1) x(2,2,8) x(2,3,6) x(3,1,5) x(3,2,3) x(3,3,7)",""],
-        ["x(1,1,8) x(1,2,1) x(1,3,6) x(2,1,3) x(2,2,5) x(2,3,7) x(3,1,4) x(3,2,9) x(3,3,2)",""],
-        ["x(1,1,4) x(1,2,9) x(1,3,2) x(2,1,3) x(2,2,5) x(2,3,7) x(3,1,8) x(3,2,1) x(3,3,6)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,7) x(2,1,4) x(2,2,9) x(2,3,2) x(3,1,8) x(3,2,1) x(3,3,6)",""],
-        ["x(1,1,8) x(1,2,1) x(1,3,6) x(2,1,4) x(2,2,9) x(2,3,2) x(3,1,3) x(3,2,5) x(3,3,7)",""],
-        ["x(1,1,1) x(1,2,9) x(1,3,5) x(2,1,8) x(2,2,4) x(2,3,3) x(3,1,6) x(3,2,2) x(3,3,7)",""],
-        ["x(1,1,1) x(1,2,9) x(1,3,5) x(2,1,6) x(2,2,2) x(2,3,7) x(3,1,8) x(3,2,4) x(3,3,3)",""],
-        ["x(1,1,6) x(1,2,2) x(1,3,7) x(2,1,1) x(2,2,9) x(2,3,5) x(3,1,8) x(3,2,4) x(3,3,3)",""],
-        ["x(1,1,8) x(1,2,4) x(1,3,3) x(2,1,6) x(2,2,2) x(2,3,7) x(3,1,1) x(3,2,9) x(3,3,5)",""],
-        ["x(1,1,6) x(1,2,2) x(1,3,7) x(2,1,8) x(2,2,4) x(2,3,3) x(3,1,1) x(3,2,9) x(3,3,5)",""],
-        ["x(1,1,8) x(1,2,4) x(1,3,3) x(2,1,1) x(2,2,9) x(2,3,5) x(3,1,6) x(3,2,2) x(3,3,7)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,5) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,8) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,8) x(1,2,6) x(1,3,1) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,5)",""],
-        ["x(1,1,8) x(1,2,6) x(1,3,1) x(2,1,3) x(2,2,7) x(2,3,5) x(3,1,4) x(3,2,2) x(3,3,9)",""],
-        ["x(1,1,4) x(1,2,2) x(1,3,9) x(2,1,3) x(2,2,7) x(2,3,5) x(3,1,8) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,3) x(2,1,1) x(2,2,6) x(2,3,8) x(3,1,9) x(3,2,2) x(3,3,4)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,3) x(2,1,9) x(2,2,2) x(2,3,4) x(3,1,1) x(3,2,6) x(3,3,8)",""],
-        ["x(1,1,9) x(1,2,2) x(1,3,4) x(2,1,1) x(2,2,6) x(2,3,8) x(3,1,5) x(3,2,7) x(3,3,3)",""],
-        ["x(1,1,1) x(1,2,6) x(1,3,8) x(2,1,9) x(2,2,2) x(2,3,4) x(3,1,5) x(3,2,7) x(3,3,3)",""],
-        ["x(1,1,1) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,3) x(3,1,9) x(3,2,2) x(3,3,4)",""],
-        ["x(1,1,9) x(1,2,2) x(1,3,4) x(2,1,5) x(2,2,7) x(2,3,3) x(3,1,1) x(3,2,6) x(3,3,8)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,2) x(2,2,7) x(2,3,6) x(3,1,9) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,9) x(1,2,5) x(1,3,1) x(2,1,2) x(2,2,7) x(2,3,6) x(3,1,4) x(3,2,3) x(3,3,8)",""],
-        ["x(1,1,2) x(1,2,7) x(1,3,6) x(2,1,4) x(2,2,3) x(2,3,8) x(3,1,9) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,9) x(1,2,5) x(1,3,1) x(2,1,4) x(2,2,3) x(2,3,8) x(3,1,2) x(3,2,7) x(3,3,6)",""],
-        ["x(1,1,1) x(1,2,5) x(1,3,9) x(2,1,8) x(2,2,3) x(2,3,4) x(3,1,6) x(3,2,7) x(3,3,2)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,2) x(2,1,8) x(2,2,3) x(2,3,4) x(3,1,1) x(3,2,5) x(3,3,9)",""],
-        ["x(1,1,8) x(1,2,3) x(1,3,4) x(2,1,1) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,2)",""],
-        ["x(1,1,1) x(1,2,5) x(1,3,9) x(2,1,6) x(2,2,7) x(2,3,2) x(3,1,8) x(3,2,3) x(3,3,4)",""],
-        ["x(1,1,8) x(1,2,3) x(1,3,4) x(2,1,6) x(2,2,7) x(2,3,2) x(3,1,1) x(3,2,5) x(3,3,9)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,2) x(2,1,1) x(2,2,5) x(2,3,9) x(3,1,8) x(3,2,3) x(3,3,4)",""],
-        ["x(1,1,5) x(1,2,9) x(1,3,1) x(2,1,7) x(2,2,2) x(2,3,6) x(3,1,3) x(3,2,4) x(3,3,8)",""],
-        ["x(1,1,5) x(1,2,9) x(1,3,1) x(2,1,3) x(2,2,4) x(2,3,8) x(3,1,7) x(3,2,2) x(3,3,6)",""],
-        ["x(1,1,7) x(1,2,2) x(1,3,6) x(2,1,3) x(2,2,4) x(2,3,8) x(3,1,5) x(3,2,9) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,6) x(3,1,5) x(3,2,9) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,1) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,3) x(3,1,2) x(3,2,9) x(3,3,4)",""],
-        ["x(1,1,2) x(1,2,9) x(1,3,4) x(2,1,7) x(2,2,5) x(2,3,3) x(3,1,6) x(3,2,1) x(3,3,8)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,3) x(2,1,2) x(2,2,9) x(2,3,4) x(3,1,6) x(3,2,1) x(3,3,8)",""],
-        ["x(1,1,6) x(1,2,1) x(1,3,8) x(2,1,2) x(2,2,9) x(2,3,4) x(3,1,7) x(3,2,5) x(3,3,3)",""]
+    positive_examples : 'list[Example]' = [
+        Example(("x(1,1,4) x(1,2,2) x(1,3,9) x(2,1,8) x(2,2,6) x(2,3,1) x(3,1,3) x(3,2,7) x(3,3,5)",""), True),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,5) x(2,1,8) x(2,2,6) x(2,3,1) x(3,1,4) x(3,2,2) x(3,3,9)",""), True),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,5) x(2,1,6) x(2,2,8) x(2,3,1) x(3,1,2) x(3,2,4) x(3,3,9)",""), True),
+        Example(("x(1,1,2) x(1,2,4) x(1,3,9) x(2,1,6) x(2,2,8) x(2,3,1) x(3,1,7) x(3,2,3) x(3,3,5)",""), True),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,9) x(2,2,5) x(2,3,1) x(3,1,2) x(3,2,7) x(3,3,6)",""), True),
+        Example(("x(1,1,2) x(1,2,7) x(1,3,6) x(2,1,9) x(2,2,5) x(2,3,1) x(3,1,4) x(3,2,3) x(3,3,8)",""), True),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,9) x(2,3,1) x(3,1,7) x(3,2,2) x(3,3,6)",""), True),
+        Example(("x(1,1,7) x(1,2,2) x(1,3,6) x(2,1,5) x(2,2,9) x(2,3,1) x(3,1,3) x(3,2,4) x(3,3,8)",""), True),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,3) x(2,1,6) x(2,2,1) x(2,3,8) x(3,1,2) x(3,2,9) x(3,3,4)",""), True),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,2) x(2,1,5) x(2,2,1) x(2,3,9) x(3,1,3) x(3,2,8) x(3,3,4)",""), True),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,7) x(2,1,8) x(2,2,1) x(2,3,6) x(3,1,4) x(3,2,9) x(3,3,2)",""), True),
+        Example(("x(1,1,2) x(1,2,6) x(1,3,7) x(2,1,9) x(2,2,1) x(2,3,5) x(3,1,4) x(3,2,8) x(3,3,3)",""), True),
+        Example(("x(1,1,2) x(1,2,9) x(1,3,4) x(2,1,6) x(2,2,1) x(2,3,8) x(3,1,7) x(3,2,5) x(3,3,3)",""), True),
+        Example(("x(1,1,4) x(1,2,9) x(1,3,2) x(2,1,8) x(2,2,1) x(2,3,6) x(3,1,3) x(3,2,5) x(3,3,7)",""), True),
+        Example(("x(1,1,3) x(1,2,8) x(1,3,4) x(2,1,5) x(2,2,1) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,2)",""), True),
+        Example(("x(1,1,4) x(1,2,8) x(1,3,3) x(2,1,9) x(2,2,1) x(2,3,5) x(3,1,2) x(3,2,6) x(3,3,7)",""), True),
+        Example(("x(1,1,5) x(1,2,1) x(1,3,9) x(2,1,3) x(2,2,8) x(2,3,4) x(3,1,7) x(3,2,6) x(3,3,2)",""), True),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,2) x(2,1,3) x(2,2,8) x(2,3,4) x(3,1,5) x(3,2,1) x(3,3,9)",""), True),
+        Example(("x(1,1,3) x(1,2,8) x(1,3,4) x(2,1,7) x(2,2,6) x(2,3,2) x(3,1,5) x(3,2,1) x(3,3,9)",""), True),
+        Example(("x(1,1,5) x(1,2,1) x(1,3,9) x(2,1,7) x(2,2,6) x(2,3,2) x(3,1,3) x(3,2,8) x(3,3,4)",""), True),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,5) x(2,1,2) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,8) x(3,3,1)",""), True),
+        Example(("x(1,1,2) x(1,2,4) x(1,3,9) x(2,1,7) x(2,2,3) x(2,3,5) x(3,1,6) x(3,2,8) x(3,3,1)",""), True),
+        Example(("x(1,1,6) x(1,2,8) x(1,3,1) x(2,1,7) x(2,2,3) x(2,3,5) x(3,1,2) x(3,2,4) x(3,3,9)",""), True),
+        Example(("x(1,1,6) x(1,2,8) x(1,3,1) x(2,1,2) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,5)",""), True),
+        Example(("x(1,1,9) x(1,2,1) x(1,3,5) x(2,1,2) x(2,2,6) x(2,3,7) x(3,1,4) x(3,2,8) x(3,3,3)",""), True),
+        Example(("x(1,1,4) x(1,2,8) x(1,3,3) x(2,1,2) x(2,2,6) x(2,3,7) x(3,1,9) x(3,2,1) x(3,3,5)",""), True),
+        Example(("x(1,1,2) x(1,2,6) x(1,3,7) x(2,1,4) x(2,2,8) x(2,3,3) x(3,1,9) x(3,2,1) x(3,3,5)",""), True),
+        Example(("x(1,1,9) x(1,2,1) x(1,3,5) x(2,1,4) x(2,2,8) x(2,3,3) x(3,1,2) x(3,2,6) x(3,3,7)",""), True),
+        Example(("x(1,1,9) x(1,2,4) x(1,3,2) x(2,1,5) x(2,2,3) x(2,3,7) x(3,1,1) x(3,2,8) x(3,3,6)",""), True),
+        Example(("x(1,1,1) x(1,2,8) x(1,3,6) x(2,1,5) x(2,2,3) x(2,3,7) x(3,1,9) x(3,2,4) x(3,3,2)",""), True),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,7) x(2,1,9) x(2,2,4) x(2,3,2) x(3,1,1) x(3,2,8) x(3,3,6)",""), True),
+        Example(("x(1,1,1) x(1,2,8) x(1,3,6) x(2,1,9) x(2,2,4) x(2,3,2) x(3,1,5) x(3,2,3) x(3,3,7)",""), True),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,7) x(2,1,1) x(2,2,8) x(2,3,6) x(3,1,9) x(3,2,4) x(3,3,2)",""), True),
+        Example(("x(1,1,9) x(1,2,4) x(1,3,2) x(2,1,1) x(2,2,8) x(2,3,6) x(3,1,5) x(3,2,3) x(3,3,7)",""), True),
+        Example(("x(1,1,8) x(1,2,1) x(1,3,6) x(2,1,3) x(2,2,5) x(2,3,7) x(3,1,4) x(3,2,9) x(3,3,2)",""), True),
+        Example(("x(1,1,4) x(1,2,9) x(1,3,2) x(2,1,3) x(2,2,5) x(2,3,7) x(3,1,8) x(3,2,1) x(3,3,6)",""), True),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,7) x(2,1,4) x(2,2,9) x(2,3,2) x(3,1,8) x(3,2,1) x(3,3,6)",""), True),
+        Example(("x(1,1,8) x(1,2,1) x(1,3,6) x(2,1,4) x(2,2,9) x(2,3,2) x(3,1,3) x(3,2,5) x(3,3,7)",""), True),
+        Example(("x(1,1,1) x(1,2,9) x(1,3,5) x(2,1,8) x(2,2,4) x(2,3,3) x(3,1,6) x(3,2,2) x(3,3,7)",""), True),
+        Example(("x(1,1,1) x(1,2,9) x(1,3,5) x(2,1,6) x(2,2,2) x(2,3,7) x(3,1,8) x(3,2,4) x(3,3,3)",""), True),
+        Example(("x(1,1,6) x(1,2,2) x(1,3,7) x(2,1,1) x(2,2,9) x(2,3,5) x(3,1,8) x(3,2,4) x(3,3,3)",""), True),
+        Example(("x(1,1,8) x(1,2,4) x(1,3,3) x(2,1,6) x(2,2,2) x(2,3,7) x(3,1,1) x(3,2,9) x(3,3,5)",""), True),
+        Example(("x(1,1,6) x(1,2,2) x(1,3,7) x(2,1,8) x(2,2,4) x(2,3,3) x(3,1,1) x(3,2,9) x(3,3,5)",""), True),
+        Example(("x(1,1,8) x(1,2,4) x(1,3,3) x(2,1,1) x(2,2,9) x(2,3,5) x(3,1,6) x(3,2,2) x(3,3,7)",""), True),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,5) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,8) x(3,2,6) x(3,3,1)",""), True),
+        Example(("x(1,1,8) x(1,2,6) x(1,3,1) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,5)",""), True),
+        Example(("x(1,1,8) x(1,2,6) x(1,3,1) x(2,1,3) x(2,2,7) x(2,3,5) x(3,1,4) x(3,2,2) x(3,3,9)",""), True),
+        Example(("x(1,1,4) x(1,2,2) x(1,3,9) x(2,1,3) x(2,2,7) x(2,3,5) x(3,1,8) x(3,2,6) x(3,3,1)",""), True),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,3) x(2,1,1) x(2,2,6) x(2,3,8) x(3,1,9) x(3,2,2) x(3,3,4)",""), True),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,3) x(2,1,9) x(2,2,2) x(2,3,4) x(3,1,1) x(3,2,6) x(3,3,8)",""), True),
+        Example(("x(1,1,9) x(1,2,2) x(1,3,4) x(2,1,1) x(2,2,6) x(2,3,8) x(3,1,5) x(3,2,7) x(3,3,3)",""), True),
+        Example(("x(1,1,1) x(1,2,6) x(1,3,8) x(2,1,9) x(2,2,2) x(2,3,4) x(3,1,5) x(3,2,7) x(3,3,3)",""), True),
+        Example(("x(1,1,1) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,3) x(3,1,9) x(3,2,2) x(3,3,4)",""), True),
+        Example(("x(1,1,9) x(1,2,2) x(1,3,4) x(2,1,5) x(2,2,7) x(2,3,3) x(3,1,1) x(3,2,6) x(3,3,8)",""), True),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,2) x(2,2,7) x(2,3,6) x(3,1,9) x(3,2,5) x(3,3,1)",""), True),
+        Example(("x(1,1,9) x(1,2,5) x(1,3,1) x(2,1,2) x(2,2,7) x(2,3,6) x(3,1,4) x(3,2,3) x(3,3,8)",""), True),
+        Example(("x(1,1,2) x(1,2,7) x(1,3,6) x(2,1,4) x(2,2,3) x(2,3,8) x(3,1,9) x(3,2,5) x(3,3,1)",""), True),
+        Example(("x(1,1,9) x(1,2,5) x(1,3,1) x(2,1,4) x(2,2,3) x(2,3,8) x(3,1,2) x(3,2,7) x(3,3,6)",""), True),
+        Example(("x(1,1,1) x(1,2,5) x(1,3,9) x(2,1,8) x(2,2,3) x(2,3,4) x(3,1,6) x(3,2,7) x(3,3,2)",""), True),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,2) x(2,1,8) x(2,2,3) x(2,3,4) x(3,1,1) x(3,2,5) x(3,3,9)",""), True),
+        Example(("x(1,1,8) x(1,2,3) x(1,3,4) x(2,1,1) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,2)",""), True),
+        Example(("x(1,1,1) x(1,2,5) x(1,3,9) x(2,1,6) x(2,2,7) x(2,3,2) x(3,1,8) x(3,2,3) x(3,3,4)",""), True),
+        Example(("x(1,1,8) x(1,2,3) x(1,3,4) x(2,1,6) x(2,2,7) x(2,3,2) x(3,1,1) x(3,2,5) x(3,3,9)",""), True),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,2) x(2,1,1) x(2,2,5) x(2,3,9) x(3,1,8) x(3,2,3) x(3,3,4)",""), True),
+        Example(("x(1,1,5) x(1,2,9) x(1,3,1) x(2,1,7) x(2,2,2) x(2,3,6) x(3,1,3) x(3,2,4) x(3,3,8)",""), True),
+        Example(("x(1,1,5) x(1,2,9) x(1,3,1) x(2,1,3) x(2,2,4) x(2,3,8) x(3,1,7) x(3,2,2) x(3,3,6)",""), True),
+        Example(("x(1,1,7) x(1,2,2) x(1,3,6) x(2,1,3) x(2,2,4) x(2,3,8) x(3,1,5) x(3,2,9) x(3,3,1)",""), True),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,6) x(3,1,5) x(3,2,9) x(3,3,1)",""), True),
+        Example(("x(1,1,6) x(1,2,1) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,3) x(3,1,2) x(3,2,9) x(3,3,4)",""), True),
+        Example(("x(1,1,2) x(1,2,9) x(1,3,4) x(2,1,7) x(2,2,5) x(2,3,3) x(3,1,6) x(3,2,1) x(3,3,8)",""), True),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,3) x(2,1,2) x(2,2,9) x(2,3,4) x(3,1,6) x(3,2,1) x(3,3,8)",""), True),
+        Example(("x(1,1,6) x(1,2,1) x(1,3,8) x(2,1,2) x(2,2,9) x(2,3,4) x(3,1,7) x(3,2,5) x(3,3,3)",""), True)
     ]
     
     # 200 not valid solutions
-    ne : 'list[list[str]]' = [
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,4) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,4) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,4) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,4) x(3,2,7) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""],
-        ["x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""]
+    negative_examples : 'list[Example]' = [
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,3) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,3) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,5) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,5) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,4) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,6) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,7) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,7) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,4) x(2,3,9) x(3,1,6) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,7) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,4) x(2,3,9) x(3,1,5) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,5) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,7) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,6) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,4) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,4) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,3) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,3) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,5) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,3) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,4) x(1,2,6) x(1,3,8) x(2,1,7) x(2,2,2) x(2,3,9) x(3,1,5) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,4) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,5) x(2,2,2) x(2,3,9) x(3,1,4) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,4) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,6) x(2,2,2) x(2,3,9) x(3,1,4) x(3,2,7) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,6) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,6) x(1,3,8) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,7) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,7) x(1,3,8) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,5) x(3,3,1)",""), False),
+        Example(("x(1,1,3) x(1,2,5) x(1,3,8) x(2,1,4) x(2,2,2) x(2,3,9) x(3,1,6) x(3,2,7) x(3,3,1)",""), False)
     ]
     
-    lbh : 'list[str]' = [
-        "modeh(2, sum_row(+,+))",
-        "modeh(2, sum_col(+,+))"
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("2", "sum_row", "2"), True),
+        ModeDeclaration(("2", "sum_col", "2"), True)
     ]
     
-    lbb : 'list[str]' = [
-        "modeb(2, sum_row(+,+))",
-        "modeb(2, sum_col(+,+))",
-        "modeb(1, size(+))"
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "size", "1", "positive"), False),
+        ModeDeclaration(("2", "sum_row", "2", "positive"), False),
+        ModeDeclaration(("2", "sum_col", "2", "positive"), False)
     ]
     
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
     
 
 def set_partition_sum():
@@ -1504,7 +1501,7 @@ def set_partition_sum():
     :- sum_partition(P0, S1), sum_partition(P1, S2), P0 != P1, S1 != S2.
     '''
 
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "#const n = 12.",
         "val(1..n).",
         "partition(1..2).",
@@ -1513,46 +1510,46 @@ def set_partition_sum():
     ]
     
     # 10 of the 62 existing solutions
-    pe : 'list[list[str]]' = [
-        ["p(1,1) p(1,5) p(1,10) p(1,11) p(1,12) p(2,2) p(2,3) p(2,4) p(2,6) p(2,7) p(2,8) p(2,9)",""],
-        ["p(1,1) p(1,4) p(1,5) p(1,8) p(1,10) p(1,11) p(2,2) p(2,3) p(2,6) p(2,7) p(2,9) p(2,12)",""],
-        ["p(1,1) p(1,3) p(1,5) p(1,8) p(1,10) p(1,12) p(2,2) p(2,4) p(2,6) p(2,7) p(2,9) p(2,11)",""],
-        ["p(1,1) p(1,3) p(1,4) p(1,8) p(1,11) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,9) p(2,10)",""],
-        ["p(1,1) p(1,3) p(1,5) p(1,9) p(1,10) p(1,11) p(2,2) p(2,4) p(2,6) p(2,7) p(2,8) p(2,12)",""],
-        ["p(1,1) p(1,3) p(1,4) p(1,9) p(1,10) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,8) p(2,11)",""],
-        ["p(1,1) p(1,8) p(1,9) p(1,10) p(1,11) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,7) p(2,12)",""],
-        ["p(1,1) p(1,4) p(1,5) p(1,8) p(1,9) p(1,12) p(2,2) p(2,3) p(2,6) p(2,7) p(2,10) p(2,11)",""],
-        ["p(1,1) p(1,4) p(1,5) p(1,7) p(1,10) p(1,12) p(2,2) p(2,3) p(2,6) p(2,8) p(2,9) p(2,11)",""],
-        ["p(1,1) p(1,7) p(1,9) p(1,10) p(1,12) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,8) p(2,11)",""]
+    positive_examples : 'list[Example]' = [
+        Example(("p(1,1) p(1,5) p(1,10) p(1,11) p(1,12) p(2,2) p(2,3) p(2,4) p(2,6) p(2,7) p(2,8) p(2,9)",""), True),
+        Example(("p(1,1) p(1,4) p(1,5) p(1,8) p(1,10) p(1,11) p(2,2) p(2,3) p(2,6) p(2,7) p(2,9) p(2,12)",""), True),
+        Example(("p(1,1) p(1,3) p(1,5) p(1,8) p(1,10) p(1,12) p(2,2) p(2,4) p(2,6) p(2,7) p(2,9) p(2,11)",""), True),
+        Example(("p(1,1) p(1,3) p(1,4) p(1,8) p(1,11) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,9) p(2,10)",""), True),
+        Example(("p(1,1) p(1,3) p(1,5) p(1,9) p(1,10) p(1,11) p(2,2) p(2,4) p(2,6) p(2,7) p(2,8) p(2,12)",""), True),
+        Example(("p(1,1) p(1,3) p(1,4) p(1,9) p(1,10) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,8) p(2,11)",""), True),
+        Example(("p(1,1) p(1,8) p(1,9) p(1,10) p(1,11) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,7) p(2,12)",""), True),
+        Example(("p(1,1) p(1,4) p(1,5) p(1,8) p(1,9) p(1,12) p(2,2) p(2,3) p(2,6) p(2,7) p(2,10) p(2,11)",""), True),
+        Example(("p(1,1) p(1,4) p(1,5) p(1,7) p(1,10) p(1,12) p(2,2) p(2,3) p(2,6) p(2,8) p(2,9) p(2,11)",""), True),
+        Example(("p(1,1) p(1,7) p(1,9) p(1,10) p(1,12) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,8) p(2,11)",""), True)
     ]
     
     # some of the 62 possible placements
-    ne : 'list[list[str]]' = [
-        ["p(1,1) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,2) p(2,3) p(2,5) p(2,10)",""],
-        ["p(1,1) p(1,2) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,3) p(2,10) p(2,12)",""],
-        ["p(1,1) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,2) p(2,3) p(2,10) p(2,12)",""],
-        ["p(1,1) p(1,2) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,3) p(2,5) p(2,10) p(2,12)",""],
-        ["p(1,1) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,2) p(2,3) p(2,5) p(2,10) p(2,12)",""],
-        ["p(1,1) p(1,2) p(1,3) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,4) p(2,10)",""],
-        ["p(1,1) p(1,2) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,3) p(2,4) p(2,10)",""],
-        ["p(1,1) p(1,2) p(1,3) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,4) p(2,5) p(2,10)",""],
-        ["p(1,1) p(1,2) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,3) p(2,4) p(2,5) p(2,10)",""],
-        ["p(1,1) p(1,2) p(1,3) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,4) p(2,10) p(2,12)",""],
-        ["p(1,1) p(1,2) p(1,3) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,4) p(2,5) p(2,10) p(2,12)",""],
-        ["p(1,1) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,7) p(2,8) p(2,9) p(2,10) p(2,11) p(2,12)",""],
-        ["p(1,1) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,10) p(1,11) p(1,12) p(2,2)",""]
+    negative_examples : 'list[Example]' = [
+        Example(("p(1,1) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,2) p(2,3) p(2,5) p(2,10)",""), False),
+        Example(("p(1,1) p(1,2) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,3) p(2,10) p(2,12)",""), False),
+        Example(("p(1,1) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,2) p(2,3) p(2,10) p(2,12)",""), False),
+        Example(("p(1,1) p(1,2) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,3) p(2,5) p(2,10) p(2,12)",""), False),
+        Example(("p(1,1) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,2) p(2,3) p(2,5) p(2,10) p(2,12)",""), False),
+        Example(("p(1,1) p(1,2) p(1,3) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,4) p(2,10)",""), False),
+        Example(("p(1,1) p(1,2) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,3) p(2,4) p(2,10)",""), False),
+        Example(("p(1,1) p(1,2) p(1,3) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,4) p(2,5) p(2,10)",""), False),
+        Example(("p(1,1) p(1,2) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(1,12) p(2,3) p(2,4) p(2,5) p(2,10)",""), False),
+        Example(("p(1,1) p(1,2) p(1,3) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,4) p(2,10) p(2,12)",""), False),
+        Example(("p(1,1) p(1,2) p(1,3) p(1,6) p(1,7) p(1,8) p(1,9) p(1,11) p(2,4) p(2,5) p(2,10) p(2,12)",""), False),
+        Example(("p(1,1) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,7) p(2,8) p(2,9) p(2,10) p(2,11) p(2,12)",""), False),
+        Example(("p(1,1) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(1,10) p(1,11) p(1,12) p(2,2)",""), False)
     ]
     
-    lbh : 'list[str]' = [
-        "modeh(1, sum_partition(+,+))"
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "sum_partition", "2"), True)
     ]
     
-    lbb : 'list[str]' = [
-        "modeb(1, partition(+))",
-        "modeb(2, sum_partition(+,+))"
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("2", "sum_partition", "2", "positive"), False),
+        ModeDeclaration(("1", "partition", "2", "positive"), False)
     ]
     
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def set_partition_sum_and_cardinality():
@@ -1583,7 +1580,7 @@ def set_partition_sum_and_cardinality():
     :- count_partition(P0, S1), count_partition(P1, S2), P0 != P1, S1 != S2.
     '''
 
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "#const n = 12.",
         "val(1..n).",
         "partition(1..2).",
@@ -1592,153 +1589,44 @@ def set_partition_sum_and_cardinality():
     ]
     
     # all the 29 existing solutions
-    pe : 'list[list[str]]' = [
-        ["p(1,1) p(1,4) p(1,5) p(1,8) p(1,9) p(1,12) p(2,2) p(2,3) p(2,6) p(2,7) p(2,10) p(2,11)",""],
-        ["p(1,1) p(1,4) p(1,5) p(1,8) p(1,10) p(1,11) p(2,2) p(2,3) p(2,6) p(2,7) p(2,9) p(2,12)",""],
-        # ["p(1,1) p(1,3) p(1,4) p(1,9) p(1,10) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,8) p(2,11)",""],
-        ["p(1,1) p(1,3) p(1,5) p(1,9) p(1,10) p(1,11) p(2,2) p(2,4) p(2,6) p(2,7) p(2,8) p(2,12)",""],
-        ["p(1,1) p(1,3) p(1,5) p(1,8) p(1,10) p(1,12) p(2,2) p(2,4) p(2,6) p(2,7) p(2,9) p(2,11)",""],
-        # ["p(1,1) p(1,3) p(1,4) p(1,8) p(1,11) p(1,12) p(2,2) p(2,5) p(2,6) p(2,7) p(2,9) p(2,10)",""],
-        ["p(1,1) p(1,4) p(1,5) p(1,7) p(1,10) p(1,12) p(2,2) p(2,3) p(2,6) p(2,8) p(2,9) p(2,11)",""],
-        # ["p(1,1) p(1,3) p(1,5) p(1,7) p(1,11) p(1,12) p(2,2) p(2,4) p(2,6) p(2,8) p(2,9) p(2,10)",""],
-        ["p(1,1) p(1,3) p(1,7) p(1,8) p(1,9) p(1,11) p(2,2) p(2,4) p(2,5) p(2,6) p(2,10) p(2,12)",""],
-        # ["p(1,1) p(1,4) p(1,7) p(1,8) p(1,9) p(1,10) p(2,2) p(2,3) p(2,5) p(2,6) p(2,11) p(2,12)",""],
-        # ["p(1,1) p(1,5) p(1,6) p(1,7) p(1,8) p(1,12) p(2,2) p(2,3) p(2,4) p(2,9) p(2,10) p(2,11)",""],
-        ["p(1,1) p(1,5) p(1,6) p(1,7) p(1,9) p(1,11) p(2,2) p(2,3) p(2,4) p(2,8) p(2,10) p(2,12)",""],
-        ["p(1,1) p(1,5) p(1,6) p(1,8) p(1,9) p(1,10) p(2,2) p(2,3) p(2,4) p(2,7) p(2,11) p(2,12)",""],
-        # ["p(1,1) p(1,3) p(1,6) p(1,7) p(1,10) p(1,12) p(2,2) p(2,4) p(2,5) p(2,8) p(2,9) p(2,11)",""],
-        # ["p(1,1) p(1,3) p(1,6) p(1,8) p(1,9) p(1,12) p(2,2) p(2,4) p(2,5) p(2,7) p(2,10) p(2,11)",""],
-        # ["p(1,1) p(1,3) p(1,6) p(1,8) p(1,10) p(1,11) p(2,2) p(2,4) p(2,5) p(2,7) p(2,9) p(2,12)",""],
-        # ["p(1,1) p(1,4) p(1,6) p(1,8) p(1,9) p(1,11) p(2,2) p(2,3) p(2,5) p(2,7) p(2,10) p(2,12)",""],
-        # ["p(1,1) p(1,4) p(1,5) p(1,6) p(1,11) p(1,12) p(2,2) p(2,3) p(2,7) p(2,8) p(2,9) p(2,10)",""],
-        # ["p(1,1) p(1,4) p(1,6) p(1,7) p(1,10) p(1,11) p(2,2) p(2,3) p(2,5) p(2,8) p(2,9) p(2,12)",""],
-        # ["p(1,1) p(1,4) p(1,6) p(1,7) p(1,9) p(1,12) p(2,2) p(2,3) p(2,5) p(2,8) p(2,10) p(2,11)",""],
-        # ["p(1,1) p(1,2) p(1,3) p(1,10) p(1,11) p(1,12) p(2,4) p(2,5) p(2,6) p(2,7) p(2,8) p(2,9)",""],
-        # ["p(1,1) p(1,2) p(1,5) p(1,9) p(1,10) p(1,12) p(2,3) p(2,4) p(2,6) p(2,7) p(2,8) p(2,11)",""],
-        # ["p(1,1) p(1,2) p(1,4) p(1,9) p(1,11) p(1,12) p(2,3) p(2,5) p(2,6) p(2,7) p(2,8) p(2,10)",""],
-        # ["p(1,1) p(1,2) p(1,6) p(1,7) p(1,11) p(1,12) p(2,3) p(2,4) p(2,5) p(2,8) p(2,9) p(2,10)",""],
-        # ["p(1,1) p(1,2) p(1,6) p(1,8) p(1,10) p(1,12) p(2,3) p(2,4) p(2,5) p(2,7) p(2,9) p(2,11)",""],
-        # ["p(1,1) p(1,2) p(1,5) p(1,8) p(1,11) p(1,12) p(2,3) p(2,4) p(2,6) p(2,7) p(2,9) p(2,10)",""],
-        # ["p(1,1) p(1,2) p(1,7) p(1,8) p(1,9) p(1,12) p(2,3) p(2,4) p(2,5) p(2,6) p(2,10) p(2,11)",""],
-        ["p(1,1) p(1,2) p(1,7) p(1,8) p(1,10) p(1,11) p(2,3) p(2,4) p(2,5) p(2,6) p(2,9) p(2,12)",""],
-        # ["p(1,1) p(1,2) p(1,6) p(1,9) p(1,10) p(1,11) p(2,3) p(2,4) p(2,5) p(2,7) p(2,8) p(2,12)",""]
+    positive_examples : 'list[Example]' = [
+        Example(("p(1,1) p(1,4) p(1,5) p(1,8) p(1,9) p(1,12) p(2,2) p(2,3) p(2,6) p(2,7) p(2,10) p(2,11)",""), True),
+        Example(("p(1,1) p(1,4) p(1,5) p(1,8) p(1,10) p(1,11) p(2,2) p(2,3) p(2,6) p(2,7) p(2,9) p(2,12)",""), True),
+        Example(("p(1,1) p(1,3) p(1,5) p(1,9) p(1,10) p(1,11) p(2,2) p(2,4) p(2,6) p(2,7) p(2,8) p(2,12)",""), True),
+        Example(("p(1,1) p(1,3) p(1,5) p(1,8) p(1,10) p(1,12) p(2,2) p(2,4) p(2,6) p(2,7) p(2,9) p(2,11)",""), True),
+        Example(("p(1,1) p(1,4) p(1,5) p(1,7) p(1,10) p(1,12) p(2,2) p(2,3) p(2,6) p(2,8) p(2,9) p(2,11)",""), True),
+        Example(("p(1,1) p(1,3) p(1,7) p(1,8) p(1,9) p(1,11) p(2,2) p(2,4) p(2,5) p(2,6) p(2,10) p(2,12)",""), True),
+        Example(("p(1,1) p(1,5) p(1,6) p(1,7) p(1,9) p(1,11) p(2,2) p(2,3) p(2,4) p(2,8) p(2,10) p(2,12)",""), True),
+        Example(("p(1,1) p(1,5) p(1,6) p(1,8) p(1,9) p(1,10) p(2,2) p(2,3) p(2,4) p(2,7) p(2,11) p(2,12)",""), True),
+        Example(("p(1,1) p(1,2) p(1,7) p(1,8) p(1,10) p(1,11) p(2,3) p(2,4) p(2,5) p(2,6) p(2,9) p(2,12)",""), True)
     ]
     
     # some of the 29 not valid possible placements (in total 2048 possible placements)
-    ne : 'list[list[str]]' = [
-        ["p(1,1) p(1,10) p(1,12) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(2,11) p(2,9)",""],
-        ["p(1,1) p(1,10) p(1,11) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,8) p(2,12) p(2,7) p(2,9)",""],
-        ["p(1,1) p(1,10) p(1,12) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,8) p(2,11) p(2,7) p(2,9)",""],
-        ["p(1,1) p(1,11) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,8) p(2,10) p(2,12) p(2,7) p(2,9)",""],
-        ["p(1,1) p(1,10) p(1,11) p(1,12) p(1,2) p(1,3) p(1,4) p(1,5) p(1,7) p(1,9) p(2,6) p(2,8)",""],
-        ["p(1,1) p(1,11) p(1,12) p(1,2) p(1,3) p(1,4) p(1,5) p(1,8) p(1,9) p(2,10) p(2,6) p(2,7)",""],
-        ["p(1,1) p(1,11) p(1,12) p(1,2) p(1,3) p(1,4) p(1,6) p(1,9) p(2,10) p(2,5) p(2,7) p(2,8)",""],
-        ["p(1,1) p(1,12) p(1,2) p(1,3) p(1,4) p(1,6) p(1,9) p(2,10) p(2,11) p(2,5) p(2,7) p(2,8)",""],
-        ["p(1,1) p(1,12) p(1,2) p(1,3) p(1,4) p(1,7) p(1,8) p(1,9) p(2,10) p(2,11) p(2,5) p(2,6)",""],
-        ["p(1,1) p(1,10) p(1,12) p(1,2) p(1,3) p(1,4) p(1,9) p(2,11) p(2,5) p(2,6) p(2,7) p(2,8)",""]
-        # p(1,1) p(1,2) p(1,3) p(1,4) p(1,9) p(2,10) p(2,11) p(2,12) p(2,5) p(2,6) p(2,7) p(2,8)
-        # p(1,1) p(1,11) p(1,12) p(1,2) p(1,3) p(1,5) p(1,6) p(1,8) p(2,10) p(2,4) p(2,7) p(2,9)
-        # p(1,1) p(1,11) p(1,12) p(1,2) p(1,3) p(1,5) p(1,6) p(1,8) p(1,9) p(2,10) p(2,4) p(2,7)
-        # p(1,1) p(1,10) p(1,12) p(1,2) p(1,3) p(1,5) p(1,6) p(1,9) p(2,11) p(2,4) p(2,7) p(2,8)
-        # p(1,1) p(1,10) p(1,11) p(1,2) p(1,3) p(1,5) p(1,7) p(2,12) p(2,4) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,11) p(1,12) p(1,2) p(1,3) p(1,5) p(1,7) p(2,10) p(2,4) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,11) p(1,2) p(1,3) p(1,5) p(1,7) p(1,8) p(1,9) p(2,12) p(2,4) p(2,6)
-        # p(1,1) p(1,11) p(1,12) p(1,2) p(1,3) p(1,6) p(1,7) p(2,10) p(2,4) p(2,5) p(2,8) p(2,9)
-        # p(1,1) p(1,12) p(1,2) p(1,3) p(1,6) p(1,7) p(1,8) p(1,9) p(2,10) p(2,11) p(2,4) p(2,5)
-        # p(1,1) p(1,10) p(1,2) p(1,3) p(1,6) p(1,8) p(2,11) p(2,12) p(2,4) p(2,5) p(2,7) p(2,9)
-        # p(1,1) p(1,11) p(1,2) p(1,3) p(1,6) p(1,9) p(2,10) p(2,12) p(2,4) p(2,5) p(2,7) p(2,8)
-        # p(1,1) p(1,10) p(1,12) p(1,2) p(1,3) p(1,7) p(2,11) p(2,4) p(2,5) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,2) p(1,3) p(1,8) p(1,9) p(2,10) p(2,11) p(2,12) p(2,4) p(2,5) p(2,6) p(2,7)
-        # p(1,1) p(1,12) p(1,2) p(1,4) p(1,5) p(1,7) p(1,8) p(2,10) p(2,11) p(2,3) p(2,6) p(2,9)
-        # p(1,1) p(1,10) p(1,11) p(1,2) p(1,4) p(1,5) p(1,7) p(1,8) p(1,9) p(2,12) p(2,3) p(2,6)
-        # p(1,1) p(1,10) p(1,2) p(1,4) p(1,5) p(1,7) p(1,8) p(1,9) p(2,11) p(2,12) p(2,3) p(2,6)
-        # p(1,1) p(1,10) p(1,12) p(1,2) p(1,4) p(1,5) p(1,8) p(1,9) p(2,11) p(2,3) p(2,6) p(2,7)
-        # p(1,1) p(1,11) p(1,12) p(1,2) p(1,4) p(1,5) p(1,8) p(1,9) p(2,10) p(2,3) p(2,6) p(2,7)
-        # p(1,1) p(1,10) p(1,11) p(1,12) p(1,2) p(1,4) p(1,6) p(2,3) p(2,5) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,11) p(1,12) p(1,2) p(1,4) p(1,6) p(1,7) p(1,8) p(2,10) p(2,3) p(2,5) p(2,9)
-        # p(1,1) p(1,10) p(1,12) p(1,2) p(1,4) p(1,6) p(1,9) p(2,11) p(2,3) p(2,5) p(2,7) p(2,8)
-        # p(1,1) p(1,11) p(1,12) p(1,2) p(1,4) p(1,7) p(1,8) p(2,10) p(2,3) p(2,5) p(2,6) p(2,9)
-        # p(1,1) p(1,10) p(1,2) p(1,4) p(1,9) p(2,11) p(2,12) p(2,3) p(2,5) p(2,6) p(2,7) p(2,8)
-        # p(1,1) p(1,10) p(1,2) p(1,5) p(1,6) p(2,11) p(2,12) p(2,3) p(2,4) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,12) p(1,2) p(1,5) p(1,6) p(2,10) p(2,11) p(2,3) p(2,4) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,11) p(1,12) p(1,2) p(1,5) p(1,6) p(1,7) p(1,8) p(2,3) p(2,4) p(2,9)
-        # p(1,1) p(1,12) p(1,2) p(1,5) p(1,6) p(1,8) p(2,10) p(2,11) p(2,3) p(2,4) p(2,7) p(2,9)
-        # p(1,1) p(1,10) p(1,12) p(1,2) p(1,5) p(1,6) p(1,9) p(2,11) p(2,3) p(2,4) p(2,7) p(2,8)
-        # p(1,1) p(1,11) p(1,2) p(1,5) p(1,7) p(2,10) p(2,12) p(2,3) p(2,4) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,12) p(1,2) p(1,5) p(1,7) p(2,10) p(2,11) p(2,3) p(2,4) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,11) p(1,2) p(1,5) p(1,7) p(1,8) p(1,9) p(2,12) p(2,3) p(2,4) p(2,6)
-        # p(1,1) p(1,10) p(1,2) p(1,5) p(1,9) p(2,11) p(2,12) p(2,3) p(2,4) p(2,6) p(2,7) p(2,8)
-        # p(1,1) p(1,10) p(1,12) p(1,2) p(1,6) p(1,8) p(1,9) p(2,11) p(2,3) p(2,4) p(2,5) p(2,7)
-        # p(1,1) p(1,11) p(1,2) p(1,6) p(1,9) p(2,10) p(2,12) p(2,3) p(2,4) p(2,5) p(2,7) p(2,8)
-        # p(1,1) p(1,10) p(1,2) p(1,7) p(1,9) p(2,11) p(2,12) p(2,3) p(2,4) p(2,5) p(2,6) p(2,8)
-        # p(1,1) p(1,11) p(1,2) p(1,7) p(1,9) p(2,10) p(2,12) p(2,3) p(2,4) p(2,5) p(2,6) p(2,8)
-        # p(1,1) p(1,12) p(1,2) p(1,7) p(1,9) p(2,10) p(2,11) p(2,3) p(2,4) p(2,5) p(2,6) p(2,8)
-        # p(1,1) p(1,12) p(1,2) p(1,8) p(2,10) p(2,11) p(2,3) p(2,4) p(2,5) p(2,6) p(2,7) p(2,9)
-        # p(1,1) p(1,10) p(1,3) p(2,11) p(2,12) p(2,2) p(2,4) p(2,5) p(2,6) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,11) p(1,12) p(1,3) p(1,4) p(1,5) p(1,6) p(2,2) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,11) p(1,3) p(1,4) p(1,5) p(1,6) p(2,10) p(2,12) p(2,2) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,11) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(2,10) p(2,12) p(2,2) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(2,11) p(2,12) p(2,2)
-        # p(1,1) p(1,10) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,9) p(2,11) p(2,12) p(2,2) p(2,8)
-        # p(1,1) p(1,10) p(1,11) p(1,3) p(1,4) p(1,5) p(1,7) p(2,12) p(2,2) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,12) p(1,3) p(1,4) p(1,5) p(1,7) p(2,10) p(2,11) p(2,2) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,3) p(1,4) p(1,5) p(1,7) p(1,8) p(2,11) p(2,12) p(2,2) p(2,6) p(2,9)
-        # p(1,1) p(1,10) p(1,3) p(1,4) p(1,5) p(1,8) p(2,11) p(2,12) p(2,2) p(2,6) p(2,7) p(2,9)
-        # p(1,1) p(1,10) p(1,12) p(1,3) p(1,4) p(1,6) p(1,7) p(1,8) p(2,11) p(2,2) p(2,5) p(2,9)
-        # p(1,1) p(1,11) p(1,12) p(1,3) p(1,4) p(1,6) p(1,7) p(1,8) p(2,10) p(2,2) p(2,5) p(2,9)
-        # p(1,1) p(1,3) p(1,4) p(1,6) p(1,7) p(1,8) p(1,9) p(2,10) p(2,11) p(2,12) p(2,2) p(2,5)
-        # p(1,1) p(1,10) p(1,11) p(1,12) p(1,3) p(1,4) p(1,7) p(2,2) p(2,5) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,12) p(1,3) p(1,4) p(1,7) p(2,11) p(2,2) p(2,5) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,11) p(1,12) p(1,3) p(1,4) p(1,7) p(1,9) p(2,10) p(2,2) p(2,5) p(2,6) p(2,8)
-        # p(1,1) p(1,3) p(1,4) p(1,7) p(1,9) p(2,10) p(2,11) p(2,12) p(2,2) p(2,5) p(2,6) p(2,8)
-        # p(1,1) p(1,3) p(1,4) p(1,8) p(1,9) p(2,10) p(2,11) p(2,12) p(2,2) p(2,5) p(2,6) p(2,7)
-        # p(1,1) p(1,11) p(1,3) p(1,5) p(1,6) p(1,8) p(2,10) p(2,12) p(2,2) p(2,4) p(2,7) p(2,9)
-        # p(1,1) p(1,10) p(1,11) p(1,3) p(1,5) p(1,7) p(2,12) p(2,2) p(2,4) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,11) p(1,3) p(1,5) p(1,7) p(1,8) p(1,9) p(2,12) p(2,2) p(2,4) p(2,6)
-        # p(1,1) p(1,10) p(1,12) p(1,3) p(1,5) p(1,7) p(1,9) p(2,11) p(2,2) p(2,4) p(2,6) p(2,8)
-        # p(1,1) p(1,11) p(1,3) p(1,6) p(1,7) p(2,10) p(2,12) p(2,2) p(2,4) p(2,5) p(2,8) p(2,9)
-        # p(1,1) p(1,12) p(1,3) p(1,6) p(1,7) p(2,10) p(2,11) p(2,2) p(2,4) p(2,5) p(2,8) p(2,9)
-        # p(1,1) p(1,12) p(1,3) p(1,7) p(1,8) p(1,9) p(2,10) p(2,11) p(2,2) p(2,4) p(2,5) p(2,6)
-        # p(1,1) p(1,10) p(1,12) p(1,4) p(1,5) p(1,6) p(2,11) p(2,2) p(2,3) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,4) p(1,5) p(1,6) p(2,11) p(2,12) p(2,2) p(2,3) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,11) p(1,4) p(1,5) p(1,6) p(2,10) p(2,12) p(2,2) p(2,3) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,12) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(2,10) p(2,11) p(2,2) p(2,3) p(2,9)
-        # p(1,1) p(1,12) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(1,9) p(2,10) p(2,11) p(2,2) p(2,3)
-        # p(1,1) p(1,4) p(1,5) p(1,6) p(2,10) p(2,11) p(2,12) p(2,2) p(2,3) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,4) p(1,5) p(1,7) p(1,8) p(2,11) p(2,12) p(2,2) p(2,3) p(2,6) p(2,9)
-        # p(1,1) p(1,11) p(1,4) p(1,5) p(1,8) p(1,9) p(2,10) p(2,12) p(2,2) p(2,3) p(2,6) p(2,7)
-        # p(1,1) p(1,11) p(1,12) p(1,4) p(1,5) p(1,9) p(2,10) p(2,2) p(2,3) p(2,6) p(2,7) p(2,8)
-        # p(1,1) p(1,11) p(1,12) p(1,4) p(1,6) p(1,7) p(1,8) p(2,10) p(2,2) p(2,3) p(2,5) p(2,9)
-        # p(1,1) p(1,10) p(1,4) p(1,6) p(1,9) p(2,11) p(2,12) p(2,2) p(2,3) p(2,5) p(2,7) p(2,8)
-        # p(1,1) p(1,12) p(1,4) p(1,6) p(1,9) p(2,10) p(2,11) p(2,2) p(2,3) p(2,5) p(2,7) p(2,8)
-        # p(1,1) p(1,10) p(1,4) p(1,7) p(2,11) p(2,12) p(2,2) p(2,3) p(2,5) p(2,6) p(2,8) p(2,9)
-        # p(1,1) p(1,4) p(1,7) p(1,8) p(1,9) p(2,10) p(2,11) p(2,12) p(2,2) p(2,3) p(2,5) p(2,6)
-        # p(1,1) p(1,10) p(1,5) p(2,11) p(2,12) p(2,2) p(2,3) p(2,4) p(2,6) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,11) p(1,12) p(1,5) p(1,6) p(2,2) p(2,3) p(2,4) p(2,7) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,11) p(1,12) p(1,5) p(1,6) p(1,7) p(1,8) p(2,2) p(2,3) p(2,4) p(2,9)
-        # p(1,1) p(1,10) p(1,5) p(1,6) p(1,7) p(1,8) p(2,11) p(2,12) p(2,2) p(2,3) p(2,4) p(2,9)
-        # p(1,1) p(1,12) p(1,5) p(1,6) p(1,7) p(1,9) p(2,10) p(2,11) p(2,2) p(2,3) p(2,4) p(2,8)
-        # p(1,1) p(1,10) p(1,11) p(1,5) p(1,7) p(1,9) p(2,12) p(2,2) p(2,3) p(2,4) p(2,6) p(2,8)
-        # p(1,1) p(1,11) p(1,5) p(1,7) p(1,9) p(2,10) p(2,12) p(2,2) p(2,3) p(2,4) p(2,6) p(2,8)
-        # p(1,1) p(1,10) p(1,11) p(1,12) p(1,5) p(1,8) p(2,2) p(2,3) p(2,4) p(2,6) p(2,7) p(2,9)
-        # p(1,1) p(1,11) p(1,12) p(1,6) p(1,7) p(2,10) p(2,2) p(2,3) p(2,4) p(2,5) p(2,8) p(2,9)
-        # p(1,1) p(1,10) p(1,6) p(1,9) p(2,11) p(2,12) p(2,2) p(2,3) p(2,4) p(2,5) p(2,7) p(2,8)
-        # p(1,1) p(1,10) p(1,11) p(1,7) p(1,9) p(2,12) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,8)
-        # p(1,1) p(1,10) p(1,8) p(1,9) p(2,11) p(2,12) p(2,2) p(2,3) p(2,4) p(2,5) p(2,6) p(2,7)
+    negative_examples : 'list[Example]' = [
+        Example(("p(1,1) p(1,10) p(1,12) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(2,11) p(2,9)",""), False),
+        Example(("p(1,1) p(1,10) p(1,11) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,8) p(2,12) p(2,7) p(2,9)",""), False),
+        Example(("p(1,1) p(1,10) p(1,12) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,8) p(2,11) p(2,7) p(2,9)",""), False),
+        Example(("p(1,1) p(1,11) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,8) p(2,10) p(2,12) p(2,7) p(2,9)",""), False),
+        Example(("p(1,1) p(1,10) p(1,11) p(1,12) p(1,2) p(1,3) p(1,4) p(1,5) p(1,7) p(1,9) p(2,6) p(2,8)",""), False),
+        Example(("p(1,1) p(1,11) p(1,12) p(1,2) p(1,3) p(1,4) p(1,5) p(1,8) p(1,9) p(2,10) p(2,6) p(2,7)",""), False),
+        Example(("p(1,1) p(1,11) p(1,12) p(1,2) p(1,3) p(1,4) p(1,6) p(1,9) p(2,10) p(2,5) p(2,7) p(2,8)",""), False),
+        Example(("p(1,1) p(1,12) p(1,2) p(1,3) p(1,4) p(1,6) p(1,9) p(2,10) p(2,11) p(2,5) p(2,7) p(2,8)",""), False),
+        Example(("p(1,1) p(1,12) p(1,2) p(1,3) p(1,4) p(1,7) p(1,8) p(1,9) p(2,10) p(2,11) p(2,5) p(2,6)",""), False),
+        Example(("p(1,1) p(1,10) p(1,12) p(1,2) p(1,3) p(1,4) p(1,9) p(2,11) p(2,5) p(2,6) p(2,7) p(2,8)",""), False)
     ]
     
-    lbh : 'list[str]' = [
-        "modeh(1, sum_partition(+,+)",
-        "modeh(1, count_partition(+,+)"
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "sum_partition", "2"), True),
+        ModeDeclaration(("1", "count_partition", "2"), True)
     ]
     
-    lbb : 'list[str]' = [
-        "modeb(1, partition(+)",
-        "modeb(2, sum_partition(+,+)",
-        "modeb(2, count_partition(+,+)"
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("2", "sum_partition", "2", "positive"), False),
+        ModeDeclaration(("2", "count_partition", "2", "positive"), False),
+        ModeDeclaration(("1", "partition", "1", "positive"), False)
     ]
     
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def set_partition_sum_cardinality_and_square():
@@ -1773,7 +1661,7 @@ def set_partition_sum_cardinality_and_square():
     :- sum_partition_sq(P0, S1), sum_partition_sq(P1, S2), P0 != P1, S1 != S2.
     '''
 
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "#const n = 12.",
         "val(1..n).",
         "partition(1..2).",
@@ -1783,31 +1671,31 @@ def set_partition_sum_cardinality_and_square():
     ]
     
     # only one solution
-    pe : 'list[list[str]]' = [
-        ["p(1,1) p(2,2) p(1,3) p(2,4) p(2,5) p(2,6) p(1,7) p(1,8) p(1,9) p(2,10) p(1,11) p(2,12)", ""]
+    positive_examples : 'list[Example]' = [
+        Example(("p(1,1) p(2,2) p(1,3) p(2,4) p(2,5) p(2,6) p(1,7) p(1,8) p(1,9) p(2,10) p(1,11) p(2,12)", ""), True)
     ]
     
     # some of the 2048 possible placements
-    ne : 'list[list[str]]' = [
-        ["p(1,1) p(1,2) p(2,3) p(2,4) p(2,5) p(1,6) p(2,7) p(1,8) p(2,9) p(1,10) p(2,11) p(1,12)",""],
-        ["p(1,1) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(2,9) p(2,10) p(1,11) p(2,12)",""],
-        ["p(1,1) p(1,2) p(1,3) p(1,4) p(1,5) p(2,6) p(1,7) p(2,8) p(2,9) p(1,10) p(1,11) p(2,12)",""],
-        ["p(1,1) p(2,2) p(1,3) p(1,4) p(1,5) p(2,6) p(1,7) p(2,8) p(1,9) p(2,10) p(2,11) p(1,12)",""],
-        ["p(1,1) p(2,2) p(2,3) p(1,4) p(2,5) p(2,6) p(2,7) p(1,8) p(2,9) p(1,10) p(2,11) p(1,12)",""]
+    negative_examples : 'list[Example]' = [
+        Example(("p(1,1) p(1,2) p(2,3) p(2,4) p(2,5) p(1,6) p(2,7) p(1,8) p(2,9) p(1,10) p(2,11) p(1,12)",""), False),
+        Example(("p(1,1) p(1,2) p(1,3) p(1,4) p(1,5) p(1,6) p(1,7) p(1,8) p(2,9) p(2,10) p(1,11) p(2,12)",""), False),
+        Example(("p(1,1) p(1,2) p(1,3) p(1,4) p(1,5) p(2,6) p(1,7) p(2,8) p(2,9) p(1,10) p(1,11) p(2,12)",""), False),
+        Example(("p(1,1) p(2,2) p(1,3) p(1,4) p(1,5) p(2,6) p(1,7) p(2,8) p(1,9) p(2,10) p(2,11) p(1,12)",""), False),
+        Example(("p(1,1) p(2,2) p(2,3) p(1,4) p(2,5) p(2,6) p(2,7) p(1,8) p(2,9) p(1,10) p(2,11) p(1,12)",""), False)
     ]
     
-    lbh : 'list[str]' = [
-        "modeh(1, count_partition(+,+)",
-        "modeh(1, sum_partition_sq(+,+)"
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "sum_partition_sq", "2"), True),
+        ModeDeclaration(("1", "count_partition", "2"), True)
     ]
     
-    lbb : 'list[str]' = [
-        "modeb(1, partition(+)",
-        "modeb(2, count_partition(+,+)",
-        "modeb(2, sum_partition_sq(+,+)"
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("2", "sum_partition_sq", "2", "positive"), False),
+        ModeDeclaration(("2", "count_partition", "2", "positive"), False),
+        ModeDeclaration(("1", "partition", "1", "positive"), False)
     ]
     
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def set_partition_new(also_count : bool):
@@ -1831,7 +1719,7 @@ def set_partition_new(also_count : bool):
     :- sum_partition(P0, S1), sum_partition(P1, S2), P0 != P1, S1 != S2.
     '''
 
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "val(2).",
         "val(4).",
         "val(5).",
@@ -1844,64 +1732,64 @@ def set_partition_new(also_count : bool):
     ]
     
     # all the solutions
-    pe : 'list[list[str]]' = [
-        ["p(1,2) p(1,6) p(1,9) p(2,4) p(2,5) p(2,8)",""] # ok anche per count
+    positive_examples : 'list[Example]' = [
+        Example(("p(1,2) p(1,6) p(1,9) p(2,4) p(2,5) p(2,8)",""), True) # ok also for count
     ]
     if not also_count:
-        pe.append(["p(1,2) p(1,4) p(1,5) p(1,6) p(2,8) p(2,9)",""])
+        positive_examples.append(Example(("p(1,2) p(1,4) p(1,5) p(1,6) p(2,8) p(2,9)",""), True))
     
     # remaining
-    ne : 'list[list[str]]' = [
-        ["p(1,2) p(1,4) p(1,5) p(1,6) p(1,8) p(1,9)",""],
-        ["p(1,2) p(1,5) p(1,6) p(1,8) p(1,9) p(2,4)",""],
-        ["p(1,2) p(1,4) p(1,6) p(1,8) p(1,9) p(2,5)",""],
-        ["p(1,2) p(1,6) p(1,8) p(1,9) p(2,4) p(2,5)",""],
-        ["p(1,2) p(1,4) p(1,5) p(1,8) p(1,9) p(2,6)",""],
-        ["p(1,2) p(1,5) p(1,8) p(1,9) p(2,4) p(2,6)",""],
-        ["p(1,2) p(1,4) p(1,8) p(1,9) p(2,5) p(2,6)",""],
-        ["p(1,2) p(1,8) p(1,9) p(2,4) p(2,5) p(2,6)",""],
-        ["p(1,2) p(1,4) p(1,5) p(1,6) p(1,9) p(2,8)",""],
-        ["p(1,2) p(1,5) p(1,6) p(1,9) p(2,4) p(2,8)",""],
-        ["p(1,2) p(1,4) p(1,6) p(1,9) p(2,5) p(2,8)",""],
-        ["p(1,2) p(1,4) p(1,5) p(1,9) p(2,6) p(2,8)",""],
-        ["p(1,2) p(1,5) p(1,9) p(2,4) p(2,6) p(2,8)",""],
-        ["p(1,2) p(1,4) p(1,9) p(2,5) p(2,6) p(2,8)",""],
-        ["p(1,2) p(1,9) p(2,4) p(2,5) p(2,6) p(2,8)",""],
-        ["p(1,2) p(1,4) p(1,5) p(1,6) p(1,8) p(2,9)",""],
-        ["p(1,2) p(1,5) p(1,6) p(1,8) p(2,4) p(2,9)",""],
-        ["p(1,2) p(1,4) p(1,6) p(1,8) p(2,5) p(2,9)",""],
-        ["p(1,2) p(1,6) p(1,8) p(2,4) p(2,5) p(2,9)",""],
-        ["p(1,2) p(1,4) p(1,5) p(1,8) p(2,6) p(2,9)",""],
-        ["p(1,2) p(1,5) p(1,8) p(2,4) p(2,6) p(2,9)",""],
-        ["p(1,2) p(1,4) p(1,8) p(2,5) p(2,6) p(2,9)",""],
-        ["p(1,2) p(1,8) p(2,4) p(2,5) p(2,6) p(2,9)",""],
-        ["p(1,2) p(1,5) p(1,6) p(2,4) p(2,8) p(2,9)",""],
-        ["p(1,2) p(1,4) p(1,6) p(2,5) p(2,8) p(2,9)",""],
-        ["p(1,2) p(1,6) p(2,4) p(2,5) p(2,8) p(2,9)",""],
-        ["p(1,2) p(1,4) p(1,5) p(2,6) p(2,8) p(2,9)",""],
-        ["p(1,2) p(1,5) p(2,4) p(2,6) p(2,8) p(2,9)",""],
-        ["p(1,2) p(1,4) p(2,5) p(2,6) p(2,8) p(2,9)",""],
-        ["p(1,2) p(2,4) p(2,5) p(2,6) p(2,8) p(2,9)",""]
+    negative_examples : 'list[Example]' = [
+        Example(("p(1,2) p(1,4) p(1,5) p(1,6) p(1,8) p(1,9)",""), False),
+        Example(("p(1,2) p(1,5) p(1,6) p(1,8) p(1,9) p(2,4)",""), False),
+        Example(("p(1,2) p(1,4) p(1,6) p(1,8) p(1,9) p(2,5)",""), False),
+        Example(("p(1,2) p(1,6) p(1,8) p(1,9) p(2,4) p(2,5)",""), False),
+        Example(("p(1,2) p(1,4) p(1,5) p(1,8) p(1,9) p(2,6)",""), False),
+        Example(("p(1,2) p(1,5) p(1,8) p(1,9) p(2,4) p(2,6)",""), False),
+        Example(("p(1,2) p(1,4) p(1,8) p(1,9) p(2,5) p(2,6)",""), False),
+        Example(("p(1,2) p(1,8) p(1,9) p(2,4) p(2,5) p(2,6)",""), False),
+        Example(("p(1,2) p(1,4) p(1,5) p(1,6) p(1,9) p(2,8)",""), False),
+        Example(("p(1,2) p(1,5) p(1,6) p(1,9) p(2,4) p(2,8)",""), False),
+        Example(("p(1,2) p(1,4) p(1,6) p(1,9) p(2,5) p(2,8)",""), False),
+        Example(("p(1,2) p(1,4) p(1,5) p(1,9) p(2,6) p(2,8)",""), False),
+        Example(("p(1,2) p(1,5) p(1,9) p(2,4) p(2,6) p(2,8)",""), False),
+        Example(("p(1,2) p(1,4) p(1,9) p(2,5) p(2,6) p(2,8)",""), False),
+        Example(("p(1,2) p(1,9) p(2,4) p(2,5) p(2,6) p(2,8)",""), False),
+        Example(("p(1,2) p(1,4) p(1,5) p(1,6) p(1,8) p(2,9)",""), False),
+        Example(("p(1,2) p(1,5) p(1,6) p(1,8) p(2,4) p(2,9)",""), False),
+        Example(("p(1,2) p(1,4) p(1,6) p(1,8) p(2,5) p(2,9)",""), False),
+        Example(("p(1,2) p(1,6) p(1,8) p(2,4) p(2,5) p(2,9)",""), False),
+        Example(("p(1,2) p(1,4) p(1,5) p(1,8) p(2,6) p(2,9)",""), False),
+        Example(("p(1,2) p(1,5) p(1,8) p(2,4) p(2,6) p(2,9)",""), False),
+        Example(("p(1,2) p(1,4) p(1,8) p(2,5) p(2,6) p(2,9)",""), False),
+        Example(("p(1,2) p(1,8) p(2,4) p(2,5) p(2,6) p(2,9)",""), False),
+        Example(("p(1,2) p(1,5) p(1,6) p(2,4) p(2,8) p(2,9)",""), False),
+        Example(("p(1,2) p(1,4) p(1,6) p(2,5) p(2,8) p(2,9)",""), False),
+        Example(("p(1,2) p(1,6) p(2,4) p(2,5) p(2,8) p(2,9)",""), False),
+        Example(("p(1,2) p(1,4) p(1,5) p(2,6) p(2,8) p(2,9)",""), False),
+        Example(("p(1,2) p(1,5) p(2,4) p(2,6) p(2,8) p(2,9)",""), False),
+        Example(("p(1,2) p(1,4) p(2,5) p(2,6) p(2,8) p(2,9)",""), False),
+        Example(("p(1,2) p(2,4) p(2,5) p(2,6) p(2,8) p(2,9)",""), False)
     ]
     
     if also_count:
-        ne.append(["p(1,2) p(1,4) p(1,5) p(1,6) p(2,8) p(2,9)",""])
+        negative_examples.append(Example(("p(1,2) p(1,4) p(1,5) p(1,6) p(2,8) p(2,9)",""), False))
         
     
-    lbh : 'list[str]' = [
-        "modeh(1, sum_partition(+,+))"
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "sum_partition", "2"), True)
     ]
     if also_count:
-        lbh.append("modeh(1, count_partition(+,+))")
+        language_bias_head.append(ModeDeclaration(("1", "count_partition", "2"), True))
     
-    lbb : 'list[str]' = [
-        "modeb(1, partition(+))",
-        "modeb(2, sum_partition(+,+))"
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("2", "sum_partition", "2", "positive"), False),
+        ModeDeclaration(("1", "partition", "1", "positive"), False)
     ]
     if also_count:
-        lbb.append("modeb(2, count_partition(+,+)")
+        language_bias_body.append(ModeDeclaration(("2", "count_partition", "2", "positive"), False))
     
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 
 def latin_square():
@@ -1921,7 +1809,7 @@ def latin_square():
     :- count_row(Row,C), cell(Row), size(S), C != S.
     '''
     # https://en.wikipedia.org/wiki/Latin_square
-    bg : 'list[str]' = [
+    background : 'list[str]' = [
         "cell(1..3).",
         "val(1..3).",
         "size(3).",
@@ -1930,187 +1818,51 @@ def latin_square():
     ]
     
     # all the existing solutions (4)
-    pe : 'list[list[str]]' = [
-        ["x(1,1,1) x(1,3,2) x(1,2,3) x(2,2,1) x(2,1,2) x(2,3,3) x(3,3,1) x(3,2,2) x(3,1,3)"],
-        ["x(1,1,1) x(1,3,2) x(1,2,3) x(2,3,1) x(2,2,2) x(2,1,3) x(3,2,1) x(3,1,2) x(3,3,3)"],
-        ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,2,1) x(3,3,2) x(3,1,3)"],
-        ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,2,1) x(2,3,2) x(2,1,3) x(3,3,1) x(3,1,2) x(3,2,3)"]
+    positive_examples : 'list[Example]' = [
+        Example(("x(1,1,1) x(1,3,2) x(1,2,3) x(2,2,1) x(2,1,2) x(2,3,3) x(3,3,1) x(3,2,2) x(3,1,3)", ""), True),
+        Example(("x(1,1,1) x(1,3,2) x(1,2,3) x(2,3,1) x(2,2,2) x(2,1,3) x(3,2,1) x(3,1,2) x(3,3,3)", ""), True),
+        Example(("x(1,1,1) x(1,2,2) x(1,3,3) x(2,3,1) x(2,1,2) x(2,2,3) x(3,2,1) x(3,3,2) x(3,1,3)", ""), True),
+        Example(("x(1,1,1) x(1,2,2) x(1,3,3) x(2,2,1) x(2,3,2) x(2,1,3) x(3,3,1) x(3,1,2) x(3,2,3)", ""), True)
     ]
     
     # all the solutions with only one of the two constraints -> too many
     # I select only 20 of them
-    ne : 'list[list[str]]' = [
-        ["x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-        ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-        ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,3) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-        ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-        ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,1) x(3,1,2) x(3,2,2) x(3,3,3)",""],
-        ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-        ["x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,3) x(2,2,3) x(2,3,3) x(3,1,2) x(3,2,2) x(3,3,2)",""],
-        ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-        ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-        ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-        ["x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,2) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,3) x(3,3,2)",""],
-        ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,3) x(2,2,3) x(2,3,3) x(3,1,2) x(3,2,2) x(3,3,1)",""],
-        ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,2) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-        ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-        ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,2) x(3,3,3)",""],
-        ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,3)",""],
-        ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-        ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,2) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,3) x(3,3,1)",""]
-    #     ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,3) x(2,2,3) x(2,3,3) x(3,1,2) x(3,2,1) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,3) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,1) x(3,1,3) x(3,2,3) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,3) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,3) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,1) x(3,1,3) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,3) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,1) x(2,1,2) x(2,2,3) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,1) x(2,1,2) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,1) x(2,1,3) x(2,2,3) x(2,3,3) x(3,1,2) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,1) x(2,1,2) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,3) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,1) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,3) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,1) x(2,1,3) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,1) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,3) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,2) x(1,3,1) x(2,1,3) x(2,2,3) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,2) x(2,2,2) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,2) x(2,2,1) x(2,3,1) x(3,1,3) x(3,2,2) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,1) x(3,1,2) x(3,2,2) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,2) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,2) x(2,2,2) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,2) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,2) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,3) x(3,2,2) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,3) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,2) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,3) x(2,2,2) x(2,3,3) x(3,1,2) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,3) x(2,2,2) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,1) x(3,1,3) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,1) x(3,1,2) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,2) x(2,3,3) x(3,1,2) x(3,2,1) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,1) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,1) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,1) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,2) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,3) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,3) x(2,2,3) x(2,3,3) x(3,1,2) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,3) x(2,2,2) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,2) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,3) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,3) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,3) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,2) x(2,2,2) x(2,3,2) x(3,1,3) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,2) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,2) x(3,1,2) x(3,2,3) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,2) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,3) x(3,2,2) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,3) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,2) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,3) x(2,2,3) x(2,3,2) x(3,1,2) x(3,2,2) x(3,3,1)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,2) x(2,2,2) x(2,3,2) x(3,1,3) x(3,2,3) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,2) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,2) x(2,2,3) x(2,3,3) x(3,1,3) x(3,2,2) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,2) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,2) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,3) x(2,2,3) x(2,3,3) x(3,1,2) x(3,2,2) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,3) x(2,2,2) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,2)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,3) x(2,2,2) x(2,3,2) x(3,1,2) x(3,2,3) x(3,3,3)",""],
-    #     ["x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,3) x(2,2,3) x(2,3,2) x(3,1,2) x(3,2,2) x(3,3,3)",""]
+    negative_examples : 'list[Example]' = [
+        Example(("x(1,1,1) x(1,2,3) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,1) x(3,2,3) x(3,3,2)",""), False),
+        Example(("x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""), False),
+        Example(("x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,3) x(3,1,3) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,2) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,3)",""), False),
+        Example(("x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,1) x(2,2,3) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""), False),
+        Example(("x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,1) x(3,1,2) x(3,2,2) x(3,3,3)",""), False),
+        Example(("x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,1) x(3,3,3)",""), False),
+        Example(("x(1,1,1) x(1,2,1) x(1,3,1) x(2,1,3) x(2,2,3) x(2,3,3) x(3,1,2) x(3,2,2) x(3,3,2)",""), False),
+        Example(("x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,3) x(2,3,1) x(3,1,2) x(3,2,1) x(3,3,3)",""), False),
+        Example(("x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,2) x(2,2,1) x(2,3,3) x(3,1,1) x(3,2,3) x(3,3,2)",""), False),
+        Example(("x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,3) x(3,1,2) x(3,2,3) x(3,3,1)",""), False),
+        Example(("x(1,1,1) x(1,2,1) x(1,3,3) x(2,1,2) x(2,2,2) x(2,3,1) x(3,1,3) x(3,2,3) x(3,3,2)",""), False),
+        Example(("x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,3) x(2,2,3) x(2,3,3) x(3,1,2) x(3,2,2) x(3,3,1)",""), False),
+        Example(("x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,2) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,1) x(3,3,2)",""), False),
+        Example(("x(1,1,1) x(1,2,2) x(1,3,3) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,3) x(3,2,1) x(3,3,2)",""), False),
+        Example(("x(1,1,1) x(1,2,3) x(1,3,1) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,2) x(3,2,2) x(3,3,3)",""), False),
+        Example(("x(1,1,1) x(1,2,2) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,1) x(3,1,2) x(3,2,3) x(3,3,3)",""), False),
+        Example(("x(1,1,1) x(1,2,3) x(1,3,2) x(2,1,3) x(2,2,1) x(2,3,2) x(3,1,1) x(3,2,2) x(3,3,3)",""), False),
+        Example(("x(1,1,1) x(1,2,1) x(1,3,2) x(2,1,2) x(2,2,2) x(2,3,3) x(3,1,3) x(3,2,3) x(3,3,1)",""), False)
     ]
     
-    lbh : 'list[str]' = [
-        "modeh(1, count_row(+,+))",
-        "modeh(1, count_col(+,+))"
+    language_bias_head : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "count_row", "2"), True),
+        ModeDeclaration(("1", "count_col", "2"), True)
     ]
     
-    lbb : 'list[str]' = [
-        "modeb(1, count_row(+,+))",
-        "modeb(1, count_row(+,+))",
-        "modeb(1, size(+))",
-        "modeb(1, cell(+))"
+    language_bias_body : 'list[ModeDeclaration]' = [
+        ModeDeclaration(("1", "count_row", "2", "positive"), False),
+        ModeDeclaration(("1", "count_col", "2", "positive"), False),
+        ModeDeclaration(("1", "cell", "1", "positive"), False),
+        ModeDeclaration(("1", "size", "1", "positive"), False)
     ]
     
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 def user_defined():
     '''
@@ -2118,21 +1870,21 @@ def user_defined():
     Place here your example.
     '''
     # background knowledge
-    bg : 'list[str]' = []
+    background : 'list[str]' = []
 
     # positive examples
-    pe : 'list[list[str]]' = []
+    positive_examples : 'list[Example]' = []
 
     # negative examples
-    ne : 'list[list[str]]' = []
+    negative_examples : 'list[Example]' = []
 
     # mode bias for the head
-    lbh : 'list[str]' = []
+    language_bias_head : 'list[ModeDeclaration]' = []
 
     # mode bias for the body
-    lbb : 'list[str]' = []
+    language_bias_body : 'list[ModeDeclaration]' = []
 
-    return bg, pe, ne, lbh, lbb
+    return Program(background, positive_examples, negative_examples, language_bias_head, language_bias_body)
 
 def run_example(example : str) -> Program:
     '''
