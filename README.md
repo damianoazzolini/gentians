@@ -1,16 +1,15 @@
 # GENTIANS: GENeTic algorithm for Inductive learning of ANswer Set programs.
 
-This tool learns answer set programs from examples.
-It also allows aggregates.
-
-The documentation is in progress.
+GENTIANS is a tool to learn answer set programs from examples.
+It also supports aggregates, comparison, and arithmetic operators.
 
 ## Installation
+You can install GENTIANS with:
 ```
 python -m pip install .
 ```
 in the root folder (here).
-If you want to modify it, add the option `-e` before `.`
+If you want to add modification to the code, remember to add the option `-e` before `.` in the above command.
 
 ## Usage
 
@@ -19,18 +18,16 @@ You can get a list of the available options with:
 gentians --help
 ```
 
-There are several built in examples.
-See the file `example_programs.py` to see the structure of these, together with a brief description.
+Generally, you need to provide a file with a background knowledge, positive and negative examples, and the language bias definition.
+However, there are several built in examples in the tool (see the file `example_programs.py`) that can be called with the `-e` option.
+
 For example if you want to run the hamming example, you can use
 ```
 gentians -e hamming_0 -d 3 --aggregates "sum(d/2)" "count(d/2)" --comparison neq --verbose=2 --variables=4 -ua
 ```
 where `-e` specifies the example, `-d` set the maximum length of a clause (number of literals), `--aggregates` is followed by the allowed aggregates, in this case `#sum` over `d/2` and `#count` over `d/2`, `--comparison` is followed by the allowed comparison operators, in this case `!=` (`neq`), `--verbose` is followed by the verbosity level, `--variables` is followed by the maximum number of variables in a rule, and `-ua` specifies that unbalanced aggregates are allowed.
 
-All the experiments are stored as examples, so with the flag `-e` is it possible to run them all (simply select the one of interest). 
-
-To specify your own example, fill the needed data into the function `user_defined` of `example_programs.py`.
-Soon there will be the possibility to specify a scenario via files.
+If instead you prefer to define your own program and domain, keep reading.
 
 ## Language Bias Definition
 You can define the language bias (i.e., atoms and literals that can appear in the head and body of rules) with the following syntax.
@@ -91,6 +88,8 @@ Examples:
 --aggregates "sum(p/2)" "count(q/2)"
 ```
 
+Pay attention with aggregates since you may encounter an infinite grounding, so the program will never terminate.
+
 ## Comparison and Arithmetic Operators in Language Bias
 You can define comparison operators and arithmetic operators in the language bias via the `--comparison` and `--arithm` option, respectively, on the CLI (not directly in the source file, by now).
 
@@ -109,7 +108,7 @@ Examples:
 ## Automatic Language Bias
 You can leave the solver discovering the language bias automatically.
 This scans positive and negative examples and background knowledge and extracts the signature for each atom in the examples and each head and body literal in background knowledge.
-Then, adds each signature as mode bias for the head and for the body.
+Then, it adds each signature as mode bias for the head and for the body.
 You can activate this with the flag `-alb=n` where `n` is a number: if it is positive, indicates the recall for each literal (i.e., all literals will have the same recall); if it is negative, its absolute value indicates the recall for each literal and also states that these can be negated literals.
 Note that `-alb` ignores the language bias defined in the program file (i.e., `#modeb` and `#modeh`).
 If you also use `--aggregates`, `--comparison`, or `--arithm` options, these will be kept.
@@ -132,7 +131,7 @@ The flag -alb=1 translates into:
 ```
 If `-alb=-1` is used, the `#modeb` above will have `negative` instead of `positive` as fourth argument.
 
-Currently, pay attention when using this together with aggregates, since you may encounter an infinite loop whle grounding the program.
+Currently, pay attention when using this together with aggregates, since you may encounter an infinite loop while grounding the program.
 
 ## Predicate Invention
 You can enable predicate invention with the option `--invention=N` where `N` is the number of predicates to invent.
